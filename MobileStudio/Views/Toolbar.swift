@@ -22,20 +22,19 @@ struct WorkspaceToolbar: ToolbarContent {
                 ActivityView(activity: workspace.activity)
             }
             .padding(.horizontal, 10)
-            .frame(minWidth: 340, maxWidth: 520)
+            .frame(minWidth: 300, maxWidth: 460)
             .frame(height: 28)
             .background(.quaternary.opacity(0.6), in: RoundedRectangle(cornerRadius: 7, style: .continuous))
         }
 
+        // Hot Reload isn't here: Claude's edits reload on their own, and it stays in the Product menu (⇧⌘R).
         ToolbarItemGroup(placement: .primaryAction) {
-            Button(action: workspace.hotReload) { Label("Hot Reload", systemImage: "bolt.fill") }
-                .disabled(!workspace.canHotReload)
-                .help("Hot Reload (⇧⌘R)")
+            // The one tool in the toolbar with words: pointing at something is how low-code users say "this one".
             Toggle(isOn: Binding(get: { workspace.pick.isPicking }, set: { _ in workspace.togglePick() })) {
-                Label("Pick Element", systemImage: "scope")
+                Label("Point at…", systemImage: "scope").labelStyle(.titleAndIcon)
             }
             .disabled(!workspace.canPick)
-            .help("Pick Element (⇧⌘E): tap an element in the app to reference it in the chat")
+            .help("Point at something in the app to show Claude what you mean (⇧⌘E)")
             Toggle(isOn: Bindable(workspace).isLogVisible) { Label("Build Log", systemImage: "text.alignleft") }
                 .help("Show Build Log (⇧⌘Y)")
             Toggle(isOn: Bindable(workspace).isChatVisible) { Label("Chat", systemImage: "sidebar.right") }

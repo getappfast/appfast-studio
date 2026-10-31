@@ -12,10 +12,14 @@ show Claude exactly what you mean.
   first. Projects with flavors run the flavor you pick in the sidebar. Mobile Studio also finds an app left
   running by an earlier run or a terminal and offers to reconnect.
 - **Build log** under the device (⇧⌘Y), and a banner that says what to do when something goes wrong.
-- **Changes at a glance.** The sidebar lists every file Claude changed; click one to see its diff.
-- **Chat with Claude Code** in your project folder. Changed files are listed from the disk itself, not from
+- **History.** The sidebar lists every change Claude made, in plain words; click a file to see its diff.
+- **Ask, see, undo.** Ask Claude for a change in plain words; the running app reloads on its own to show it,
+  and every change can be undone from the chat or the History list. Answers say what changed in the app
+  first, with the technical details folded away. Changed files are listed from the disk itself, not from
   what Claude says it did.
-- **Pick.** Tap an element in the running app to attach its widget and source location to your next message.
+- **Point at it.** Press **Point at…** and tap something in the running app; a picture of it and its place in
+  the code go with your next message. Or click a screen in the sidebar's **Screens** list to ask about it.
+- **Preview settings.** Switch the simulator between light and dark, and change its text size, right under the device.
 - **Fix with Claude.** When a run fails, Claude finds the cause, makes the smallest fix, and the app runs
   again to check it.
 - **Project check.** Claude (read-only) confirms the folder is a Flutter app and lists its run flavors.
@@ -58,7 +62,8 @@ xcodebuild -project MobileStudio.xcodeproj -scheme MobileStudio test
 1. Follow **Get Started** in the sidebar: it checks the Claude CLI, your sign-in, the simulators and your project.
 2. Choose your Flutter project (⌘O), the folder that contains `pubspec.yaml`.
 3. Pick a simulator from the toolbar and press **Run** (⌘R).
-4. Once it's running, use **Hot Reload** (⇧⌘R) and **Pick** (⇧⌘E), or just ask Claude in the chat (⌥⌘0 shows it).
+4. Ask Claude for a change in the chat (⌥⌘0 shows it). Use **Point at…** (⇧⌘E) to show it what you mean. The app
+   reloads by itself after each change, and **Undo** puts things back.
 
 | Shortcut | Action |
 |---|---|

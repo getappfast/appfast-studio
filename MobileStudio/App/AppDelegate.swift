@@ -43,6 +43,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 ///     MOBILE_STUDIO_SNAPSHOT_TIMES=30,120       capture at each of these seconds (main-30.png, …) instead
 ///     MOBILE_STUDIO_SNAPSHOT_FIX=1              with RUN: press Fix with Claude when the run fails
 ///     MOBILE_STUDIO_SNAPSHOT_TOOLBAR=1          also write the toolbar's controls: label, enabled, value
+///     MOBILE_STUDIO_SNAPSHOT_CHAT="message"     with RUN: send this chat message once the app runs
+///     MOBILE_STUDIO_SNAPSHOT_UNDO_AFTER=20      then undo its edits this many seconds after the answer
 ///     MOBILE_STUDIO_CLAUDE_CLI=/path/to/stub    use this claude executable instead of the installed one
 ///
 /// Snapshot runs skip Claude's automatic project check, so they cost nothing.

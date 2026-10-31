@@ -27,6 +27,14 @@ final class Workspace {
     var diffFile: FileSnapshot.Change?
     /// The failure the user closed the banner of. A newer failure brings the banner back.
     private(set) var dismissedFailureDate: Date?
+    /// A short confirmation over the device ("Updated", "Undone"), cleared after a few seconds.
+    private(set) var toast: Toast?
+    /// What's typed in the chat box. Here rather than in the view so the Screens list can start a message.
+    var chatDraft = ""
+    /// Bumped to put the cursor in the chat box.
+    private(set) var composerFocusRequest = 0
+    /// The app's screens, found in its source; refreshed when Claude changes files.
+    private(set) var screens: [AppScreen] = []
 
     /// False for snapshot runs (see `AppDelegate`), so screenshots don't spend money on a project check.
     @ObservationIgnored var runsAutomaticChecks = true
@@ -36,6 +44,9 @@ final class Workspace {
     private var runAfterBoot = false
     /// The chat message showing the Fix with Claude run in progress.
     @ObservationIgnored private var fixMessageID: UUID?
+    /// Run Again was pressed while the app ran: run once it has stopped.
+    @ObservationIgnored private var runAfterStop = false
+    @ObservationIgnored private var toastTask: Task<Void, Never>?
 
     private enum Keys {
         static let chatVisible = "window.chatVisible.v1"
@@ -54,6 +65,7 @@ final class Workspace {
     /// First appearance: find the CLI and accounts, then check the saved project.
     func start() async {
         chat.load(folder: project.readyFolder)
+        refreshScreens()
         await studio.refresh()
         if runsAutomaticChecks { project.autoVerify(studio.projectVerifier) }
         refreshExistingApp()
@@ -138,6 +150,39 @@ final class Workspace {
         var canStartNewChat, canFix, canCheckProject: Bool
     }
 
+    /// Everything wrong with the project that the user may need to act on, worst first.
+    var issues: [ProjectIssue] {
+        guard let flutter = flutterProject else { return [] }
+        var issues: [ProjectIssue] = []
+        if let failure = visibleFailure { issues.append(.init(tone: .failure, title: "Run failed", detail: failure.message)) }
+        if !flutter.platforms.contains("ios") {
+            issues.append(.init(tone: .warning, title: "No ios folder", detail: "It can't run in the iOS Simulator."))
+        }
+        if !flutter.hasMainDart { issues.append(.init(tone: .warning, title: "lib/main.dart is missing", detail: nil)) }
+        if case .done(let verdict) = project.verification {
+            issues += verdict.problems.map { .init(tone: .warning, title: $0, detail: nil) }
+        }
+        if case .failed(let message) = project.verification {
+            issues.append(.init(tone: .warning, title: "Claude couldn't check the project", detail: message))
+        }
+        if let note = project.refreshNote { issues.append(.init(tone: .warning, title: note, detail: nil)) }
+        return issues
+    }
+
+    struct ProjectIssue: Equatable, Hashable {
+        let tone: StatusTone
+        let title: String
+        let detail: String?
+    }
+
+    struct Toast: Equatable {
+        enum Action: Equatable { case runAgain }
+        let id = UUID()
+        let tone: StatusTone
+        let text: String
+        var action: Action?
+    }
+
     struct Activity: Equatable {
         let tone: StatusTone
         let text: String
@@ -201,6 +246,42 @@ final class Workspace {
 
     func showDiff(of change: FileSnapshot.Change) { diffFile = change }
 
+    /// Starts a chat message about a screen, for people who'd rather name it than point at it.
+    func mention(_ screen: AppScreen) {
+        chatDraft = "On the \(screen.name) screen, "
+        isChatVisible = true
+        composerFocusRequest += 1
+    }
+
+    /// Stops the app and runs it again, for changes hot reload can't apply (packages, iOS settings).
+    func runAgain() {
+        toast = nil
+        guard run.phase.isActive else { runApp(); return }
+        runAfterStop = true
+        stopApp()
+    }
+
+    /// Undoes an answer's edits, and every newer answer's first, so files go back in order.
+    func undo(_ message: ChatMessage) {
+        guard let folder = project.readyFolder, !chat.isSending, !fix.isBusy else { return }
+        let newestFirst = chat.undoable
+        guard let target = newestFirst.firstIndex(where: { $0.id == message.id }) else { return }
+        var restored: [FileSnapshot.Change] = []
+        for answer in newestFirst[...target] {
+            guard let id = answer.checkpointID else { continue }
+            do {
+                restored += try CheckpointStore.restore(id: id, folder: folder)
+                chat.markUndone(answer.id)
+            } catch {
+                show(Toast(tone: .warning, text: error.localizedDescription))
+                return
+            }
+        }
+        applyEdits(restored, done: "Undone")
+    }
+
+    func dismissToast() { toast = nil }
+
     // MARK: Events
 
     /// The folder was changed or removed: anything running belongs to the old one.
@@ -218,6 +299,20 @@ final class Workspace {
     func projectStateChanged() {
         chat.load(folder: project.readyFolder)
         refreshExistingApp()
+        refreshScreens()
+    }
+
+    /// A chat answer finished: show its edits in the running app.
+    func chatSendingChanged() {
+        guard !chat.isSending, let reply = chat.messages.last, reply.role == .assistant else { return }
+        applyEdits(reply.files, done: "Updated")
+    }
+
+    /// A pick came in: give it a picture of where the user tapped.
+    func picksChanged() {
+        guard let newest = pick.picks.last, newest.thumbnail == nil,
+              let tap = simulator.lastTap, Date().timeIntervalSince(tap.date) < 20 else { return }
+        pick.setThumbnail(tap.image, for: newest.id)
     }
 
     func deviceChanged() {
@@ -240,6 +335,11 @@ final class Workspace {
         // Select mode only exists while the app runs.
         if run.phase != .running { pick.cancel() }
         guard !run.phase.isActive else { return }
+        if runAfterStop {
+            runAfterStop = false
+            runApp()
+            return
+        }
         // The flutter tool takes a moment to let go of the app after it exits.
         Task {
             try? await Task.sleep(for: .seconds(2))
@@ -269,6 +369,47 @@ final class Workspace {
     }
 
     // MARK: Rules
+
+    /// Makes changed files show in the running app: hot reload for code, a hot restart when start-up code changed,
+    /// and an offer to run again for packages and native settings, which only a new build picks up.
+    private func applyEdits(_ files: [FileSnapshot.Change], done: String) {
+        guard !files.isEmpty else { return }
+        if files.contains(where: { $0.path.hasPrefix("lib/") }) { refreshScreens() }
+        guard run.phase == .running else {
+            if done == "Undone" { show(Toast(tone: .success, text: "Undone")) }
+            return
+        }
+        let count = files.count == 1 ? "1 file" : "\(files.count) files"
+        let paths = files.map(\.path)
+        if paths.contains(where: { $0.hasPrefix("pubspec") || $0.hasPrefix("ios/") || $0.hasPrefix("android/") }) {
+            show(Toast(tone: .warning, text: "\(done) \(count). Run again to apply package or iOS changes.", action: .runAgain))
+        } else if paths.contains("lib/main.dart") {
+            run.hotRestart()
+            show(Toast(tone: .success, text: "\(done) · restarted the app"))
+        } else {
+            run.hotReload()
+            show(Toast(tone: .success, text: "\(done) · \(count)"))
+        }
+    }
+
+    private func show(_ toast: Toast) {
+        self.toast = toast
+        toastTask?.cancel()
+        // One that asks for something stays until it's used or dismissed.
+        guard toast.action == nil else { return }
+        toastTask = Task {
+            try? await Task.sleep(for: .seconds(4))
+            if !Task.isCancelled, self.toast?.id == toast.id { self.toast = nil }
+        }
+    }
+
+    private func refreshScreens() {
+        guard let folder = project.readyFolder else { screens = []; return }
+        Task {
+            let found = await ScreenFinder.found(in: folder)
+            if project.readyFolder == folder { screens = found }
+        }
+    }
 
     /// Looks for the project's app already running on the selected simulator, so it can be reconnected to.
     private func refreshExistingApp() {

@@ -17,6 +17,12 @@ struct ChatMessage: Identifiable, Equatable, Codable {
     var pending = false
     /// UI elements the user picked in the running app and attached to this message.
     var references: [String]?
+    /// Pictures of those elements, as file names in the thumbnails folder, in the same order.
+    var referenceImages: [String?]?
+    /// The saved state from before this answer's edits, when they can be undone.
+    var checkpointID: UUID?
+    /// The edits were undone.
+    var undone: Bool?
     let date: Date
 
     init(role: Role, text: String, pending: Bool = false, references: [String]? = nil) {
@@ -71,13 +77,36 @@ final class ChatModel {
         messages = []
         sessionID = nil
         sessionProfile = nil
-        if let folder { try? FileManager.default.removeItem(at: Self.url(for: folder)) }
+        if let folder {
+            try? FileManager.default.removeItem(at: Self.url(for: folder))
+            CheckpointStore.discardAll(folder: folder)
+        }
     }
 
     func stop() {
         guard isSending else { return }
         stopRequested = true
         process?.cancel()
+    }
+
+    /// What this conversation has cost so far.
+    var totalCost: Double { messages.compactMap(\.cost).reduce(0, +) }
+
+    /// Answers whose edits can still be undone, newest first. Undoing one undoes the newer ones too.
+    var undoable: [ChatMessage] {
+        messages.filter { $0.checkpointID != nil && $0.undone != true }.reversed()
+    }
+
+    /// The request a reply answered: the user message just before it.
+    func request(for reply: ChatMessage) -> ChatMessage? {
+        guard let index = index(of: reply.id), index > 0, messages[index - 1].role == .user else { return nil }
+        return messages[index - 1]
+    }
+
+    func markUndone(_ id: UUID) {
+        guard let index = index(of: id) else { return }
+        messages[index].undone = true
+        save()
     }
 
     /// Every file changed in this conversation, as it stands now: a file added and then edited is still
@@ -121,6 +150,7 @@ final class ChatModel {
             messages[index].text = Self.describe(outcome)
             messages[index].files = outcome.files
             messages[index].cost = outcome.cost
+            messages[index].checkpointID = outcome.checkpointID
         case .failed(let message):
             messages[index].error = message
         case .idle, .fixing, .validating:
@@ -163,7 +193,11 @@ final class ChatModel {
         sessionID = session
         sessionProfile = profile.id
 
-        messages.append(ChatMessage(role: .user, text: text, references: references.isEmpty ? nil : references.map(\.label)))
+        var request = ChatMessage(role: .user, text: text, references: references.isEmpty ? nil : references.map(\.friendlyLabel))
+        if references.contains(where: { $0.thumbnail != nil }) {
+            request.referenceImages = references.map { pick in pick.thumbnail.flatMap(Self.saveThumbnail) }
+        }
+        messages.append(request)
         let reply = ChatMessage(role: .assistant, text: "", pending: true)
         messages.append(reply)
         if let note { messages[messages.count - 1].activity.append(note) }
@@ -175,7 +209,7 @@ final class ChatModel {
     }
 
     private func perform(_ call: ClaudeAgentCall, folder: String, claude: ClaudeAccess, resuming: Bool, replyID: UUID) async {
-        let before = await FileSnapshot.taken(of: folder)
+        let before = await FileSnapshot.taken(of: folder, keepingContents: true)
         let process = await claude.agentProcess(call, folder: folder, timeout: 30 * 60)
         self.process = process
         Self.log.append("SEND in \(folder) (\(call.session))\n\(call.prompt)")
@@ -205,10 +239,14 @@ final class ChatModel {
         self.process = nil
 
         let after = await FileSnapshot.taken(of: folder)
+        let changes = after.changes(since: before)
+        let undoable = !changes.isEmpty
+            && CheckpointStore.save(id: replyID, folder: folder, changes: changes, before: before, after: after)
         if let index = index(of: replyID) {
             messages[index].pending = false
             messages[index].cost = cost
-            messages[index].files = after.changes(since: before)
+            messages[index].files = changes
+            if undoable { messages[index].checkpointID = replyID }
             if stopRequested { messages[index].error = "Stopped." } else { messages[index].error = failure }
         }
         // A failed first turn leaves nothing to resume.
@@ -245,11 +283,16 @@ final class ChatModel {
     // MARK: Claude call
 
     private static let systemPrompt = """
-        You are the coding agent inside Mobile Studio, a desktop app where the user builds a Flutter app and sees it \
-        running in an iOS Simulator next to this chat. The current directory is their project. Make the change they \
-        ask for directly, keep answers short, and say which files you changed. Do not commit or touch git history. \
-        Never run `flutter run`, the app runs it. After changing code, check it with `dart analyze` or \
-        `flutter analyze` when that is cheap.
+        You are the coding agent inside Mobile Studio, a desktop app where people build a Flutter app by asking for \
+        changes and seeing them in an iOS Simulator next to this chat. Many of them don't read code. The current \
+        directory is their project. Make the change they ask for directly. Do not commit or touch git history. \
+        Never run `flutter run`: the app runs it, and it reloads the app on its own after you change files, so never \
+        say you couldn't see the result. After changing code, check it with `dart analyze` when that is cheap.
+
+        Answer in two parts. First, one to three short plain sentences on what changed in the app, as the user will \
+        see it ("The three water buttons now share the row and shrink on small phones."), without class names, \
+        file paths or code. Then a line with only `---`, then brief technical notes for developers: files, widgets, \
+        checks you ran. If nothing changed, say why in the first part and skip the rest.
         """
 
     /// Edits stay inside the project folder; shell access is limited to Flutter, Dart, CocoaPods and read-only git.
@@ -265,6 +308,18 @@ final class ChatModel {
                 "git status *", "git diff *", "git log *", "git branch *",
             ]
         )
+    }
+
+    // MARK: Thumbnails
+
+    private static var thumbnails: URL { ProjectStorage.root.appendingPathComponent("Thumbnails") }
+
+    static func thumbnailURL(_ name: String) -> URL { thumbnails.appendingPathComponent(name) }
+
+    private static func saveThumbnail(_ data: Data) -> String? {
+        let name = UUID().uuidString + ".png"
+        try? FileManager.default.createDirectory(at: thumbnails, withIntermediateDirectories: true)
+        return (try? data.write(to: thumbnailURL(name))) != nil ? name : nil
     }
 
     // MARK: Persistence

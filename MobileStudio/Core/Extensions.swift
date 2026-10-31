@@ -21,3 +21,19 @@ extension UserDefaults {
         set(data, forKey: key)
     }
 }
+
+/// Per-project storage under ~/Library/Application Support/Mobile Studio, keyed by a hash of the folder path.
+enum ProjectStorage {
+    static func directory(_ kind: String, for folder: String) -> URL {
+        root.appendingPathComponent("\(kind)/\(key(folder))")
+    }
+
+    static var root: URL {
+        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("Mobile Studio")
+    }
+
+    static func key(_ folder: String) -> String {
+        FileSnapshot.hash(Data(folder.utf8)).prefix(16).description
+    }
+}

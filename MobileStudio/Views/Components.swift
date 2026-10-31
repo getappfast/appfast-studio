@@ -118,25 +118,35 @@ extension FileSnapshot.Change.Kind {
         switch self { case .modified: .orange; case .added: .green; case .deleted: .red }
     }
 
-    var spokenName: String {
-        switch self { case .modified: "Modified"; case .added: "Added"; case .deleted: "Deleted" }
+    var verb: String {
+        switch self { case .modified: "edited"; case .added: "new"; case .deleted: "removed" }
+    }
+
+    var symbol: String {
+        switch self { case .modified: "pencil.circle.fill"; case .added: "plus.circle.fill"; case .deleted: "minus.circle.fill" }
     }
 }
 
-/// One changed file: its M/A/D badge and path. Opens the diff when the row is clicked.
+/// One changed file in plain words ("Home screen · edited"), with its path underneath for developers.
 struct FileChangeRow: View {
     let change: FileSnapshot.Change
-    var font: Font = .system(.callout, design: .monospaced)
+    var compact = false
 
     var body: some View {
-        HStack(spacing: 6) {
-            Text(change.kind.badge)
-                .foregroundStyle(change.kind.tint)
-                .fontWeight(.semibold)
-            Text(change.path).lineLimit(1).truncationMode(.head)
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
+            Image(systemName: change.kind.symbol).foregroundStyle(change.kind.tint).imageScale(.small)
+            VStack(alignment: .leading, spacing: 1) {
+                (Text(FriendlyName.of(change.path)) + Text(" · \(change.kind.verb)").foregroundStyle(.secondary))
+                    .lineLimit(1)
+                if !compact {
+                    Text(change.path).font(.system(.caption2, design: .monospaced)).foregroundStyle(.tertiary)
+                        .lineLimit(1).truncationMode(.head)
+                }
+            }
         }
-        .font(font)
+        .font(compact ? .caption : .callout)
+        .help(change.path)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(change.kind.spokenName) \(change.path)")
+        .accessibilityLabel("\(FriendlyName.of(change.path)), \(change.kind.verb)")
     }
 }

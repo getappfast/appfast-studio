@@ -9,17 +9,22 @@ this file in the same change.
 Mobile Studio is a native macOS app (SwiftUI, Swift 6, macOS 14+) for building Flutter apps with a coding agent.
 One window shows:
 
-- **Toolbar** (like Xcode's): Run/Stop, the destination simulator menu, an activity line, Hot Reload, Pick,
-  and toggles for the build log and the chat. Every toolbar action is also in the Product/View menus with a
-  shortcut (⌘R, ⌘., ⇧⌘R, ⇧⌘E, ⇧⌘Y, ⌥⌘0).
-- **Sidebar:** a setup checklist until everything is ready, then the project, Issues, Changes (every file
-  Claude changed, each opening a git diff), Flavors (the one Run uses) and Claude's read-only project check.
+- **Toolbar** (like Xcode's): Run/Stop, the destination simulator menu, an activity line, **Point at…**
+  (Pick), and toggles for the build log and the chat. Every action is also in the Product/View menus with a
+  shortcut (⌘R, ⌘., ⇧⌘R hot reload, ⇧⌘E, ⇧⌘Y, ⌥⌘0).
+- **Sidebar:** a setup checklist until everything is ready, then the project (a health badge opens a popover
+  with issues, the run flavor and Claude's project check), **Screens** (found in the source; clicking one starts
+  a chat message about it) and **History** (every change Claude made, undoable, each file opening a git diff).
 - **Canvas:** a live iOS Simulator screen drawn in-app from CoreSimulator's framebuffer (click → tap,
   drag → swipe). One banner above it for what matters now (run failed → *Fix with Claude*, an app already
   running → Reconnect, a fix in progress), and a build log drawer under it.
-- **Chat inspector:** Claude Code running in the project folder as the selected account, with rendered
-  markdown, a step list and clickable file changes. *Fix with Claude* runs appear here as messages too.
-  *Pick* attaches a widget tapped in the running app.
+- **Chat inspector:** Claude Code running in the project folder as the selected account. Answers lead with
+  the outcome in plain words; technical notes and steps sit behind a disclosure. Each answer that changed
+  files has **Undo**. *Fix with Claude* runs appear here as messages too. *Point at…* attaches a widget
+  tapped in the running app, with a picture of it.
+- **The loop it's built around:** ask → see → undo. After Claude edits, the running app reloads on its own
+  (`Workspace.applyEdits`: hot reload, a hot restart for start-up code, or a "Run Again" toast for packages
+  and native settings), and every turn saves a checkpoint (`CheckpointStore`) so it can be undone.
 
 The app shells out to the user's own `claude` CLI, `flutter`, `xcrun simctl` and `git`. It is **not sandboxed**,
 on purpose: it has to launch those tools.
@@ -118,6 +123,11 @@ Mobile Studio runs an agent with edit rights on the user's code, so these are ha
   A disabled control gets a reason the user can read nearby (see `RunBar.blocker`).
 - **Icon-only buttons** use `Label(title, systemImage:).labelStyle(.iconOnly)`, so VoiceOver reads the title,
   plus `.help(...)`.
+- **Write for people who don't read code.** Name files with `FriendlyName` ("Home screen · edited"), keep
+  paths as secondary text or help, and keep the chat system prompt's two-part answer rule (outcome, `---`,
+  technical notes; split by `AnswerParts`).
+- **Undo must never lose the user's work.** `CheckpointStore.restore` checks every file first and changes
+  nothing if one was edited since. Anything else that edits the project should save a checkpoint too.
 - **Status never relies on colour alone:** use `StatusBadge` / `StatusTone` (a symbol and a colour), not dots.
 - **Reuse the shared views** in `Views/Components.swift`: `StatusBadge`, `Banner`, `CommandHint`,
   `FileChangeRow`; in Settings, `SettingsHeader` and `MonospacedValue`. Settings is `Form` +
@@ -135,10 +145,14 @@ Mobile Studio runs an agent with edit rights on the user's code, so these are ha
 
 ## Layout pitfalls (macOS 26)
 
+- The toolbar overflows into a `>>` menu when its items get too wide. Only Point at… has a text label; keep
+  new items icon-only, and check the toolbar in a snapshot after adding one.
+
 - The sidebar floats over the detail column, and the detail column reserves the sidebar's width as an inset.
-  A `minWidth` on detail content is therefore paid twice, and with the chat inspector open it pushed the
-  whole split view wider than the window (the sidebar started off-screen). Don't put minimum widths on the
-  detail content; size the window instead.
+  A minimum width on detail content is therefore paid twice, and with the chat inspector open it pushed the
+  whole split view wider than the window (the sidebar started off-screen). This includes rows whose content
+  can't shrink, like the device footer: it uses `ViewThatFits` to drop to icons. Don't give detail content a
+  minimum width; check `-main.txt` from a `MOBILE_STUDIO_SNAPSHOT_TREE=1` run after layout changes.
 
 ## Seeing the UI
 
@@ -155,7 +169,8 @@ log and `MOBILE_STUDIO_SNAPSHOT_TREE=1` also writes the view hierarchy with fram
 above was found. `MOBILE_STUDIO_SNAPSHOT_RUN=1` presses Run (a real `flutter run`) and
 `MOBILE_STUDIO_SNAPSHOT_TIMES=20,120` captures at each of those seconds, to follow a build through. Point it at a
 throwaway project with `-project.path.v1 /path/to/app`, never at the user's own. To check Fix with Claude without
-spending anything, add `MOBILE_STUDIO_SNAPSHOT_FIX=1` and point `MOBILE_STUDIO_CLAUDE_CLI` at a stand-in script that
+spending anything, add `MOBILE_STUDIO_SNAPSHOT_FIX=1` (or `MOBILE_STUDIO_SNAPSHOT_CHAT="…"` with `MOBILE_STUDIO_SNAPSHOT_UNDO_AFTER=20`
+for the ask → reload → undo loop) and point `MOBILE_STUDIO_CLAUDE_CLI` at a stand-in script that
 answers `--version` and `auth status`, prints stream-json, and makes the fix. Launch arguments override saved settings for that run only, e.g.
 `-window.chatVisible.v1 '<false/>'`. Glass toolbar platters and AppKit-hosted list rows don't draw in these
 captures; everything else does. See `Snapshot` in `App/AppDelegate.swift`.

@@ -71,7 +71,7 @@ struct DiffSheet: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 10) {
-                FileChangeRow(change: change, font: .system(.headline, design: .monospaced))
+                FileChangeRow(change: change).font(.headline)
                 Spacer()
                 Button("Open") { NSWorkspace.shared.open(fileURL) }.disabled(change.kind == .deleted)
                 Button("Show in Finder") { NSWorkspace.shared.activateFileViewerSelecting([fileURL]) }

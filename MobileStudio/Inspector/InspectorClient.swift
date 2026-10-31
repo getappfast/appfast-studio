@@ -22,6 +22,10 @@ struct PickedWidget: Equatable, Sendable, Identifiable {
     var ancestors: [WidgetPlace]
 
     var label: String { "\(place.type) · \(place.file):\(place.line)" }
+    /// "Text in Water screen", for people who don't read code.
+    var friendlyLabel: String { "\(place.type) in \(FriendlyName.of(place.file))" }
+    /// A picture of where the user tapped, as PNG.
+    var thumbnail: Data?
 
     /// One line for the prompt.
     var promptLine: String {

@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// The sidebar: setup until everything is in place, then the project, what's wrong with it, what Claude
-/// changed, its flavors and Claude's check of it.
+/// The sidebar: setup until everything is in place, then the project, its screens, and the history of what
+/// Claude changed, each step undoable. Project health lives in a popover off the header.
 struct ProjectSidebar: View {
     let workspace: Workspace
 
@@ -19,10 +19,8 @@ struct ProjectSidebar: View {
                 Section("Project") { invalidProject(path: path, reason: reason) }
             case .ready(let flutter):
                 Section("Project") { ProjectHeader(workspace: workspace, flutter: flutter) }
-                IssuesSection(workspace: workspace, flutter: flutter)
-                ChangesSection(workspace: workspace)
-                FlavorsSection(project: project)
-                CheckSection(workspace: workspace)
+                ScreensSection(workspace: workspace)
+                HistorySection(workspace: workspace)
             }
         }
         .listStyle(.sidebar)
@@ -50,39 +48,46 @@ private struct ProjectHeader: View {
     let workspace: Workspace
     let flutter: FlutterProject
 
+    @State private var showingHealth = false
+
     private var project: ProjectModel { workspace.project }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .firstTextBaseline) {
                 Text(flutter.name).font(.headline).lineLimit(1)
-                if let version = flutter.version { Text(version).foregroundStyle(.secondary).font(.callout) }
                 Spacer(minLength: 4)
                 actions
             }
-            status
-            if let branch = project.branch {
-                Label(branch, systemImage: "arrow.triangle.branch").foregroundStyle(.secondary).lineLimit(1)
-                    .help("Current git branch")
-            }
-            Label(flutter.platforms.isEmpty ? "No platform folders" : flutter.platforms.joined(separator: ", "),
-                  systemImage: "square.stack.3d.up")
-                .foregroundStyle(.secondary).lineLimit(1)
+            Button { showingHealth.toggle() } label: { health }
+                .buttonStyle(.plain)
+                .help("Project health")
+                .popover(isPresented: $showingHealth, arrowEdge: .trailing) {
+                    ProjectHealthView(workspace: workspace, flutter: flutter)
+                }
         }
-        .font(.callout)
         .padding(.vertical, 4)
     }
 
+    /// One line: healthy, being checked, or how many things need attention.
     @ViewBuilder
-    private var status: some View {
-        switch project.verification {
-        case .idle: StatusBadge(tone: .neutral, title: "Not checked yet")
-        case .running: StatusBadge(tone: .neutral, title: "Claude is checking…")
-        case .done(let verdict):
-            StatusBadge(tone: verdict.isFlutterProject ? .success : .failure,
-                        title: verdict.isFlutterProject ? "Valid Flutter project" : "Not a valid Flutter project")
-        case .failed: StatusBadge(tone: .warning, title: "Claude couldn't check it")
+    private var health: some View {
+        let issues = workspace.issues
+        HStack(spacing: 4) {
+            switch (issues.first?.tone, project.verification) {
+            case (let tone?, _):
+                StatusBadge(tone: tone, title: issues.count == 1 ? "1 issue" : "\(issues.count) issues")
+            case (nil, .running):
+                StatusBadge(tone: .neutral, title: "Checking…")
+            case (nil, .done(let verdict)) where verdict.isFlutterProject:
+                StatusBadge(tone: .success, title: "Ready")
+            default:
+                StatusBadge(tone: .neutral, title: "Not checked yet")
+            }
+            Image(systemName: "chevron.right").font(.caption2).foregroundStyle(.tertiary)
         }
+        .font(.callout)
+        .contentShape(Rectangle())
     }
 
     private var actions: some View {
@@ -102,92 +107,93 @@ private struct ProjectHeader: View {
     }
 }
 
-// MARK: - Issues
-
-private struct IssuesSection: View {
+/// Everything about the project's health and setup: issues, flavors, Claude's check, version and branch.
+private struct ProjectHealthView: View {
     let workspace: Workspace
     let flutter: FlutterProject
 
-    private var problems: [String] {
-        guard case .done(let verdict) = workspace.project.verification else { return [] }
-        return verdict.problems
-    }
-
-    private var hasIssues: Bool {
-        workspace.visibleFailure != nil || !problems.isEmpty || workspace.project.refreshNote != nil
-            || !flutter.hasMainDart || !flutter.platforms.contains("ios") || isCheckFailed
-    }
-
-    private var isCheckFailed: Bool {
-        if case .failed = workspace.project.verification { return true }
-        return false
-    }
+    private var project: ProjectModel { workspace.project }
 
     var body: some View {
-        if hasIssues {
-            Section("Issues") {
-                if let failure = workspace.visibleFailure {
-                    Button { workspace.isLogVisible = true } label: {
-                        IssueRow(tone: .failure, title: "Run failed", detail: failure.message)
+        Form {
+            Section {
+                if workspace.issues.isEmpty {
+                    StatusBadge(tone: .success, title: "No issues")
+                }
+                ForEach(workspace.issues, id: \.self) { issue in
+                    VStack(alignment: .leading, spacing: 2) {
+                        StatusBadge(tone: issue.tone, title: issue.title)
+                        if let detail = issue.detail {
+                            Text(detail).font(.caption).foregroundStyle(.secondary).lineLimit(4).textSelection(.enabled)
+                        }
                     }
-                    .buttonStyle(.plain)
-                    .help("Show the build log")
-                }
-                if !flutter.platforms.contains("ios") {
-                    IssueRow(tone: .warning, title: "No ios folder", detail: "It can't run in the iOS Simulator.")
-                }
-                if !flutter.hasMainDart {
-                    IssueRow(tone: .warning, title: "lib/main.dart is missing", detail: nil)
-                }
-                ForEach(problems, id: \.self) { IssueRow(tone: .warning, title: $0, detail: nil) }
-                if case .failed(let message) = workspace.project.verification {
-                    IssueRow(tone: .warning, title: "Claude couldn't check the project", detail: message)
-                }
-                if let note = workspace.project.refreshNote {
-                    IssueRow(tone: .warning, title: note, detail: nil)
                 }
             }
+            if !project.flavors.isEmpty {
+                Section("Run Flavor") {
+                    Picker("Flavor", selection: Binding(get: { project.runFlavor?.name ?? "" },
+                                                        set: { name in project.flavors.first { $0.name == name }.map(project.selectFlavor) })) {
+                        ForEach(project.flavors) { Text($0.name).tag($0.name) }
+                    }
+                    .labelsHidden()
+                    if let flavor = project.runFlavor {
+                        Text(flavor.runCommand).font(.system(.caption, design: .monospaced)).foregroundStyle(.secondary)
+                    }
+                }
+            }
+            Section("Claude's Check") {
+                if case .done(let verdict) = project.verification {
+                    Text(verdict.summary).fixedSize(horizontal: false, vertical: true).textSelection(.enabled)
+                } else {
+                    Text("Claude reads the project, without changing it, to confirm it's a Flutter app and find its flavors.")
+                        .foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                }
+                HStack {
+                    Button(project.verification == .idle ? "Check with Claude" : "Check Again", action: workspace.checkProject)
+                        .disabled(workspace.studio.projectVerifier == nil || project.verification == .running || project.refreshing)
+                    if project.refreshing || project.verification == .running {
+                        ProgressView().controlSize(.small)
+                    } else if let checked = project.lastChecked {
+                        Text(checked, format: .relative(presentation: .named)).foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Button("Log") { project.revealLog() }.buttonStyle(.link)
+                }
+            }
+            Section("Details") {
+                if let version = flutter.version { LabeledContent("Version", value: version) }
+                if let branch = project.branch { LabeledContent("Git branch", value: branch) }
+                LabeledContent("Platforms", value: flutter.platforms.isEmpty ? "None" : flutter.platforms.joined(separator: ", "))
+                LabeledContent("Folder") { MonospacedValue(flutter.path) }
+            }
         }
+        .formStyle(.grouped)
+        .frame(width: 380)
+        .frame(minHeight: 300, idealHeight: 460)
     }
 }
 
-private struct IssueRow: View {
-    let tone: StatusTone
-    let title: String
-    let detail: String?
+// MARK: - Screens
 
-    var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Image(systemName: tone.symbol).foregroundStyle(tone.tint).imageScale(.small)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title).lineLimit(2)
-                if let detail { Text(detail).font(.caption).foregroundStyle(.secondary).lineLimit(3) }
-            }
-        }
-        .accessibilityElement(children: .combine)
-    }
-}
-
-// MARK: - Changes
-
-private struct ChangesSection: View {
+private struct ScreensSection: View {
     let workspace: Workspace
 
     var body: some View {
-        let changes = workspace.chat.changedFiles
-        if !changes.isEmpty {
-            Section("Changes (\(changes.count))") {
-                ForEach(changes) { change in
-                    Button { workspace.showDiff(of: change) } label: {
-                        FileChangeRow(change: change).frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
+        if !workspace.screens.isEmpty {
+            Section("Screens") {
+                ForEach(workspace.screens) { screen in
+                    Button { workspace.mention(screen) } label: {
+                        Label(screen.name, systemImage: "rectangle.portrait")
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
-                    .help("Show what changed in \(change.path)")
+                    .help("Ask Claude to change the \(screen.name) screen (\(screen.file))")
                     .contextMenu {
-                        Button("Show Changes") { workspace.showDiff(of: change) }
-                        if change.kind != .deleted, let folder = workspace.project.readyFolder {
-                            let url = URL(fileURLWithPath: folder).appendingPathComponent(change.path)
-                            Button("Open") { NSWorkspace.shared.open(url) }
+                        Button("Ask Claude About It") { workspace.mention(screen) }
+                        if let folder = workspace.project.readyFolder {
+                            let url = URL(fileURLWithPath: folder).appendingPathComponent(screen.file)
+                            Button("Open Code") { NSWorkspace.shared.open(url) }
                             Button("Show in Finder") { NSWorkspace.shared.activateFileViewerSelecting([url]) }
                         }
                     }
@@ -197,76 +203,78 @@ private struct ChangesSection: View {
     }
 }
 
-// MARK: - Flavors
+// MARK: - History
 
-private struct FlavorsSection: View {
-    let project: ProjectModel
+/// Each answer that changed files, newest first. The newest can be undone; an older one undoes everything after it.
+private struct HistorySection: View {
+    let workspace: Workspace
+
+    private var entries: [ChatMessage] {
+        workspace.chat.messages.filter { $0.role == .assistant && !$0.files.isEmpty }.reversed()
+    }
 
     var body: some View {
-        if !project.flavors.isEmpty {
-            Section("Flavors") {
-                ForEach(project.flavors) { flavor in
-                    Button { project.selectFlavor(flavor) } label: {
-                        HStack(alignment: .firstTextBaseline, spacing: 8) {
-                            Image(systemName: "checkmark")
-                                .opacity(flavor == project.runFlavor ? 1 : 0)
-                                .frame(width: 12)
-                                .foregroundStyle(Color.accentColor)
-                            VStack(alignment: .leading, spacing: 2) {
-                                HStack {
-                                    Text(flavor.name).fontWeight(.medium)
-                                    Text(flavor.platforms.joined(separator: ", ")).foregroundStyle(.secondary)
-                                }
-                                Text(flavor.runCommand).font(.system(.caption, design: .monospaced))
-                                    .foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
-                            }
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityAddTraits(flavor == project.runFlavor ? .isSelected : [])
-                    .help("Run uses this flavor")
+        if !entries.isEmpty {
+            Section("History") {
+                ForEach(entries) { entry in
+                    HistoryRow(workspace: workspace, entry: entry, isLatest: entry.id == workspace.chat.undoable.first?.id)
                 }
             }
         }
     }
 }
 
-// MARK: - Check
-
-private struct CheckSection: View {
+private struct HistoryRow: View {
     let workspace: Workspace
+    let entry: ChatMessage
+    let isLatest: Bool
 
-    private var project: ProjectModel { workspace.project }
+    @State private var expanded = false
+
+    private var title: String {
+        let request = workspace.chat.request(for: entry)?.text ?? "Change"
+        return request.count > 60 ? request.prefix(60) + "…" : request
+    }
+
+    private var canUndo: Bool { entry.checkpointID != nil && entry.undone != true && !workspace.chat.isSending && !workspace.fix.isBusy }
 
     var body: some View {
-        Section("Project Check") {
-            VStack(alignment: .leading, spacing: 8) {
-                if case .done(let verdict) = project.verification {
-                    Text(verdict.summary).textSelection(.enabled).fixedSize(horizontal: false, vertical: true)
-                } else if case .running = project.verification {
-                    Text("Claude is reading the project…").foregroundStyle(.secondary)
-                } else {
-                    Text("Claude reads the project, without changing it, to confirm it's a Flutter app and find its flavors.")
-                        .foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+        DisclosureGroup(isExpanded: $expanded) {
+            ForEach(entry.files) { change in
+                Button { workspace.showDiff(of: change) } label: {
+                    FileChangeRow(change: change).frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
                 }
-                HStack(spacing: 8) {
-                    Button(project.verification == .idle ? "Check with Claude" : "Check Again", action: workspace.checkProject)
-                        .disabled(workspace.studio.projectVerifier == nil || project.verification == .running || project.refreshing)
-                    if project.refreshing || project.verification == .running {
-                        ProgressView().controlSize(.small)
-                    } else if let checked = project.lastChecked {
-                        Text(checked, format: .relative(presentation: .named)).foregroundStyle(.secondary)
-                    }
-                    Spacer(minLength: 0)
-                    Button("Log") { project.revealLog() }.buttonStyle(.link)
-                }
-                .controlSize(.small)
+                .buttonStyle(.plain)
+                .help("Show what changed in \(change.path)")
             }
-            .font(.callout)
-            .padding(.vertical, 4)
+        } label: {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(title).lineLimit(2).strikethrough(entry.undone == true)
+                    Text(subtitle).font(.caption).foregroundStyle(.secondary)
+                }
+                Spacer(minLength: 4)
+                if isLatest, canUndo {
+                    Button("Undo") { workspace.undo(entry) }
+                        .controlSize(.small)
+                        .help("Put back the files as they were before this change")
+                }
+            }
+            .foregroundStyle(entry.undone == true ? .secondary : .primary)
         }
+        .contextMenu {
+            if canUndo {
+                Button(isLatest ? "Undo This Change" : "Undo Back to Before This") { workspace.undo(entry) }
+            }
+        }
+    }
+
+    private var subtitle: String {
+        let files = entry.files.count == 1 ? "1 file" : "\(entry.files.count) files"
+        let when = entry.date.formatted(.relative(presentation: .named))
+        if entry.undone == true { return "Undone · \(files)" }
+        if entry.checkpointID == nil { return "\(files) · \(when) · can't be undone" }
+        return "\(files) · \(when)"
     }
 }
 

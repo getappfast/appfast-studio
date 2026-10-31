@@ -18,7 +18,8 @@ struct ContentView: View {
                     .padding([.horizontal, .top], 16)
                     .frame(maxWidth: .infinity)
                     .background(Color(nsColor: .underPageBackgroundColor))
-                SimulatorCanvas(model: workspace.simulator)
+                SimulatorCanvas(model: workspace.simulator, isPicking: workspace.pick.isPicking)
+                    .overlay(alignment: .bottom) { ToastView(workspace: workspace).padding(.bottom, 52) }
                 if workspace.isLogVisible {
                     Divider()
                     LogDrawer(workspace: workspace)
@@ -40,28 +41,87 @@ struct ContentView: View {
                 DiffSheet(folder: folder, change: change) { workspace.diffFile = nil }
             }
         }
-        .task { await workspace.start() }
-        .onChange(of: workspace.project.path) { workspace.projectPathChanged() }
-        .onChange(of: workspace.project.state) { workspace.projectStateChanged() }
-        .onChange(of: workspace.simulator.selected?.udid) { workspace.deviceChanged() }
-        .onChange(of: workspace.simulator.selected?.isBooted) { workspace.deviceChanged() }
-        .onChange(of: workspace.simulator.phase) { workspace.simulatorPhaseChanged() }
-        .onChange(of: workspace.run.phase) { workspace.runPhaseChanged() }
-        .onChange(of: workspace.fix.phase) { workspace.fixPhaseChanged() }
-        .onChange(of: workspace.fix.activity) { workspace.fixActivityChanged() }
-        .onChange(of: workspace.studio.canRunClaude) { _, ready in workspace.claudeAvailabilityChanged(ready) }
+        .modifier(WorkspaceEvents(workspace: workspace))
         #if DEBUG
         .onReceive(NotificationCenter.default.publisher(for: Snapshot.openSettingsNotification)) { _ in openSettings() }
         .onReceive(NotificationCenter.default.publisher(for: Snapshot.runNotification)) { _ in
             Task {
                 for _ in 0..<60 where !workspace.canRun { try? await Task.sleep(for: .seconds(1)) }
                 workspace.runApp()
-                guard ProcessInfo.processInfo.environment["MOBILE_STUDIO_SNAPSHOT_FIX"] == "1" else { return }
+                let env = ProcessInfo.processInfo.environment
+                if let message = env["MOBILE_STUDIO_SNAPSHOT_CHAT"] {
+                    // Send a chat message once the app runs, then optionally undo its edits.
+                    for _ in 0..<300 where workspace.run.phase != .running { try? await Task.sleep(for: .seconds(1)) }
+                    workspace.chatDraft = message
+                    if let folder = workspace.project.readyFolder, let claude = workspace.studio.claude {
+                        workspace.chat.send(message, folder: folder, claude: claude, profile: workspace.studio.profiles.active)
+                        workspace.chatDraft = ""
+                    }
+                    guard let delay = env["MOBILE_STUDIO_SNAPSHOT_UNDO_AFTER"].flatMap(Double.init) else { return }
+                    for _ in 0..<120 where workspace.chat.isSending { try? await Task.sleep(for: .seconds(1)) }
+                    try? await Task.sleep(for: .seconds(delay))
+                    if let latest = workspace.chat.undoable.first { workspace.undo(latest) }
+                    return
+                }
+                guard env["MOBILE_STUDIO_SNAPSHOT_FIX"] == "1" else { return }
                 for _ in 0..<300 where workspace.visibleFailure == nil { try? await Task.sleep(for: .seconds(1)) }
                 workspace.fixFailure()
             }
         }
         #endif
+    }
+}
+
+/// Forwards model changes to `Workspace`, which decides what each one means. Split out of `ContentView`
+/// so its body stays small enough for the type checker.
+private struct WorkspaceEvents: ViewModifier {
+    let workspace: Workspace
+
+    func body(content: Content) -> some View {
+        content
+            .task { await workspace.start() }
+            .onChange(of: workspace.project.path) { workspace.projectPathChanged() }
+            .onChange(of: workspace.project.state) { workspace.projectStateChanged() }
+            .onChange(of: workspace.simulator.selected?.udid) { workspace.deviceChanged() }
+            .onChange(of: workspace.simulator.selected?.isBooted) { workspace.deviceChanged() }
+            .onChange(of: workspace.simulator.phase) { workspace.simulatorPhaseChanged() }
+            .onChange(of: workspace.run.phase) { workspace.runPhaseChanged() }
+            .onChange(of: workspace.fix.phase) { workspace.fixPhaseChanged() }
+            .onChange(of: workspace.fix.activity) { workspace.fixActivityChanged() }
+            .onChange(of: workspace.chat.isSending) { workspace.chatSendingChanged() }
+            .onChange(of: workspace.pick.picks.count) { workspace.picksChanged() }
+            .onChange(of: workspace.studio.canRunClaude) { _, ready in workspace.claudeAvailabilityChanged(ready) }
+    }
+}
+
+/// A short confirmation over the device ("Updated · 2 files"), with an action when one is needed.
+private struct ToastView: View {
+    let workspace: Workspace
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        Group {
+            if let toast = workspace.toast {
+                HStack(spacing: 8) {
+                    Image(systemName: toast.tone.symbol).foregroundStyle(toast.tone.tint)
+                    Text(toast.text)
+                    if toast.action == .runAgain {
+                        Button("Run Again", action: workspace.runAgain).buttonStyle(.borderedProminent).controlSize(.small)
+                        Button { workspace.dismissToast() } label: { Label("Dismiss", systemImage: "xmark").labelStyle(.iconOnly) }
+                            .buttonStyle(.borderless).foregroundStyle(.secondary)
+                    }
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background(.regularMaterial, in: Capsule())
+                .overlay(Capsule().strokeBorder(.separator))
+                .shadow(color: .black.opacity(0.15), radius: 8, y: 2)
+                .transition(reduceMotion ? .opacity : .move(edge: .bottom).combined(with: .opacity))
+                .accessibilityElement(children: .combine)
+                .accessibilityAddTraits(.isStaticText)
+            }
+        }
+        .animation(reduceMotion ? nil : .spring(duration: 0.3), value: workspace.toast)
     }
 }
 

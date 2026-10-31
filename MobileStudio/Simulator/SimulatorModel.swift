@@ -21,6 +21,11 @@ final class SimulatorModel {
     private(set) var framesPerSecond = 0
     /// True while a boot, shutdown or connect is in flight; the UI disables its buttons meanwhile.
     private(set) var isBusy = false
+    /// The booted device's appearance and text size, for the preview controls under the screen.
+    private(set) var isDark: Bool?
+    private(set) var contentSize: String?
+    /// The last tap on the screen and a picture of the area around it, used as a picked element's thumbnail.
+    private(set) var lastTap: (date: Date, image: Data?)?
 
     private let simctl = SimctlService()
     private let defaults = UserDefaults.standard
@@ -119,6 +124,29 @@ final class SimulatorModel {
         display?.pressHome()
     }
 
+    func recordTap(image: Data?) { lastTap = (Date(), image) }
+
+    func setDark(_ dark: Bool) {
+        guard let device = selected, device.isBooted else { return }
+        isDark = dark
+        Task { await simctl.setAppearance(device.udid, dark: dark) }
+    }
+
+    func setContentSize(_ size: String) {
+        guard let device = selected, device.isBooted else { return }
+        contentSize = size
+        Task { await simctl.setContentSize(device.udid, size) }
+    }
+
+    /// Dynamic Type sizes simctl accepts, smallest first, with a short name for each.
+    static let contentSizes: [(id: String, name: String)] = [
+        ("extra-small", "Extra Small"), ("small", "Small"), ("medium", "Medium"), ("large", "Default"),
+        ("extra-large", "Large"), ("extra-extra-large", "Extra Large"), ("extra-extra-extra-large", "Largest"),
+        ("accessibility-medium", "Accessibility M"), ("accessibility-large", "Accessibility L"),
+        ("accessibility-extra-large", "Accessibility XL"), ("accessibility-extra-extra-large", "Accessibility XXL"),
+        ("accessibility-extra-extra-extra-large", "Accessibility XXXL"),
+    ]
+
     func retry() {
         phase = .idle
         Task { await refreshDevices() }
@@ -161,6 +189,8 @@ final class SimulatorModel {
             display = candidate
             lastFrameCount = 0
             phase = .streaming
+            isDark = await simctl.appearance(device.udid).map { $0 == "dark" }
+            contentSize = await simctl.contentSize(device.udid)
         } catch {
             candidate.stop()
             phase = .failed(error.localizedDescription)

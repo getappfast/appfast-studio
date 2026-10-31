@@ -21,6 +21,8 @@ struct FixOutcome: Equatable, Sendable {
     /// Whether the app ran after the fix. Nil when nothing changed, so there was nothing to re-run.
     let validated: Bool?
     let cost: Double?
+    /// The saved state from before the fix, when it can be undone.
+    var checkpointID: UUID?
 }
 
 enum FixPhase: Equatable {
@@ -73,7 +75,7 @@ final class FixModel {
 
     private func perform(_ failure: RunFailure, claude: ClaudeAccess, run: FlutterRunModel) async {
         let folder = failure.folder
-        let before = await FileSnapshot.taken(of: folder)
+        let before = await FileSnapshot.taken(of: folder, keepingContents: true)
         let process = await claude.agentProcess(Self.call(for: failure), folder: folder, timeout: 20 * 60)
         self.process = process
         Self.log.append("FIX START in \(folder)\nerror: \(failure.message)")
@@ -106,6 +108,9 @@ final class FixModel {
 
         let after = await FileSnapshot.taken(of: folder)
         let files = after.changes(since: before)
+        let checkpoint = UUID()
+        let undoable = !files.isEmpty
+            && CheckpointStore.save(id: checkpoint, folder: folder, changes: files, before: before, after: after)
 
         var validated: Bool?
         if !files.isEmpty {
@@ -114,7 +119,8 @@ final class FixModel {
             validated = await Self.outcome(of: run)
             guard !Task.isCancelled else { return }
         }
-        finish(.done(FixOutcome(report: report, files: files, validated: validated, cost: result.cost)),
+        finish(.done(FixOutcome(report: report, files: files, validated: validated, cost: result.cost,
+                                checkpointID: undoable ? checkpoint : nil)),
                note: "fixed=\(report.fixed) files=\(files.count) validated=\(validated.map(String.init) ?? "not attempted")")
     }
 

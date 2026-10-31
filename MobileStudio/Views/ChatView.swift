@@ -4,7 +4,6 @@ import SwiftUI
 struct ChatPanel: View {
     let workspace: Workspace
 
-    @State private var draft = ""
     @FocusState private var inputFocused: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -21,6 +20,12 @@ struct ChatPanel: View {
             composer
         }
         .background(Color(nsColor: .windowBackgroundColor))
+        .onChange(of: workspace.composerFocusRequest) { inputFocused = true }
+    }
+
+    private var draft: String {
+        get { workspace.chatDraft }
+        nonmutating set { workspace.chatDraft = newValue }
     }
 
     // MARK: Header
@@ -29,7 +34,16 @@ struct ChatPanel: View {
         HStack(spacing: 8) {
             Text("Claude").font(.headline)
             Spacer()
-            AccountMenu(studio: studio)
+            if chat.totalCost > 0 {
+                Text(chat.totalCost, format: .currency(code: "USD").precision(.fractionLength(2)))
+                    .font(.callout.monospacedDigit())
+                    .foregroundStyle(.secondary)
+                    .help(String(format: "Spent on Claude in this chat: $%.3f", chat.totalCost))
+            }
+            // Choosing an account only matters when there is more than one to choose from.
+            if studio.profiles.profiles.filter({ if case .signedIn = studio.account(for: $0) { true } else { false } }).count > 1 {
+                AccountMenu(studio: studio)
+            }
             Button { chat.reset() } label: { Label("New Chat", systemImage: "square.and.pencil").labelStyle(.iconOnly) }
                 .buttonStyle(.borderless)
                 .disabled(chat.messages.isEmpty || chat.isSending)
@@ -44,10 +58,10 @@ struct ChatPanel: View {
     private var transcript: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: 18) {
+                LazyVStack(alignment: .leading, spacing: 22) {
                     if chat.messages.isEmpty { emptyState }
                     ForEach(chat.messages) { message in
-                        MessageRow(message: message, onOpenFile: workspace.showDiff).id(message.id)
+                        MessageRow(message: message, workspace: workspace).id(message.id)
                     }
                     Color.clear.frame(height: 1).id("bottom")
                 }
@@ -83,14 +97,14 @@ struct ChatPanel: View {
                     .fixedSize(horizontal: false, vertical: true)
                 VStack(alignment: .leading, spacing: 6) {
                     ForEach(Self.suggestions, id: \.self) { suggestion in
-                        Button { draft = suggestion; inputFocused = true } label: {
+                        Button { workspace.chatDraft = suggestion; inputFocused = true } label: {
                             Label(suggestion, systemImage: "arrow.up.right").frame(maxWidth: .infinity, alignment: .leading)
                         }
                         .buttonStyle(.bordered)
                     }
                 }
                 .padding(.top, 4)
-                Text("Tip: press Pick (⇧⌘E) and tap an element in the app to point Claude at it.")
+                Text("Tip: press Point at… (⇧⌘E) and tap something in the app to show Claude what you mean.")
                     .font(.caption).foregroundStyle(.secondary)
             }
         }
@@ -109,8 +123,9 @@ struct ChatPanel: View {
         VStack(alignment: .leading, spacing: 8) {
             references
             VStack(spacing: 0) {
-                TextField(workspace.chatBlocker ?? "Message Claude…", text: $draft, axis: .vertical)
-                    .lineLimit(1...8)
+                TextField(workspace.chatBlocker ?? "Describe a change, or point at something in the app",
+                          text: Binding(get: { workspace.chatDraft }, set: { workspace.chatDraft = $0 }), axis: .vertical)
+                    .lineLimit(2...8)
                     .textFieldStyle(.plain)
                     .focused($inputFocused)
                     .onSubmit(send)
@@ -120,9 +135,10 @@ struct ChatPanel: View {
                     .padding(.bottom, 6)
                 HStack(spacing: 6) {
                     Toggle(isOn: Binding(get: { pick.isPicking }, set: { _ in workspace.togglePick() })) {
-                        Label("Pick", systemImage: "scope")
+                        Label(pick.isPicking ? "Tap in the App…" : "Point at…", systemImage: "scope")
                     }
                     .toggleStyle(.button)
+                    .tint(.accentColor)
                     .disabled(!workspace.canPick)
                     .help(workspace.canPick ? "Tap an element in the running app to reference it (⇧⌘E)"
                                             : "Run the app first, then tap elements in it to reference them")
@@ -137,7 +153,7 @@ struct ChatPanel: View {
                             .help("Send (Return)")
                     }
                 }
-                .controlSize(.small)
+                .controlSize(.regular)
                 .padding(.horizontal, 8)
                 .padding(.bottom, 8)
             }
@@ -177,9 +193,15 @@ struct ChatPanel: View {
 
     private func chip(_ widget: PickedWidget) -> some View {
         HStack(spacing: 8) {
-            Image(systemName: "scope").foregroundStyle(Color.accentColor)
+            if let data = widget.thumbnail, let image = NSImage(data: data) {
+                Image(nsImage: image).resizable().aspectRatio(contentMode: .fit)
+                    .frame(width: 72, height: 32).clipShape(RoundedRectangle(cornerRadius: 4))
+                    .accessibilityHidden(true)
+            } else {
+                Image(systemName: "scope").foregroundStyle(Color.accentColor)
+            }
             VStack(alignment: .leading, spacing: 1) {
-                Text(widget.label).font(.callout).lineLimit(1)
+                Text(widget.friendlyLabel).font(.callout).lineLimit(1)
                 if let line = chipDetail(widget) {
                     Text(line).font(.caption).foregroundStyle(.secondary).lineLimit(1)
                 }
@@ -254,7 +276,7 @@ private struct AccountMenu: View {
 
 private struct MessageRow: View {
     let message: ChatMessage
-    let onOpenFile: (FileSnapshot.Change) -> Void
+    let workspace: Workspace
 
     var body: some View {
         switch message.role {
@@ -263,8 +285,18 @@ private struct MessageRow: View {
                 Spacer(minLength: 40)
                 VStack(alignment: .trailing, spacing: 6) {
                     Text(message.text).textSelection(.enabled)
-                    ForEach(message.references ?? [], id: \.self) { reference in
-                        Label(reference, systemImage: "scope").font(.caption).foregroundStyle(.secondary)
+                    ForEach(Array((message.references ?? []).enumerated()), id: \.offset) { index, reference in
+                        HStack(spacing: 6) {
+                            if let name = message.referenceImages?[safe: index] ?? nil,
+                               let image = NSImage(contentsOf: ChatModel.thumbnailURL(name)) {
+                                Image(nsImage: image).resizable().aspectRatio(contentMode: .fit)
+                                    .frame(maxWidth: 160, maxHeight: 40).clipShape(RoundedRectangle(cornerRadius: 4))
+                            } else {
+                                Image(systemName: "scope")
+                            }
+                            Text(reference)
+                        }
+                        .font(.caption).foregroundStyle(.secondary)
                     }
                 }
                 .padding(.horizontal, 12)
@@ -272,18 +304,15 @@ private struct MessageRow: View {
                 .background(Color.accentColor.opacity(0.16), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
             }
         case .assistant:
+            let parts = AnswerParts.split(message.text)
             VStack(alignment: .leading, spacing: 10) {
                 if message.pending { working }
-                if !message.text.isEmpty { MarkdownView(text: message.text) }
-                if !message.pending, !message.activity.isEmpty { steps }
-                if !message.files.isEmpty { files }
+                if !message.text.isEmpty { MarkdownView(text: parts.outcome) }
+                if !message.files.isEmpty { changes }
                 if let error = message.error {
                     Label(error, systemImage: "exclamationmark.triangle.fill").foregroundStyle(.orange)
                 }
-                if let cost = message.cost, !message.pending {
-                    Text(String(format: "$%.3f", cost)).font(.caption).foregroundStyle(.tertiary)
-                        .accessibilityLabel(String(format: "Cost %.3f dollars", cost))
-                }
+                if !message.pending, parts.details != nil || !message.activity.isEmpty { details(parts.details) }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -297,9 +326,43 @@ private struct MessageRow: View {
         }
     }
 
-    private var steps: some View {
-        DisclosureGroup("\(message.activity.count) steps") {
-            VStack(alignment: .leading, spacing: 4) {
+    /// What changed, in plain words, with Undo while it still can be.
+    private var changes: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text(message.undone == true ? "Undone" : "Changed \(message.files.count) file\(message.files.count == 1 ? "" : "s")")
+                    .font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                Spacer()
+                if message.checkpointID != nil, message.undone != true {
+                    Button { workspace.undo(message) } label: { Label("Undo", systemImage: "arrow.uturn.backward") }
+                        .controlSize(.small)
+                        .disabled(workspace.chat.isSending || workspace.fix.isBusy)
+                        .help(message.id == workspace.chat.undoable.first?.id
+                              ? "Put the files back as they were before this answer"
+                              : "Undo this answer and every one after it")
+                }
+            }
+            ForEach(message.files.prefix(12)) { change in
+                Button { workspace.showDiff(of: change) } label: {
+                    FileChangeRow(change: change, compact: true)
+                        .frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .help("Show what changed in \(change.path)")
+            }
+            if message.files.count > 12 { Text("and \(message.files.count - 12) more").font(.caption).foregroundStyle(.secondary) }
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.quaternary.opacity(0.6), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .opacity(message.undone == true ? 0.6 : 1)
+    }
+
+    /// Claude's technical notes and the steps it took, for whoever wants them.
+    private func details(_ notes: String?) -> some View {
+        DisclosureGroup("Technical details") {
+            VStack(alignment: .leading, spacing: 8) {
+                if let notes { MarkdownView(text: notes).font(.callout) }
                 ForEach(Array(message.activity.enumerated()), id: \.offset) { _, step in
                     Label {
                         Text(step).lineLimit(2).textSelection(.enabled)
@@ -307,32 +370,21 @@ private struct MessageRow: View {
                         Image(systemName: ClaudeStep(step).symbol).frame(width: 14)
                     }
                     .font(.caption)
+                    .foregroundStyle(.secondary)
+                }
+                if let cost = message.cost {
+                    Text(String(format: "Cost $%.3f", cost)).font(.caption).foregroundStyle(.tertiary)
                 }
             }
-            .foregroundStyle(.secondary)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.top, 4)
         }
         .foregroundStyle(.secondary)
     }
+}
 
-    private var files: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("Changed \(message.files.count) file\(message.files.count == 1 ? "" : "s")").font(.caption).foregroundStyle(.secondary)
-            ForEach(message.files.prefix(12)) { change in
-                Button { onOpenFile(change) } label: {
-                    FileChangeRow(change: change, font: .system(.caption, design: .monospaced))
-                        .frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .help("Show what changed")
-            }
-            if message.files.count > 12 { Text("and \(message.files.count - 12) more").font(.caption).foregroundStyle(.secondary) }
-        }
-        .padding(10)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.quaternary.opacity(0.6), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-    }
+private extension Array {
+    subscript(safe index: Int) -> Element? { indices.contains(index) ? self[index] : nil }
 }
 
 /// Claude's markdown, block by block: headings, lists and code blocks as well as inline styles.

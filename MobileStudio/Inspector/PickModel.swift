@@ -67,6 +67,10 @@ final class PickModel {
         if !picks.contains(where: { $0.place == widget.place }) { picks.append(widget) }
     }
 
+    func setThumbnail(_ data: Data?, for id: UUID) {
+        if let index = picks.firstIndex(where: { $0.id == id }) { picks[index].thumbnail = data }
+    }
+
     func remove(_ pick: PickedWidget) { picks.removeAll { $0.id == pick.id } }
 
     func clear() { picks = [] }

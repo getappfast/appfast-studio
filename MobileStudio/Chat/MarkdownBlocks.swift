@@ -58,6 +58,20 @@ enum MarkdownBlock: Equatable, Sendable {
     }
 }
 
+/// Claude is asked to put what changed first, then technical notes after a line of `---`. The outcome is
+/// shown; the notes go behind a disclosure.
+enum AnswerParts {
+    static func split(_ text: String) -> (outcome: String, details: String?) {
+        let lines = text.components(separatedBy: "\n")
+        guard let rule = lines.firstIndex(where: { $0.trimmingCharacters(in: .whitespaces) == "---" }), rule > 0 else {
+            return (text, nil)
+        }
+        let outcome = lines[..<rule].joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
+        let details = lines[(rule + 1)...].joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
+        return (outcome.isEmpty ? text : outcome, details.isEmpty ? nil : details)
+    }
+}
+
 /// Kinds of step `ClaudeEvents` reports, for the chat's step list.
 enum ClaudeStep {
     case reading, editing, searching, running, note

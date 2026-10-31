@@ -190,6 +190,9 @@ final class FlutterRunModel {
 
     func hotReload() { if phase == .running { process?.send("r") } }
 
+    /// Restarts the app's Dart code: needed when main() or app start-up state changed. Native changes still need a new run.
+    func hotRestart() { if phase == .running { process?.send("R") } }
+
     // MARK: Output
 
     private func receive(_ chunk: String) {

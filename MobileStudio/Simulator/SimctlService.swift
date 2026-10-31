@@ -63,6 +63,32 @@ struct SimctlService: Sendable {
         }
     }
 
+    // MARK: Preview settings
+
+    /// "light" or "dark", nil when it can't be read.
+    func appearance(_ udid: String) async -> String? {
+        await ui(udid, ["appearance"])
+    }
+
+    func setAppearance(_ udid: String, dark: Bool) async {
+        _ = await ui(udid, ["appearance", dark ? "dark" : "light"])
+    }
+
+    /// The Dynamic Type size, e.g. "large" or "accessibility-extra-large".
+    func contentSize(_ udid: String) async -> String? {
+        await ui(udid, ["content_size"])
+    }
+
+    func setContentSize(_ udid: String, _ size: String) async {
+        _ = await ui(udid, ["content_size", size])
+    }
+
+    private func ui(_ udid: String, _ arguments: [String]) async -> String? {
+        guard let out = try? await ProcessRunner(timeout: 15).run(xcrun, ["simctl", "ui", udid] + arguments),
+              out.status == 0 else { return nil }
+        return out.stdout.trimmingCharacters(in: .whitespacesAndNewlines).nonEmpty
+    }
+
     // MARK: Decoding
 
     private struct Listing: Decodable {

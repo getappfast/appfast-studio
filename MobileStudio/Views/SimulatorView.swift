@@ -1,5 +1,7 @@
 import SwiftUI
 import AppKit
+import CoreImage
+import IOSurface
 
 /// Draws the simulator's frames and turns the mouse into touches: a click is a tap, and a click
 /// and drag is a swipe. Each frame is an IOSurface that the simulator renders into, set straight
@@ -10,6 +12,8 @@ struct SimulatorScreen: NSViewRepresentable {
     var cornerFraction: CGFloat
     /// What VoiceOver says for the screen.
     var accessibilityName: String
+    /// Called on each tap with a PNG of the area around it.
+    var onTap: (Data?) -> Void = { _ in }
 
     func makeNSView(context: Context) -> ScreenView { ScreenView() }
 
@@ -17,6 +21,7 @@ struct SimulatorScreen: NSViewRepresentable {
         view.display = display
         view.cornerFraction = cornerFraction
         view.setAccessibilityLabel(accessibilityName)
+        view.onTap = onTap
     }
 
     final class ScreenView: NSView {
@@ -30,6 +35,8 @@ struct SimulatorScreen: NSViewRepresentable {
                 if display == nil { layer?.contents = nil }
             }
         }
+
+        var onTap: (Data?) -> Void = { _ in }
 
         var cornerFraction: CGFloat = 0 {
             didSet { if cornerFraction != oldValue { needsLayout = true } }
@@ -54,7 +61,10 @@ struct SimulatorScreen: NSViewRepresentable {
 
         override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 
-        override func mouseDown(with event: NSEvent) { sendTouch(.began, event) }
+        override func mouseDown(with event: NSEvent) {
+            sendTouch(.began, event)
+            onTap(thumbnail(around: convert(event.locationInWindow, from: nil)))
+        }
         override func mouseDragged(with event: NSEvent) { sendTouch(.moved, event) }
         override func mouseUp(with event: NSEvent) { sendTouch(.ended, event) }
 
@@ -64,6 +74,22 @@ struct SimulatorScreen: NSViewRepresentable {
             guard bounds.width > 0, bounds.height > 0 else { return }
             let point = convert(event.locationInWindow, from: nil)
             display?.sendTouch(phase, at: CGPoint(x: point.x / bounds.width, y: 1 - point.y / bounds.height))
+        }
+
+        /// A PNG of the screen around `point`: the width of the screen and a band of its height, so the picked
+        /// element shows with a little context.
+        private func thumbnail(around point: CGPoint) -> Data? {
+            guard let contents = layer?.contents, CFGetTypeID(contents as CFTypeRef) == IOSurfaceGetTypeID(),
+                  bounds.width > 0, bounds.height > 0 else { return nil }
+            let image = CIImage(ioSurface: unsafeBitCast(contents as AnyObject, to: IOSurfaceRef.self))
+            let size = image.extent.size
+            let band = size.height * 0.16
+            // Both AppKit and Core Image put the origin at the bottom left.
+            let centre = point.y / bounds.height * size.height
+            let crop = CGRect(x: 0, y: min(max(centre - band / 2, 0), size.height - band), width: size.width, height: band)
+            guard let cgImage = CIContext().createCGImage(image.cropped(to: crop), from: crop) else { return nil }
+            let rep = NSBitmapImageRep(cgImage: cgImage)
+            return rep.representation(using: .png, properties: [:])
         }
 
         override func makeBackingLayer() -> CALayer {
@@ -91,6 +117,8 @@ extension SimulatorDevice {
 /// the toolbar's destination menu.
 struct SimulatorCanvas: View {
     let model: SimulatorModel
+    /// Pick is waiting for a tap: the screen gets an outline and a crosshair so it's clear where to click.
+    var isPicking = false
     @State private var hovering = false
 
     var body: some View {
@@ -112,11 +140,23 @@ struct SimulatorCanvas: View {
     private var screen: some View {
         if model.display != nil, let size = model.screenSize, let device = model.selected {
             SimulatorScreen(display: model.display, cornerFraction: device.screenCornerFraction,
-                            accessibilityName: "\(device.name) screen")
+                            accessibilityName: "\(device.name) screen", onTap: model.recordTap)
                 .aspectRatio(size, contentMode: .fit)
+                .overlay {
+                    if isPicking {
+                        GeometryReader { proxy in
+                            RoundedRectangle(cornerRadius: proxy.size.width * device.screenCornerFraction, style: .continuous)
+                                .strokeBorder(Color.accentColor, style: StrokeStyle(lineWidth: 3, dash: [8, 5]))
+                        }
+                        .allowsHitTesting(false)
+                    }
+                }
                 .shadow(color: .black.opacity(0.25), radius: 14, y: 5)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .onHover { hovering = $0 }
+                .onHover { inside in
+                    hovering = inside
+                    if isPicking { inside ? NSCursor.crosshair.push() : NSCursor.pop() }
+                }
         } else {
             placeholder.frame(maxWidth: .infinity, maxHeight: .infinity)
         }
@@ -167,26 +207,73 @@ struct SimulatorCanvas: View {
 
     // MARK: Footer
 
-    /// Home, and what is on screen. The technical details only show while the pointer is over the device.
+    /// Home, the preview settings people check most (dark mode, bigger text), and what is on screen. The
+    /// technical details only show while the pointer is over the device.
     @ViewBuilder
     private var footer: some View {
         if let device = model.selected, model.phase == .streaming {
-            HStack(spacing: 10) {
-                Button { model.pressHome() } label: { Label("Home", systemImage: "house") }
-                    .disabled(!model.canSendInput)
-                    .help(model.canSendInput ? "Press the Home button" : "Touch input is unavailable on this Xcode.")
-                Text(caption(device)).foregroundStyle(.secondary).monospacedDigit()
+            // Labelled when there's room, icons only when not. The footer must never ask for width: on macOS 26 a
+            // minimum here is paid twice and pushes the sidebar and chat off the window.
+            ViewThatFits(in: .horizontal) {
+                controls(device, labelled: true)
+                controls(device, labelled: false)
             }
+            .frame(minWidth: 0, maxWidth: .infinity)
             .font(.callout)
             .controlSize(.small)
         }
     }
 
+    private func controls(_ device: SimulatorDevice, labelled: Bool) -> some View {
+        HStack(spacing: 10) {
+            Group {
+                Button { model.pressHome() } label: { Label("Home", systemImage: "house") }
+                    .disabled(!model.canSendInput)
+                    .help(model.canSendInput ? "Press the Home button" : "Touch input is unavailable on this Xcode.")
+                if let dark = model.isDark {
+                    Button { model.setDark(!dark) } label: {
+                        Label(dark ? "Dark" : "Light", systemImage: dark ? "moon.fill" : "sun.max.fill")
+                    }
+                    .help("Switch the simulator to \(dark ? "light" : "dark") mode")
+                }
+                if let size = model.contentSize {
+                    Menu {
+                        ForEach(SimulatorModel.contentSizes, id: \.id) { option in
+                            Toggle(option.name, isOn: Binding(get: { size == option.id }, set: { _ in model.setContentSize(option.id) }))
+                        }
+                    } label: {
+                        Label("Text Size", systemImage: "textformat.size")
+                    }
+                    .fixedSize()
+                    .help("Preview the app with a different text size")
+                }
+            }
+            .labelStyle(AdaptiveLabelStyle(showsTitle: labelled))
+            if labelled {
+                Text(caption(device)).foregroundStyle(.secondary).monospacedDigit().lineLimit(1)
+            }
+        }
+    }
+
     private func caption(_ device: SimulatorDevice) -> String {
+        if isPicking { return "Click the element you mean." }
         guard hovering, let size = model.screenSize else {
             return model.canSendInput ? "Click to tap, drag to swipe." : "View only."
         }
         let fps = model.framesPerSecond > 0 ? "\(model.framesPerSecond) fps" : "idle"
         return "\(device.name) · \(device.runtime) · \(Int(size.width))×\(Int(size.height)) · \(fps)"
+    }
+}
+
+/// Title and icon, or the icon alone (VoiceOver still reads the title).
+private struct AdaptiveLabelStyle: LabelStyle {
+    let showsTitle: Bool
+
+    func makeBody(configuration: Configuration) -> some View {
+        if showsTitle {
+            Label(configuration)
+        } else {
+            Label(configuration).labelStyle(.iconOnly)
+        }
     }
 }
