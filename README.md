@@ -16,7 +16,8 @@ show Claude exactly what you mean.
 - **Ask, see, undo.** Ask Claude for a change in plain words; the running app reloads on its own to show it,
   and every change can be undone from the chat or the History list. Answers say what changed in the app
   first, with the technical details folded away. Changed files are listed from the disk itself, not from
-  what Claude says it did.
+  what Claude says it did. When Claude offers options ("what should I do first?"), they appear as a card you
+  pick from instead of a list to answer in words.
 - **Point at it.** Press **Point at…** and tap something in the running app; a picture of it and its place in
   the code go with your next message. Or click a screen in the sidebar's **Screens** list to ask about it.
 - **Preview settings.** Switch the simulator between light and dark, and change its text size, right under the device.

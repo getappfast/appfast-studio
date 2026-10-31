@@ -23,6 +23,8 @@ struct ChatMessage: Identifiable, Equatable, Codable {
     var checkpointID: UUID?
     /// The edits were undone.
     var undone: Bool?
+    /// What the user picked from this answer's choices, once they have.
+    var chosen: [String]?
     let date: Date
 
     init(role: Role, text: String, pending: Bool = false, references: [String]? = nil) {
@@ -101,6 +103,12 @@ final class ChatModel {
     func request(for reply: ChatMessage) -> ChatMessage? {
         guard let index = index(of: reply.id), index > 0, messages[index - 1].role == .user else { return nil }
         return messages[index - 1]
+    }
+
+    func recordChoice(_ labels: [String], for id: UUID) {
+        guard let index = index(of: id) else { return }
+        messages[index].chosen = labels
+        save()
     }
 
     func markUndone(_ id: UUID) {
@@ -293,6 +301,14 @@ final class ChatModel {
         see it ("The three water buttons now share the row and shrink on small phones."), without class names, \
         file paths or code. Then a line with only `---`, then brief technical notes for developers: files, widgets, \
         checks you ran. If nothing changed, say why in the first part and skip the rest.
+
+        When you end by offering options (what to do next, or alternatives to pick from), don't ask in prose. \
+        Put them last, after everything else, as a fenced block with the language `choices` holding JSON: \
+        {"question": "What should I do first?", "multiple": true, "options": [{"label": "Fix the broken test", \
+        "detail": "One short sentence on what it involves.", "recommended": true}]}. Labels are short actions in \
+        plain words. Set "multiple" to true when several can be done together, mark at most one option \
+        "recommended", and offer between two and six options. The app shows them as buttons and sends back \
+        what the user picks.
         """
 
     /// Edits stay inside the project folder; shell access is limited to Flutter, Dart, CocoaPods and read-only git.

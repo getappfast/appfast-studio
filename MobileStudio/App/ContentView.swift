@@ -57,6 +57,15 @@ struct ContentView: View {
                         workspace.chat.send(message, folder: folder, claude: claude, profile: workspace.studio.profiles.active)
                         workspace.chatDraft = ""
                     }
+                    if env["MOBILE_STUDIO_SNAPSHOT_CHOOSE"] == "1" {
+                        // Pick the recommended options of the answer's choice card, as a click on Do This would.
+                        for _ in 0..<120 where workspace.chat.isSending { try? await Task.sleep(for: .seconds(1)) }
+                        try? await Task.sleep(for: .seconds(4))
+                        if let reply = workspace.chat.messages.last, let choices = ChoiceSet.extract(from: reply.text).choices {
+                            workspace.choose(choices.options.filter { $0.recommended == true }.map(\.label), in: reply)
+                        }
+                        return
+                    }
                     guard let delay = env["MOBILE_STUDIO_SNAPSHOT_UNDO_AFTER"].flatMap(Double.init) else { return }
                     for _ in 0..<120 where workspace.chat.isSending { try? await Task.sleep(for: .seconds(1)) }
                     try? await Task.sleep(for: .seconds(delay))

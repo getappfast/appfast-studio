@@ -22,7 +22,9 @@ struct WorkspaceToolbar: ToolbarContent {
                 ActivityView(activity: workspace.activity)
             }
             .padding(.horizontal, 10)
-            .frame(minWidth: 300, maxWidth: 460)
+            // Capped so a long status ("Running … on …") truncates instead of pushing the right-hand buttons into
+            // the toolbar's overflow menu at the smallest window size.
+            .frame(minWidth: 260, idealWidth: 340, maxWidth: 380)
             .frame(height: 28)
             .background(.quaternary.opacity(0.6), in: RoundedRectangle(cornerRadius: 7, style: .continuous))
         }

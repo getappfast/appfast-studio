@@ -125,7 +125,9 @@ Mobile Studio runs an agent with edit rights on the user's code, so these are ha
   plus `.help(...)`.
 - **Write for people who don't read code.** Name files with `FriendlyName` ("Home screen · edited"), keep
   paths as secondary text or help, and keep the chat system prompt's two-part answer rule (outcome, `---`,
-  technical notes; split by `AnswerParts`).
+  technical notes; split by `AnswerParts`). When Claude offers options, the prompt asks for a fenced ```choices
+  JSON block at the end; `ChoiceSet` takes it out of the text and the chat shows a card to pick from
+  (`Workspace.choose` sends the pick). Keep that format in sync between the prompt and `ChoiceSet`.
 - **Undo must never lose the user's work.** `CheckpointStore.restore` checks every file first and changes
   nothing if one was edited since. Anything else that edits the project should save a checkpoint too.
 - **Status never relies on colour alone:** use `StatusBadge` / `StatusTone` (a symbol and a colour), not dots.

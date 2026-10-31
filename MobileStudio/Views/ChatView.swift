@@ -238,14 +238,10 @@ struct ChatPanel: View {
     }
 
     private func send() {
-        guard workspace.chatBlocker == nil, !chat.isSending, let folder = workspace.project.readyFolder,
-              let claude = studio.claude else { return }
+        guard canSend else { return }
         let text = draft
-        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
         draft = ""
-        pick.cancel()
-        chat.send(text, references: pick.picks, folder: folder, claude: claude, profile: studio.profiles.active)
-        pick.clear()
+        workspace.sendChat(text)
         inputFocused = true
     }
 }
@@ -304,11 +300,18 @@ private struct MessageRow: View {
                 .background(Color.accentColor.opacity(0.16), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
             }
         case .assistant:
-            let parts = AnswerParts.split(message.text)
+            let extracted = ChoiceSet.extract(from: message.text)
+            let parts = AnswerParts.split(extracted.text)
             VStack(alignment: .leading, spacing: 10) {
                 if message.pending { working }
-                if !message.text.isEmpty { MarkdownView(text: parts.outcome) }
+                if !extracted.text.isEmpty { MarkdownView(text: parts.outcome) }
                 if !message.files.isEmpty { changes }
+                if let choices = extracted.choices, !message.pending {
+                    ChoiceCard(choices: choices, chosen: message.chosen, isActive: isLatest && message.chosen == nil,
+                               canSend: workspace.chatBlocker == nil && !workspace.chat.isSending,
+                               onChoose: { workspace.choose($0, in: message) },
+                               onOther: workspace.answerInOwnWords)
+                }
                 if let error = message.error {
                     Label(error, systemImage: "exclamationmark.triangle.fill").foregroundStyle(.orange)
                 }
@@ -317,6 +320,9 @@ private struct MessageRow: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
+
+    /// Only the newest answer's options can still be picked; older ones are history.
+    private var isLatest: Bool { workspace.chat.messages.last?.id == message.id }
 
     /// Shown while Claude works: the latest thing it did.
     private var working: some View {
@@ -385,6 +391,101 @@ private struct MessageRow: View {
 
 private extension Array {
     subscript(safe index: Int) -> Element? { indices.contains(index) ? self[index] : nil }
+}
+
+/// The options at the end of an answer, to pick instead of typing a reply. Checkboxes when several can be done
+/// together, radio buttons when it's one or the other. The recommended option starts selected.
+private struct ChoiceCard: View {
+    let choices: ChoiceSet
+    /// What was picked earlier; the card then shows it and can't be used again.
+    let chosen: [String]?
+    let isActive: Bool
+    let canSend: Bool
+    let onChoose: ([String]) -> Void
+    let onOther: () -> Void
+
+    @State private var selection: Set<String> = []
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(choices.question ?? "What would you like to do?").font(.headline)
+            VStack(alignment: .leading, spacing: 2) {
+                ForEach(choices.options, id: \.self) { option in row(option) }
+            }
+            if isActive {
+                HStack {
+                    Button("Something Else…", action: onOther).buttonStyle(.borderless)
+                    Spacer()
+                    Button(sendTitle) { onChoose(ordered) }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(selection.isEmpty || !canSend)
+                }
+                .controlSize(.regular)
+            } else if let chosen {
+                Label(chosen.count == 1 ? "You chose this" : "You chose \(chosen.count)", systemImage: "checkmark")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+        }
+        .padding(12)
+        .background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous)
+            .strokeBorder(isActive ? Color.accentColor.opacity(0.5) : Color(nsColor: .separatorColor)))
+        .onAppear {
+            if selection.isEmpty { selection = Set(choices.options.filter { $0.recommended == true }.map(\.label)) }
+        }
+    }
+
+    private var sendTitle: String {
+        guard choices.allowsMultiple, selection.count > 1 else { return "Do This" }
+        return "Do These (\(selection.count))"
+    }
+
+    /// The picks in the order Claude listed them, which is usually the order to do them in.
+    private var ordered: [String] { choices.options.map(\.label).filter(selection.contains) }
+
+    private func isSelected(_ option: ChoiceSet.Option) -> Bool {
+        chosen.map { $0.contains(option.label) } ?? selection.contains(option.label)
+    }
+
+    private func row(_ option: ChoiceSet.Option) -> some View {
+        Button {
+            guard isActive else { return }
+            if choices.allowsMultiple {
+                if selection.contains(option.label) { selection.remove(option.label) } else { selection.insert(option.label) }
+            } else {
+                selection = [option.label]
+            }
+        } label: {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Image(systemName: symbol(for: option))
+                    .foregroundStyle(isSelected(option) ? Color.accentColor : .secondary)
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 6) {
+                        Text(option.label).foregroundStyle(.primary)
+                        if option.recommended == true {
+                            Text("Recommended").font(.caption2.weight(.semibold))
+                                .padding(.horizontal, 6).padding(.vertical, 1)
+                                .background(Color.accentColor.opacity(0.15), in: Capsule())
+                        }
+                    }
+                    if let detail = option.detail {
+                        Text(detail).font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(.vertical, 5)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .opacity(isActive || isSelected(option) ? 1 : 0.55)
+        .accessibilityAddTraits(isSelected(option) ? .isSelected : [])
+    }
+
+    private func symbol(for option: ChoiceSet.Option) -> String {
+        let on = isSelected(option)
+        return choices.allowsMultiple ? (on ? "checkmark.square.fill" : "square") : (on ? "largecircle.fill.circle" : "circle")
+    }
 }
 
 /// Claude's markdown, block by block: headings, lists and code blocks as well as inline styles.

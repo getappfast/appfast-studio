@@ -15,6 +15,7 @@
 		21FBD7539922E79424654951 /* ClaudeStreamProcess.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EAF3766A5E4C80EDBA71CE6 /* ClaudeStreamProcess.swift */; };
 		2309F0E4763FC86498DCB8EC /* StatusRenderingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62DC339195DB99B74FCE89E4 /* StatusRenderingTests.swift */; };
 		28902DECFE727584B5AECE12 /* LogAndDiffViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8BFF51074EE2AD390002E0C /* LogAndDiffViews.swift */; };
+		28EF0A77B1ACB1B288DFCAAD /* Choices.swift in Sources */ = {isa = PBXBuildFile; fileRef = D39B7E02CBED08183520404D /* Choices.swift */; };
 		2D3897E2057D19CFE1F80A0F /* CLIView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9116D54E4720D142D69AF9C /* CLIView.swift */; };
 		3C2D137AB564685806DF621F /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49567BA1A7346DA894DA0A8F /* SettingsView.swift */; };
 		3FA52E1C9AF1E1CEEF8EBEED /* LowCodeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14C8AF9DA1D80B016009385B /* LowCodeTests.swift */; };
@@ -137,6 +138,7 @@
 		C99F1897F9F1747834466EAC /* ProjectVerifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectVerifier.swift; sourceTree = "<group>"; };
 		CC5563599B450CC1AF3C60BB /* ModelsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelsView.swift; sourceTree = "<group>"; };
 		CE6A2C879F4AD944F31375A9 /* MobileStudio.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MobileStudio.entitlements; sourceTree = "<group>"; };
+		D39B7E02CBED08183520404D /* Choices.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Choices.swift; sourceTree = "<group>"; };
 		D77CAE1293C3C56947E04276 /* FlutterProject.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlutterProject.swift; sourceTree = "<group>"; };
 		DEDDFB47D8F146F8EEAFB2C9 /* SimctlService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SimctlService.swift; sourceTree = "<group>"; };
 		E214ACAAE40C3011FC668B13 /* ProjectNames.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectNames.swift; sourceTree = "<group>"; };
@@ -216,6 +218,7 @@
 			children = (
 				0DB5D2BB71D48054337D0E82 /* ChatModel.swift */,
 				275CF361D5418A2D7204D8BD /* Checkpoints.swift */,
+				D39B7E02CBED08183520404D /* Choices.swift */,
 				6E2A05DDF9704E65DF13A99D /* MarkdownBlocks.swift */,
 			);
 			path = Chat;
@@ -441,6 +444,7 @@
 				C5F83ABA84F9ABF6030384BF /* ChatModel.swift in Sources */,
 				CF296FE4DF376BB75A014701 /* ChatView.swift in Sources */,
 				049029C860295B549B622298 /* Checkpoints.swift in Sources */,
+				28EF0A77B1ACB1B288DFCAAD /* Choices.swift in Sources */,
 				C58C1E2292EAABB8505F3C04 /* ClaudeAccess.swift in Sources */,
 				A96F4E829469D36B499384ED /* ClaudeCLIService.swift in Sources */,
 				1138CCAA09F59B08F3B291EB /* ClaudeEvents.swift in Sources */,

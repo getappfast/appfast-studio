@@ -282,6 +282,28 @@ final class Workspace {
 
     func dismissToast() { toast = nil }
 
+    /// Sends a chat message with whatever is picked in the app, as the composer and the choice cards do.
+    func sendChat(_ text: String) {
+        guard chatBlocker == nil, !chat.isSending, let folder = project.readyFolder, let claude = studio.claude,
+              !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        pick.cancel()
+        chat.send(text, references: pick.picks, folder: folder, claude: claude, profile: studio.profiles.active)
+        pick.clear()
+    }
+
+    /// The user picked from the options at the end of an answer: remember it and send it as the next message.
+    func choose(_ labels: [String], in message: ChatMessage) {
+        guard !labels.isEmpty, chatBlocker == nil, !chat.isSending else { return }
+        chat.recordChoice(labels, for: message.id)
+        sendChat(ChoiceSet.reply(choosing: labels))
+    }
+
+    /// Starts typing a different answer to an answer's options.
+    func answerInOwnWords() {
+        isChatVisible = true
+        composerFocusRequest += 1
+    }
+
     // MARK: Events
 
     /// The folder was changed or removed: anything running belongs to the old one.

@@ -118,3 +118,45 @@ struct CheckpointTests {
         #expect(read("lib/a.dart", in: root) == "the user's own edit")
     }
 }
+
+struct ChoiceSetTests {
+    @Test func takesTheChoicesOutOfTheAnswer() throws {
+        let text = """
+        I found four things worth fixing.
+
+        ---
+        Details here.
+
+        ```choices
+        {"question": "What should I do first?", "multiple": true,
+         "options": [{"label": "Fix the broken test", "detail": "test/widget_test.dart fails", "recommended": true},
+                     {"label": "Run dart fix --apply"}]}
+        ```
+        """
+        let (rest, choices) = ChoiceSet.extract(from: text)
+        #expect(rest == "I found four things worth fixing.\n\n---\nDetails here.")
+        let set = try #require(choices)
+        #expect(set.question == "What should I do first?")
+        #expect(set.allowsMultiple)
+        #expect(set.options.map(\.label) == ["Fix the broken test", "Run dart fix --apply"])
+        #expect(set.options.first?.recommended == true)
+    }
+
+    @Test func hidesABlockStillBeingWritten() {
+        let (rest, choices) = ChoiceSet.extract(from: "Done.\n\n```choices\n{\"options\": [{\"lab")
+        #expect(rest == "Done.")
+        #expect(choices == nil)
+    }
+
+    @Test func dropsABlockThatIsntValid() {
+        let (rest, choices) = ChoiceSet.extract(from: "Done.\n```choices\nnot json\n```")
+        #expect(rest == "Done.")
+        #expect(choices == nil)
+        #expect(ChoiceSet.extract(from: "No choices here.").text == "No choices here.")
+    }
+
+    @Test func repliesWithWhatWasPicked() {
+        #expect(ChoiceSet.reply(choosing: ["Fix the test"]) == "Go ahead: Fix the test.")
+        #expect(ChoiceSet.reply(choosing: ["A", "B"]) == "Go ahead with these, in this order:\n- A\n- B")
+    }
+}
