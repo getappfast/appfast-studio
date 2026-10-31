@@ -21,6 +21,10 @@ final class Workspace {
     var isChatVisible = UserDefaults.standard.object(forKey: Keys.chatVisible) as? Bool ?? true {
         didSet { UserDefaults.standard.set(isChatVisible, forKey: Keys.chatVisible) }
     }
+    /// What the canvas shows: the running device, or the map of the app's screens.
+    var canvas = UserDefaults.standard.string(forKey: Keys.canvas).flatMap(Canvas.init) ?? .device {
+        didSet { UserDefaults.standard.set(canvas.rawValue, forKey: Keys.canvas) }
+    }
     /// The build log drawer under the simulator.
     var isLogVisible = false
     /// The changed file whose diff is shown in a sheet.
@@ -33,8 +37,8 @@ final class Workspace {
     var chatDraft = ""
     /// Bumped to put the cursor in the chat box.
     private(set) var composerFocusRequest = 0
-    /// The app's screens, found in its source; refreshed when Claude changes files.
-    private(set) var screens: [AppScreen] = []
+    /// The app's screens and how they lead to each other, found in its source; refreshed when Claude changes files.
+    private(set) var flow: AppFlow?
 
     /// False for snapshot runs (see `AppDelegate`), so screenshots don't spend money on a project check.
     @ObservationIgnored var runsAutomaticChecks = true
@@ -50,6 +54,7 @@ final class Workspace {
 
     private enum Keys {
         static let chatVisible = "window.chatVisible.v1"
+        static let canvas = "window.canvas.v1"
     }
 
     init(studio: StudioModel) {
@@ -65,13 +70,19 @@ final class Workspace {
     /// First appearance: find the CLI and accounts, then check the saved project.
     func start() async {
         chat.load(folder: project.readyFolder)
-        refreshScreens()
+        refreshFlow()
         await studio.refresh()
         if runsAutomaticChecks { project.autoVerify(studio.projectVerifier) }
         refreshExistingApp()
     }
 
     // MARK: Derived
+
+    /// The current project's screens, empty until they've been read.
+    var screens: [AppScreen] {
+        guard let flow, flow.folder == project.readyFolder else { return [] }
+        return flow.screens
+    }
 
     var flutterProject: FlutterProject? {
         if case .ready(let flutter) = project.state { return flutter }
@@ -140,13 +151,14 @@ final class Workspace {
     var menuState: MenuState {
         MenuState(canRun: canRun, canStop: canStop, canHotReload: canHotReload, canPick: canPick,
                   isPicking: pick.isPicking, isChatVisible: isChatVisible, isLogVisible: isLogVisible,
+                  isShowingFlow: canvas == .flow,
                   canStartNewChat: !chat.messages.isEmpty && !chat.isSending,
                   canFix: visibleFailure != nil && fixBlocker == nil,
                   canCheckProject: project.path != nil && studio.projectVerifier != nil)
     }
 
     struct MenuState: Equatable {
-        var canRun, canStop, canHotReload, canPick, isPicking, isChatVisible, isLogVisible: Bool
+        var canRun, canStop, canHotReload, canPick, isPicking, isChatVisible, isLogVisible, isShowingFlow: Bool
         var canStartNewChat, canFix, canCheckProject: Bool
     }
 
@@ -173,6 +185,10 @@ final class Workspace {
         let tone: StatusTone
         let title: String
         let detail: String?
+    }
+
+    enum Canvas: String {
+        case device, flow
     }
 
     struct Toast: Equatable {
@@ -220,7 +236,11 @@ final class Workspace {
     func togglePick() {
         guard canPick else { return }
         pick.toggle(run: run, folder: project.readyFolder)
-        if pick.isPicking { isChatVisible = true }
+        // Pointing happens on the device, so it has to be in view.
+        if pick.isPicking {
+            isChatVisible = true
+            canvas = .device
+        }
     }
 
     func reconnect() {
@@ -321,7 +341,7 @@ final class Workspace {
     func projectStateChanged() {
         chat.load(folder: project.readyFolder)
         refreshExistingApp()
-        refreshScreens()
+        refreshFlow()
     }
 
     /// A chat answer finished: show its edits in the running app.
@@ -396,7 +416,7 @@ final class Workspace {
     /// and an offer to run again for packages and native settings, which only a new build picks up.
     private func applyEdits(_ files: [FileSnapshot.Change], done: String) {
         guard !files.isEmpty else { return }
-        if files.contains(where: { $0.path.hasPrefix("lib/") }) { refreshScreens() }
+        if files.contains(where: { $0.path.hasPrefix("lib/") }) { refreshFlow() }
         guard run.phase == .running else {
             if done == "Undone" { show(Toast(tone: .success, text: "Undone")) }
             return
@@ -425,11 +445,11 @@ final class Workspace {
         }
     }
 
-    private func refreshScreens() {
-        guard let folder = project.readyFolder else { screens = []; return }
+    private func refreshFlow() {
+        guard let folder = project.readyFolder else { flow = nil; return }
         Task {
-            let found = await ScreenFinder.found(in: folder)
-            if project.readyFolder == folder { screens = found }
+            let found = await FlowFinder.found(in: folder)
+            if project.readyFolder == folder { flow = found }
         }
     }
 

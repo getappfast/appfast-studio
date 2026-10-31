@@ -68,32 +68,44 @@ struct AppScreen: Identifiable, Equatable, Sendable {
     var id: String { className }
 }
 
+/// A Dart file of the project, read once and shared by `ScreenFinder` and `FlowFinder`.
+struct DartSource: Sendable {
+    /// Relative to the project folder.
+    let file: String
+    let text: String
+}
+
 enum ScreenFinder {
-    static func screens(in folder: String) -> [AppScreen] {
+    static func screens(in folder: String) -> [AppScreen] { screens(in: sources(in: folder)) }
+
+    static func screens(in sources: [DartSource]) -> [AppScreen] {
+        var seen = Set<String>()
+        return sources.flatMap { screens(in: $0.text, file: $0.file) }
+            .filter { seen.insert($0.className).inserted }
+            .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+    }
+
+    /// The Dart files under lib/, skipping very large ones.
+    static func sources(in folder: String) -> [DartSource] {
         let lib = URL(fileURLWithPath: folder).appendingPathComponent("lib")
         guard let walker = FileManager.default.enumerator(at: lib, includingPropertiesForKeys: [.fileSizeKey]) else { return [] }
-        var found: [AppScreen] = []
+        var sources: [DartSource] = []
         for case let url as URL in walker where url.pathExtension == "dart" {
             guard (try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0 < 400_000,
                   let text = try? String(contentsOf: url, encoding: .utf8) else { continue }
             let relative = "lib/" + url.path.components(separatedBy: "/lib/").dropFirst().joined(separator: "/lib/")
-            found += screens(in: text, file: relative)
+            sources.append(DartSource(file: relative, text: text))
         }
-        var seen = Set<String>()
-        return found.filter { seen.insert($0.className).inserted }
-            .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+        return sources.sorted { $0.file < $1.file }
     }
 
     static func screens(in source: String, file: String) -> [AppScreen] {
-        // A Regex isn't Sendable, so it can't be a static constant under strict concurrency.
-        let declaration = /class\s+(\w+(?:Page|Screen|View))\s+extends\s+\w*(?:Stateless|Stateful|Consumer|Hook)\w*Widget/
+        // A Regex isn't Sendable, so it can't be a static constant under strict concurrency. Private classes
+        // (`_WaterView`) are parts of a screen, not screens.
+        let declaration = /class\s+([A-Za-z]\w*(?:Page|Screen|View))\s+extends\s+\w*(?:Stateless|Stateful|Consumer|Hook)\w*Widget/
         return source.matches(of: declaration).map { match in
             let className = String(match.1)
             return AppScreen(name: FriendlyName.screenName(fromClass: className), className: className, file: file)
         }
-    }
-
-    static func found(in folder: String) async -> [AppScreen] {
-        await Task.detached { screens(in: folder) }.value
     }
 }

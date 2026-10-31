@@ -182,6 +182,14 @@ enum Snapshot {
             // The toolbar floats over full-height panels on macOS 26, so keep it on top.
             let content = window?.contentLayoutRect ?? root.bounds
             NSBezierPath(rect: content).setClip()
+            // Scroll views outside the panels (the app flow map) are skipped too, so paste what each one shows.
+            for clip in descendants(of: root) where clip is NSClipView && !clip.isHidden && clip.bounds.width > 100
+                && !panels.contains(where: { clip.isDescendant(of: $0) }) {
+                guard let clipRep = clip.bitmapImageRepForCachingDisplay(in: clip.bounds) else { continue }
+                clip.cacheDisplay(in: clip.bounds, to: clipRep)
+                clipRep.draw(in: clip.convert(clip.bounds, to: root), from: .zero, operation: .sourceOver,
+                             fraction: 1, respectFlipped: true, hints: nil)
+            }
             for panel in panels {
                 let frame = panel.convert(panel.bounds, to: root)
                 NSColor.windowBackgroundColor.setFill()

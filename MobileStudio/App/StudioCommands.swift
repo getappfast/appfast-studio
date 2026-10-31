@@ -43,6 +43,13 @@ struct StudioCommands: Commands {
         }
 
         CommandGroup(after: .sidebar) {
+            Button("Show Device") { workspace.canvas = .device }
+                .keyboardShortcut("1")
+                .disabled(!state.isShowingFlow)
+            Button("Show App Flow") { workspace.canvas = .flow }
+                .keyboardShortcut("2")
+                .disabled(state.isShowingFlow)
+            Divider()
             Button(state.isChatVisible ? "Hide Chat" : "Show Chat") { workspace.isChatVisible.toggle() }
                 .keyboardShortcut("0", modifiers: [.command, .option])
             Button(state.isLogVisible ? "Hide Build Log" : "Show Build Log") { workspace.isLogVisible.toggle() }

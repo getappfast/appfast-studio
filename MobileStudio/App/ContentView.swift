@@ -6,11 +6,15 @@ struct ContentView: View {
     @Bindable var workspace: Workspace
     let menuBridge: MenuBridge
     @Environment(\.openSettings) private var openSettings
+    /// The right edge of the floating sidebar and the left edge of the canvas, in window coordinates.
+    @State private var sidebarEdge: CGFloat = 0
+    @State private var canvasEdge: CGFloat = 0
 
     var body: some View {
         NavigationSplitView {
             ProjectSidebar(workspace: workspace)
                 .navigationSplitViewColumnWidth(min: 240, ideal: 280, max: 380)
+                .onGeometryChange(for: CGFloat.self, of: { $0.frame(in: .global).maxX }) { sidebarEdge = $0 }
         } detail: {
             VStack(spacing: 0) {
                 // Above the device rather than over it, so it never hides the app being worked on.
@@ -18,7 +22,16 @@ struct ContentView: View {
                     .padding([.horizontal, .top], 16)
                     .frame(maxWidth: .infinity)
                     .background(Color(nsColor: .underPageBackgroundColor))
+                // The device stays underneath the map: removing it would stop its display stream.
                 SimulatorCanvas(model: workspace.simulator, isPicking: workspace.pick.isPicking)
+                    .opacity(workspace.canvas == .flow ? 0 : 1)
+                    .accessibilityHidden(workspace.canvas == .flow)
+                    .overlay {
+                        if workspace.canvas == .flow {
+                            FlowCanvas(workspace: workspace, leadingInset: max(sidebarEdge - canvasEdge, 0))
+                        }
+                    }
+                    .onGeometryChange(for: CGFloat.self, of: { $0.frame(in: .global).minX }) { canvasEdge = $0 }
                     .overlay(alignment: .bottom) { ToastView(workspace: workspace).padding(.bottom, 52) }
                 if workspace.isLogVisible {
                     Divider()

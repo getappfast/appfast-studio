@@ -10,14 +10,17 @@ Mobile Studio is a native macOS app (SwiftUI, Swift 6, macOS 14+) for building F
 One window shows:
 
 - **Toolbar** (like Xcode's): Run/Stop, the destination simulator menu, an activity line, **Point at…**
-  (Pick), and toggles for the build log and the chat. Every action is also in the Product/View menus with a
-  shortcut (⌘R, ⌘., ⇧⌘R hot reload, ⇧⌘E, ⇧⌘Y, ⌥⌘0).
+  (Pick), a Device / App Flow switch for the canvas, and toggles for the build log and the chat. Every action is
+  also in the Product/View menus with a shortcut (⌘R, ⌘., ⇧⌘R hot reload, ⇧⌘E, ⌘1/⌘2, ⇧⌘Y, ⌥⌘0).
 - **Sidebar:** a setup checklist until everything is ready, then the project (a health badge opens a popover
   with issues, the run flavor and Claude's project check), **Screens** (found in the source; clicking one starts
   a chat message about it) and **History** (every change Claude made, undoable, each file opening a git diff).
 - **Canvas:** a live iOS Simulator screen drawn in-app from CoreSimulator's framebuffer (click → tap,
   drag → swipe). One banner above it for what matters now (run failed → *Fix with Claude*, an app already
-  running → Reconnect, a fix in progress), and a build log drawer under it.
+  running → Reconnect, a fix in progress), and a build log drawer under it. **App Flow** swaps the device for a
+  map of the screens (`FlowCanvas`): `FlowFinder` reads the Dart source for navigation (Navigator, named routes,
+  go_router, auto_route, tabs) into an `AppFlow`, drawn left to right from the start screen. It stays fresh like
+  the Screens list. The device view stays underneath, hidden, because removing it stops the display stream.
 - **Chat inspector:** Claude Code running in the project folder as the selected account. Answers lead with
   the outcome in plain words; technical notes and steps sit behind a disclosure. Each answer that changed
   files has **Undo**. *Fix with Claude* runs appear here as messages too. *Point at…* attaches a widget
@@ -64,7 +67,7 @@ Core/         Feature-agnostic helpers                 ProcessRunner, Diagnostic
 | **Model** | `@MainActor @Observable final class`, `private(set)` state, intent methods | `FlutterRunModel`, `ChatModel`, `ProjectModel`, `SimulatorModel` |
 | **Service** | `Sendable` struct or enum that does I/O and returns values; no UI state | `SimctlService`, `ClaudeCLIService`, `ProjectVerifier`, `RunningAppFinder` |
 | **Process wrapper** | Owns one child `Process`, streams its output | `FlutterRunProcess`, `ClaudeStreamProcess`, `ClaudeLoginProcess` |
-| **Value / parser** | Pure `Sendable` structs and enums: easy to test | `FlutterOutput`, `ClaudeEvents`, `ClaudeAgentCall`, `FileSnapshot`, `RunFailure` |
+| **Value / parser** | Pure `Sendable` structs and enums: easy to test | `FlutterOutput`, `ClaudeEvents`, `ClaudeAgentCall`, `FileSnapshot`, `RunFailure`, `AppFlow` |
 | **Coordinator** | Owns the per-window models and the rules between them | `Workspace` |
 
 ### Rules
@@ -156,6 +159,14 @@ Mobile Studio runs an agent with edit rights on the user's code, so these are ha
   can't shrink, like the device footer: it uses `ViewThatFits` to drop to icons. Don't give detail content a
   minimum width; check `-main.txt` from a `MOBILE_STUDIO_SNAPSHOT_TREE=1` run after layout changes.
 
+- The detail column also runs under the floating sidebar *without* reporting it as a safe area (a
+  `GeometryReader` there sees the full window width and a zero leading inset). Centred content is fine; anything
+  that scrolls or starts at the leading edge must keep clear itself. `ContentView` measures the overlap and passes
+  it to `FlowCanvas` as `leadingInset`.
+
+- Swift `Regex` uses Unicode word boundaries by default, where `Navigator.push` is one word, so `\bpush` never
+  matches. Parsers of Dart source use `.wordBoundaryKind(.simple)`.
+
 ## Seeing the UI
 
 Debug builds can save PNGs of their own windows. This needs no screen-recording permission, and the run
@@ -174,8 +185,9 @@ throwaway project with `-project.path.v1 /path/to/app`, never at the user's own.
 spending anything, add `MOBILE_STUDIO_SNAPSHOT_FIX=1` (or `MOBILE_STUDIO_SNAPSHOT_CHAT="…"` with `MOBILE_STUDIO_SNAPSHOT_UNDO_AFTER=20`
 for the ask → reload → undo loop) and point `MOBILE_STUDIO_CLAUDE_CLI` at a stand-in script that
 answers `--version` and `auth status`, prints stream-json, and makes the fix. Launch arguments override saved settings for that run only, e.g.
-`-window.chatVisible.v1 '<false/>'`. Glass toolbar platters and AppKit-hosted list rows don't draw in these
-captures; everything else does. See `Snapshot` in `App/AppDelegate.swift`.
+`-window.chatVisible.v1 '<false/>'`, or `-window.canvas.v1 flow` for the app flow map. Glass toolbar platters and AppKit-hosted list rows don't draw in these
+captures (scroll views are pasted in separately, like the panels); everything else does. Don't click in a snapshot
+window: it's a real window, and a click acts and can save settings. See `Snapshot` in `App/AppDelegate.swift`.
 
 ## Tests
 

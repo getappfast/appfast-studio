@@ -27,6 +27,7 @@
 		5824A377E2846FA63755716E /* DartSDKService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A332F66AE4C1E543006642F /* DartSDKService.swift */; };
 		59CBE0987639CCE89F448155 /* FlutterOutputTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CBFC2D8B02BA0841E6E48B7 /* FlutterOutputTests.swift */; };
 		5F27FC387AEA2167F2F65919 /* MarkdownBlocks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E2A05DDF9704E65DF13A99D /* MarkdownBlocks.swift */; };
+		5FA1E9C44FDC17093DAAB1E8 /* AppFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3887AD55272504EA7A2C1D90 /* AppFlow.swift */; };
 		600F447CE71F63B3AC477E1A /* ProjectView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5EDA7C9FB65249BD33D5816 /* ProjectView.swift */; };
 		6B80827696964634962BF5EF /* InspectorClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68A8C87B6E1683121FB0AC3F /* InspectorClient.swift */; };
 		6CA9A32DB8131BDE7F0FA608 /* ProjectModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BDCF398457D0259E7586C9D /* ProjectModel.swift */; };
@@ -54,7 +55,9 @@
 		C58C1E2292EAABB8505F3C04 /* ClaudeAccess.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9784DC6C60D28D725C553620 /* ClaudeAccess.swift */; };
 		C5F83ABA84F9ABF6030384BF /* ChatModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DB5D2BB71D48054337D0E82 /* ChatModel.swift */; };
 		C9E99D3265100508B7475FED /* ShellEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C34D86D100466FDA9871DD6 /* ShellEnvironment.swift */; };
+		CECB7DD92867508E3D725877 /* AppFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B57B38CEAE21EB2ADB5B0FC /* AppFlowTests.swift */; };
 		CF296FE4DF376BB75A014701 /* ChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA5DFB1D3B3C6D134BA24C81 /* ChatView.swift */; };
+		CFBF633E3828AF829F80D396 /* FlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 242D3271DE1D35FB68142615 /* FlowView.swift */; };
 		D20AD300B5A1909161114964 /* ClaudeModelsModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FA1C4963449C9792E24C74C /* ClaudeModelsModel.swift */; };
 		D320DEB4B6691309C9C860E7 /* SimctlService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEDDFB47D8F146F8EEAFB2C9 /* SimctlService.swift */; };
 		DC01A725964492C31EBD1C0E /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3182C9E8D192D1016590E47F /* AppDelegate.swift */; };
@@ -94,12 +97,14 @@
 		1878D0756FDCF9BD088709B2 /* GitDiff.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitDiff.swift; sourceTree = "<group>"; };
 		1A332F66AE4C1E543006642F /* DartSDKService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DartSDKService.swift; sourceTree = "<group>"; };
 		2278BC7E8E3DF50FADCAF3CC /* ClaudeCLIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeCLIService.swift; sourceTree = "<group>"; };
+		242D3271DE1D35FB68142615 /* FlowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlowView.swift; sourceTree = "<group>"; };
 		275CF361D5418A2D7204D8BD /* Checkpoints.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Checkpoints.swift; sourceTree = "<group>"; };
 		2CBFC2D8B02BA0841E6E48B7 /* FlutterOutputTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlutterOutputTests.swift; sourceTree = "<group>"; };
 		2CF293A1D6EA1DBE1484F1AE /* ProcessRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessRunner.swift; sourceTree = "<group>"; };
 		2D4DC322C08FF23E9822B4ED /* RedesignTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedesignTests.swift; sourceTree = "<group>"; };
 		3182C9E8D192D1016590E47F /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		37D6BAB1CD6A090384AAC0E1 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		3887AD55272504EA7A2C1D90 /* AppFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppFlow.swift; sourceTree = "<group>"; };
 		38D2945DE35CE29A9326C48E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		49567BA1A7346DA894DA0A8F /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		4B4558791E4DC76EC183EE44 /* DiagnosticLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagnosticLog.swift; sourceTree = "<group>"; };
@@ -107,6 +112,7 @@
 		51EFD1E26DE06F3BA89C5719 /* PickModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PickModel.swift; sourceTree = "<group>"; };
 		53B651022902A63C0841C077 /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
 		59BFC66633AD59CD4919DF83 /* ClaudeModelService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeModelService.swift; sourceTree = "<group>"; };
+		5B57B38CEAE21EB2ADB5B0FC /* AppFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppFlowTests.swift; sourceTree = "<group>"; };
 		5D46FFCDF80E4AF9D79D83DC /* MobileStudioApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileStudioApp.swift; sourceTree = "<group>"; };
 		5D9CFA723DEEC7EA441E509B /* AccountsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountsView.swift; sourceTree = "<group>"; };
 		5F0D578CEE0D155ED69F804F /* FlavorValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlavorValidator.swift; sourceTree = "<group>"; };
@@ -195,6 +201,7 @@
 		2D4B34B8F8EF16251AD6E606 /* Project */ = {
 			isa = PBXGroup;
 			children = (
+				3887AD55272504EA7A2C1D90 /* AppFlow.swift */,
 				05D882B88E504A6D26DC1AC3 /* FileSnapshot.swift */,
 				ABF3B83D36B28C480AEEE96B /* FixModel.swift */,
 				5F0D578CEE0D155ED69F804F /* FlavorValidator.swift */,
@@ -249,6 +256,7 @@
 		513A0B08BB9A18A954D5FE83 /* MobileStudioTests */ = {
 			isa = PBXGroup;
 			children = (
+				5B57B38CEAE21EB2ADB5B0FC /* AppFlowTests.swift */,
 				F6E172ED02B0EEBAEB12D76A /* ClaudeTests.swift */,
 				063160B764E8BEA408180098 /* CoreTests.swift */,
 				2CBFC2D8B02BA0841E6E48B7 /* FlutterOutputTests.swift */,
@@ -299,6 +307,7 @@
 				EA5DFB1D3B3C6D134BA24C81 /* ChatView.swift */,
 				F9116D54E4720D142D69AF9C /* CLIView.swift */,
 				836E335207FDB9F1BA85D373 /* Components.swift */,
+				242D3271DE1D35FB68142615 /* FlowView.swift */,
 				B8BFF51074EE2AD390002E0C /* LogAndDiffViews.swift */,
 				CC5563599B450CC1AF3C60BB /* ModelsView.swift */,
 				F5EDA7C9FB65249BD33D5816 /* ProjectView.swift */,
@@ -425,6 +434,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CECB7DD92867508E3D725877 /* AppFlowTests.swift in Sources */,
 				DD7448482A42B7DDF69BE317 /* ClaudeTests.swift in Sources */,
 				7917AE5E78D1C8421E6608CD /* CoreTests.swift in Sources */,
 				59CBE0987639CCE89F448155 /* FlutterOutputTests.swift in Sources */,
@@ -440,6 +450,7 @@
 			files = (
 				DD688942598725357BCDBD0D /* AccountsView.swift in Sources */,
 				DC01A725964492C31EBD1C0E /* AppDelegate.swift in Sources */,
+				5FA1E9C44FDC17093DAAB1E8 /* AppFlow.swift in Sources */,
 				2D3897E2057D19CFE1F80A0F /* CLIView.swift in Sources */,
 				C5F83ABA84F9ABF6030384BF /* ChatModel.swift in Sources */,
 				CF296FE4DF376BB75A014701 /* ChatView.swift in Sources */,
@@ -461,6 +472,7 @@
 				8A7D4F74F116AA88F63F7461 /* FileSnapshot.swift in Sources */,
 				87CC7F96965942B647137614 /* FixModel.swift in Sources */,
 				E22D008167C8CD0081FF8B40 /* FlavorValidator.swift in Sources */,
+				CFBF633E3828AF829F80D396 /* FlowView.swift in Sources */,
 				E7CA2EE69C76894BBD386E14 /* FlutterOutput.swift in Sources */,
 				9FA1ED4E7758FCED2E257A5A /* FlutterProject.swift in Sources */,
 				B14665D0241E67EC7BC85F24 /* FlutterRunModel.swift in Sources */,

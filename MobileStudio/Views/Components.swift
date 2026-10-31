@@ -150,3 +150,18 @@ struct FileChangeRow: View {
         .accessibilityLabel("\(FriendlyName.of(change.path)), \(change.kind.verb)")
     }
 }
+
+/// The context menu of a screen, in the sidebar and on the app flow map.
+struct ScreenMenu: View {
+    let workspace: Workspace
+    let screen: AppScreen
+
+    var body: some View {
+        Button("Ask Claude About It") { workspace.mention(screen) }
+        if let folder = workspace.project.readyFolder {
+            let url = URL(fileURLWithPath: folder).appendingPathComponent(screen.file)
+            Button("Open Code") { NSWorkspace.shared.open(url) }
+            Button("Show in Finder") { NSWorkspace.shared.activateFileViewerSelecting([url]) }
+        }
+    }
+}

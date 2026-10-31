@@ -31,6 +31,15 @@ struct WorkspaceToolbar: ToolbarContent {
 
         // Hot Reload isn't here: Claude's edits reload on their own, and it stays in the Product menu (⇧⌘R).
         ToolbarItemGroup(placement: .primaryAction) {
+            Picker("Canvas", selection: Bindable(workspace).canvas) {
+                Label("Device", systemImage: "iphone").tag(Workspace.Canvas.device)
+                    .help("Show the running app (⌘1)")
+                Label("App Flow", systemImage: "point.3.connected.trianglepath.dotted").tag(Workspace.Canvas.flow)
+                    .help("Show how the app's screens connect (⌘2)")
+            }
+            .pickerStyle(.segmented)
+            .labelStyle(.iconOnly)
+            .help("Show the device or a map of the app's screens")
             // The one tool in the toolbar with words: pointing at something is how low-code users say "this one".
             Toggle(isOn: Binding(get: { workspace.pick.isPicking }, set: { _ in workspace.togglePick() })) {
                 Label("Point at…", systemImage: "scope").labelStyle(.titleAndIcon)
