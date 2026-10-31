@@ -6,11 +6,17 @@ import AppKit
 /// on the layer so the GPU composites it with no copy.
 struct SimulatorScreen: NSViewRepresentable {
     let display: MSSimulatorDisplay?
+    /// The screen's corner radius as a share of its width, so the corners match the device at any size.
+    var cornerFraction: CGFloat
+    /// What VoiceOver says for the screen.
+    var accessibilityName: String
 
     func makeNSView(context: Context) -> ScreenView { ScreenView() }
 
     func updateNSView(_ view: ScreenView, context: Context) {
         view.display = display
+        view.cornerFraction = cornerFraction
+        view.setAccessibilityLabel(accessibilityName)
     }
 
     final class ScreenView: NSView {
@@ -25,12 +31,24 @@ struct SimulatorScreen: NSViewRepresentable {
             }
         }
 
+        var cornerFraction: CGFloat = 0 {
+            didSet { if cornerFraction != oldValue { needsLayout = true } }
+        }
+
         override init(frame: NSRect) {
             super.init(frame: frame)
             wantsLayer = true
+            setAccessibilityElement(true)
+            setAccessibilityRole(.image)
+            setAccessibilityHelp("Click to tap, drag to swipe.")
         }
 
         required init?(coder: NSCoder) { fatalError("not used") }
+
+        override func layout() {
+            super.layout()
+            layer?.cornerRadius = bounds.width * cornerFraction
+        }
 
         // MARK: Mouse -> touch
 
@@ -52,7 +70,6 @@ struct SimulatorScreen: NSViewRepresentable {
             let layer = CALayer()
             layer.contentsGravity = .resizeAspect
             layer.backgroundColor = NSColor.black.cgColor
-            layer.cornerRadius = 34
             layer.cornerCurve = .continuous
             layer.masksToBounds = true
             return layer
@@ -60,135 +77,116 @@ struct SimulatorScreen: NSViewRepresentable {
     }
 }
 
-struct SimulatorPanel<Accessory: View>: View {
+extension SimulatorDevice {
+    /// Roughly the display's corner radius over its width: rounded for Face ID iPhones, square for
+    /// Home-button ones, slight for iPads.
+    var screenCornerFraction: CGFloat {
+        if name.contains("iPad") { return 0.025 }
+        if name.contains("SE") || name.contains("iPhone 8") { return 0 }
+        return 0.135
+    }
+}
+
+/// The device, centred on the canvas, with its empty and error states. Device choice and Boot live in
+/// the toolbar's destination menu.
+struct SimulatorCanvas: View {
     let model: SimulatorModel
-    /// Floats under the device screen, centred.
-    @ViewBuilder let accessory: () -> Accessory
+    @State private var hovering = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            toolbar
+        VStack(spacing: 12) {
             screen
-            accessory().frame(maxWidth: .infinity)
-            caption
+            footer
         }
-        .padding(24)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .padding(.horizontal, 32)
+        .padding(.top, 24)
+        .padding(.bottom, 16)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(nsColor: .underPageBackgroundColor))
         .task { await model.monitor() }
-    }
-
-    // MARK: Toolbar
-
-    private var toolbar: some View {
-        HStack(spacing: 10) {
-            Label("Simulator", systemImage: "iphone").font(.headline)
-            Spacer()
-            deviceMenu
-            homeButton
-            actionButton
-        }
-    }
-
-    private var deviceMenu: some View {
-        Menu {
-            ForEach(runtimes, id: \.self) { runtime in
-                Section(runtime) {
-                    ForEach(model.devices.filter { $0.runtime == runtime }) { device in
-                        Button {
-                            model.select(device)
-                        } label: {
-                            Text(device.isBooted ? "\(device.name)  ·  running" : device.name)
-                        }
-                    }
-                }
-            }
-        } label: {
-            Text(model.selected?.name ?? "Choose device")
-        }
-        .menuStyle(.borderlessButton)
-        .fixedSize()
-        .disabled(model.devices.isEmpty)
-    }
-
-    @ViewBuilder
-    private var homeButton: some View {
-        if model.canSendInput {
-            Button { model.pressHome() } label: { Label("Home", systemImage: "house").labelStyle(.iconOnly) }
-                .help("Home")
-        }
-    }
-
-    private var runtimes: [String] {
-        var seen = Set<String>()
-        return model.devices.map(\.runtime).filter { seen.insert($0).inserted }
-    }
-
-    @ViewBuilder
-    private var actionButton: some View {
-        switch model.phase {
-        case .booting:
-            ProgressView().controlSize(.small)
-        default:
-            if let device = model.selected {
-                if device.isBooted {
-                    Button("Shut down") { model.shutdown() }.disabled(model.isBusy)
-                } else {
-                    Button("Boot") { model.boot() }.disabled(model.isBusy || device.isTransitioning)
-                }
-            }
-        }
     }
 
     // MARK: Screen
 
     @ViewBuilder
     private var screen: some View {
-        ZStack {
-            if model.display != nil, let size = model.screenSize {
-                SimulatorScreen(display: model.display)
-                    .aspectRatio(size, contentMode: .fit)
-                    .shadow(color: .black.opacity(0.25), radius: 12, y: 4)
-            } else {
-                placeholder
-            }
+        if model.display != nil, let size = model.screenSize, let device = model.selected {
+            SimulatorScreen(display: model.display, cornerFraction: device.screenCornerFraction,
+                            accessibilityName: "\(device.name) screen")
+                .aspectRatio(size, contentMode: .fit)
+                .shadow(color: .black.opacity(0.25), radius: 14, y: 5)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .onHover { hovering = $0 }
+        } else {
+            placeholder.frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     @ViewBuilder
     private var placeholder: some View {
-        VStack(spacing: 10) {
-            switch model.phase {
-            case .booting:
-                ProgressView()
-                Text("Booting \(model.selected?.name ?? "simulator")…").foregroundStyle(.secondary)
-            case .connecting:
-                ProgressView()
-                Text("Connecting to the display…").foregroundStyle(.secondary)
-            case .failed(let message):
-                Image(systemName: "exclamationmark.triangle").font(.largeTitle).foregroundStyle(.orange)
-                Text(message).foregroundStyle(.secondary).multilineTextAlignment(.center)
-                Button("Try again") { model.retry() }
-            default:
-                Image(systemName: "iphone.gen3").font(.system(size: 44)).foregroundStyle(.tertiary)
-                Text(model.devices.isEmpty ? "No simulators found." : "Boot a simulator to see its screen here.")
-                    .foregroundStyle(.secondary)
+        switch model.phase {
+        case .booting:
+            ContentUnavailableView {
+                ProgressView().controlSize(.large)
+            } description: {
+                Text("Booting \(model.selected?.name ?? "the simulator")…")
+            }
+        case .connecting:
+            ContentUnavailableView {
+                ProgressView().controlSize(.large)
+            } description: {
+                Text("Connecting to the display…")
+            }
+        case .failed(let message):
+            ContentUnavailableView {
+                Label("Can't Show the Simulator", systemImage: "exclamationmark.triangle")
+            } description: {
+                Text(message)
+            } actions: {
+                Button("Try Again") { model.retry() }
+            }
+        default:
+            if model.devices.isEmpty {
+                ContentUnavailableView("No Simulators", systemImage: "iphone.slash",
+                                       description: Text("Add an iOS runtime in Xcode › Settings › Components."))
+            } else if let device = model.selected {
+                ContentUnavailableView {
+                    Label("\(device.name) Is Off", systemImage: "iphone")
+                } description: {
+                    Text("Boot it to see its screen here, or press Run to boot and run in one go.")
+                } actions: {
+                    Button("Boot \(device.name)") { model.boot() }
+                        .disabled(model.isBusy || device.isTransitioning)
+                }
+            } else {
+                ContentUnavailableView("Choose a Simulator", systemImage: "iphone",
+                                       description: Text("Pick a device from the menu in the toolbar."))
             }
         }
-        .padding()
     }
 
-    // MARK: Caption
+    // MARK: Footer
 
+    /// Home, and what is on screen. The technical details only show while the pointer is over the device.
     @ViewBuilder
-    private var caption: some View {
-        if let device = model.selected, model.phase == .streaming, let size = model.screenSize {
-            VStack(spacing: 2) {
-                Text("\(device.name) · \(device.runtime) · \(Int(size.width))×\(Int(size.height)) · \(model.framesPerSecond > 0 ? "\(model.framesPerSecond) fps" : "idle")")
-                Text(model.canSendInput ? "Click to tap, drag to swipe." : "View only: touch input is unavailable on this Xcode.")
+    private var footer: some View {
+        if let device = model.selected, model.phase == .streaming {
+            HStack(spacing: 10) {
+                Button { model.pressHome() } label: { Label("Home", systemImage: "house") }
+                    .disabled(!model.canSendInput)
+                    .help(model.canSendInput ? "Press the Home button" : "Touch input is unavailable on this Xcode.")
+                Text(caption(device)).foregroundStyle(.secondary).monospacedDigit()
             }
-            .font(.caption).foregroundStyle(.secondary)
-            .frame(maxWidth: .infinity, alignment: .center)
+            .font(.callout)
+            .controlSize(.small)
         }
+    }
+
+    private func caption(_ device: SimulatorDevice) -> String {
+        guard hovering, let size = model.screenSize else {
+            return model.canSendInput ? "Click to tap, drag to swipe." : "View only."
+        }
+        let fps = model.framesPerSecond > 0 ? "\(model.framesPerSecond) fps" : "idle"
+        return "\(device.name) · \(device.runtime) · \(Int(size.width))×\(Int(size.height)) · \(fps)"
     }
 }

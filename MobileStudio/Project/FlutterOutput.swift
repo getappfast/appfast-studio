@@ -41,9 +41,14 @@ struct FlutterOutput: Equatable, Sendable {
 
     /// The most useful single line to show for a run that exited with `status`.
     func failureReason(status: Int32) -> String {
-        // The generic "Error launching application" closes the output; the cause is just under the build failure.
-        if let index = lines.firstIndex(where: { $0.hasPrefix("Failed to build") }),
-           let cause = lines[(index + 1)...].first(where: { !$0.isEmpty }) {
+        let buildFailure = lines.firstIndex { $0.hasPrefix("Failed to build") }
+        // A Dart compile error names the file, line and problem: the most useful thing to show.
+        if let compile = lines.first(where: { $0.contains(/\.dart:\d+:\d+: Error:/) }) {
+            return buildFailure.map { "\(lines[$0]): \(compile)" } ?? compile
+        }
+        // The generic "Error launching application" closes the output; the cause is just under the build failure,
+        // after any headings Xcode prints ("Error output from Xcode build:", "↳").
+        if let index = buildFailure, let cause = lines[(index + 1)...].first(where: { !Self.isHeading($0) }) {
             return "\(lines[index]): \(cause)"
         }
         let markers = ["error", "exception", "could not", "not found", "no devices", "failed", "unable"]
@@ -52,6 +57,11 @@ struct FlutterOutput: Equatable, Sendable {
     }
 
     // MARK: Parsing
+
+    /// Lines that introduce output rather than say what went wrong.
+    private static func isHeading(_ line: String) -> Bool {
+        line.isEmpty || line.hasSuffix(":") || line.allSatisfy { $0 == "↳" || $0.isWhitespace } || line.hasPrefix("**")
+    }
 
     private static let launchMarkers = ["Flutter run key commands", "Syncing files to device"]
 

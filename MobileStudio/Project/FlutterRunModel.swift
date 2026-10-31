@@ -39,6 +39,7 @@ final class FlutterRunModel {
 
     @ObservationIgnored private var currentFolder = ""
     @ObservationIgnored private var currentDeviceID = ""
+    @ObservationIgnored private var currentFlavor: RunFlavor?
 
     private static let failureKey = "run.failure.v1"
     static let log = DiagnosticLog(name: "flutter-run")
@@ -58,7 +59,7 @@ final class FlutterRunModel {
     /// True while this run is attached to an app that was already running, not one this app started.
     var isAttaching: Bool { attachedApp != nil }
 
-    func start(folder: String, deviceID: String, deviceName: String) {
+    func start(folder: String, deviceID: String, deviceName: String, flavor: RunFlavor? = nil) {
         guard !phase.isActive else { return }
         reconnectError = nil
         output = FlutterOutput()
@@ -70,9 +71,10 @@ final class FlutterRunModel {
         self.deviceName = deviceName
         currentFolder = folder
         currentDeviceID = deviceID
-        Self.log.append("RUN flutter run -d \(deviceID) (\(deviceName)) in \(folder)")
+        currentFlavor = flavor
+        Self.log.append("RUN flutter run -d \(deviceID) (\(deviceName))\(flavor.map { " --flavor \($0.name)" } ?? "") in \(folder)")
 
-        launch(FlutterRunProcess(folder: folder, deviceID: deviceID))
+        launch(FlutterRunProcess(folder: folder, deviceID: deviceID, flavor: flavor))
     }
 
     /// Looks for the project's app already running on that simulator. Cheap enough to call often.
@@ -108,6 +110,7 @@ final class FlutterRunModel {
         self.deviceName = deviceName
         currentFolder = folder
         currentDeviceID = app.deviceID
+        currentFlavor = nil
         Self.log.append("RECONNECT flutter attach -d \(app.deviceID) --debug-url \(app.serviceURL.absoluteString) (\(app.bundleID)) in \(folder)")
 
         Task {
@@ -218,7 +221,8 @@ final class FlutterRunModel {
             let message = detail ?? output.failureReason(status: status)
             phase = .failed(message)
             record(RunFailure(date: Date(), folder: currentFolder, deviceID: currentDeviceID,
-                              deviceName: deviceName ?? "the simulator", message: message, output: Array(lines.suffix(200))))
+                              deviceName: deviceName ?? "the simulator", flavor: currentFlavor, message: message,
+                              output: Array(lines.suffix(200))))
         }
     }
 

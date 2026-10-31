@@ -1,17 +1,13 @@
 import SwiftUI
 
-struct ModelsCard: View {
+struct ModelsSection: View {
     let studio: StudioModel
     @State private var custom = ""
 
     private var models: ClaudeModelsModel { studio.models }
 
     var body: some View {
-        SectionCard("Models", systemImage: "cpu") {
-            if models.isChecking { ProgressView().controlSize(.small) }
-            Button("Check models") { Task { await studio.checkModels() } }
-                .disabled(!studio.canCheckModels || models.isChecking)
-        } content: {
+        Section {
             if !studio.canCheckModels {
                 Text("Install the claude CLI and sign in to check which models you can use.")
                     .foregroundStyle(.secondary)
@@ -21,11 +17,17 @@ struct ModelsCard: View {
                 ForEach(models.targets) { target in
                     ModelRow(target: target, state: models.state(for: target))
                 }
-                Divider()
                 customField
-                Text("The CLI can't list models, so each check sends one tiny prompt (about $0.01 in total).")
-                    .font(.caption).foregroundStyle(.secondary)
             }
+        } header: {
+            SettingsHeader(title: "Models") {
+                if models.isChecking { ProgressView().controlSize(.small) }
+                Button("Check Models") { Task { await studio.checkModels() } }
+                    .disabled(!studio.canCheckModels || models.isChecking)
+            }
+        } footer: {
+            Text("The CLI can't list models, so each check sends one tiny prompt (about $0.01 in total).")
+                .font(.caption).foregroundStyle(.secondary)
         }
     }
 
@@ -53,7 +55,7 @@ private struct ModelRow: View {
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 10) {
-            indicator.frame(width: 12)
+            indicator.imageScale(.small).frame(width: 14)
             Text(target.name).fontWeight(.semibold).frame(width: 90, alignment: .leading)
             detail
             Spacer(minLength: 0)
@@ -63,11 +65,11 @@ private struct ModelRow: View {
     @ViewBuilder
     private var indicator: some View {
         switch state {
-        case .idle: Circle().strokeBorder(.secondary, lineWidth: 1).frame(width: 9, height: 9)
+        case .idle: Image(systemName: StatusTone.neutral.symbol).foregroundStyle(.secondary).accessibilityLabel("Not checked")
         case .checking: ProgressView().controlSize(.mini)
-        case .available: Circle().fill(.green).frame(width: 9, height: 9)
-        case .substituted: Circle().fill(.orange).frame(width: 9, height: 9)
-        case .unavailable: Circle().fill(.red).frame(width: 9, height: 9)
+        case .available: Image(systemName: StatusTone.success.symbol).foregroundStyle(.green).accessibilityLabel("Available")
+        case .substituted: Image(systemName: StatusTone.warning.symbol).foregroundStyle(.orange).accessibilityLabel("Substituted")
+        case .unavailable: Image(systemName: StatusTone.failure.symbol).foregroundStyle(.red).accessibilityLabel("Unavailable")
         }
     }
 

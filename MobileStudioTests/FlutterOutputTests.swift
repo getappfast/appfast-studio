@@ -58,6 +58,28 @@ struct FlutterOutputTests {
         #expect(output.failureReason(status: 1) == "Failed to build iOS app: lib/main.dart:3:1: Error: Expected ';'")
     }
 
+    @Test func failureReasonFindsTheDartErrorBelowXcodesHeadings() {
+        var output = FlutterOutput()
+        output.append("""
+        Failed to build iOS app
+        Error output from Xcode build:
+        ↳
+        ** BUILD FAILED **
+        Xcode's output:
+        lib/main.dart:124:30: Error: A value of type 'String' can't be assigned to a variable of type 'int'.
+        Error launching application on iPhone 17 Pro.
+
+        """)
+        #expect(output.failureReason(status: 1)
+                == "Failed to build iOS app: lib/main.dart:124:30: Error: A value of type 'String' can't be assigned to a variable of type 'int'.")
+    }
+
+    @Test func failureReasonSkipsHeadingsAfterTheBuildFailure() {
+        var output = FlutterOutput()
+        output.append("Failed to build iOS app\nError output from Xcode build:\n↳\nSigning for \"Runner\" requires a team.\n")
+        #expect(output.failureReason(status: 1) == "Failed to build iOS app: Signing for \"Runner\" requires a team.")
+    }
+
     @Test func failureReasonFallsBackToTheLastErrorLikeLine() {
         var output = FlutterOutput()
         output.append("Resolving dependencies...\nNo devices found\nBye\n")

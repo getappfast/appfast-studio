@@ -1,14 +1,11 @@
 import SwiftUI
 
-struct AccountsCard: View {
+struct AccountsSection: View {
     let studio: StudioModel
     @State private var showingAdd = false
 
     var body: some View {
-        SectionCard("Accounts", systemImage: "person.2") {
-            Button("Add account…") { showingAdd = true }
-                .disabled(studio.cliPath == nil)
-        } content: {
+        Section {
             if studio.cliPath == nil {
                 Text("Install the claude CLI to manage accounts.").foregroundStyle(.secondary)
             } else {
@@ -18,8 +15,12 @@ struct AccountsCard: View {
                         state: studio.account(for: profile),
                         isActive: profile.id == studio.profiles.activeID
                     ) { studio.select(profile) }
-                    if profile.id != studio.profiles.profiles.last?.id { Divider() }
                 }
+            }
+        } header: {
+            SettingsHeader(title: "Accounts") {
+                Button("Add Account…") { showingAdd = true }
+                    .disabled(studio.cliPath == nil)
             }
         }
         .sheet(isPresented: $showingAdd) {

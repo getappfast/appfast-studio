@@ -6,6 +6,7 @@ import Observation
 final class ProjectModel {
     private static let key = "project.path.v1"
     private static let checkKey = "project.check.v1"
+    private static let flavorKey = "project.flavor.v1"
 
     /// The last Claude verdict, saved with the folder it belongs to.
     private struct StoredCheck: Codable {
@@ -24,6 +25,8 @@ final class ProjectModel {
     private(set) var refreshNote: String?
     /// The checked-out git branch, nil when the folder isn't in a git repository.
     private(set) var branch: String?
+    /// The flavor Run uses, by name. Nil when the project has none.
+    private(set) var selectedFlavorName: String?
 
     @ObservationIgnored private var verifyTask: Task<Void, Never>?
     /// The folder has not been verified in this run of the app yet.
@@ -46,6 +49,23 @@ final class ProjectModel {
         verification = .done(ProjectVerdict(isFlutterProject: stored.verdict.isFlutterProject, summary: stored.verdict.summary,
                                             problems: stored.verdict.problems, flavors: flavors))
         lastChecked = stored.checkedAt
+        selectedFlavorName = UserDefaults.standard.string(forKey: Self.flavorKey)
+    }
+
+    /// The flavors Claude found and the files back up. Empty until the check is done.
+    var flavors: [RunFlavor] {
+        if case .done(let verdict) = verification, verdict.isFlutterProject { return verdict.flavors }
+        return []
+    }
+
+    /// What Run passes as `--flavor`: the chosen one, or the first when nothing was chosen yet.
+    var runFlavor: RunFlavor? {
+        flavors.first { $0.name == selectedFlavorName } ?? flavors.first
+    }
+
+    func selectFlavor(_ flavor: RunFlavor) {
+        selectedFlavorName = flavor.name
+        UserDefaults.standard.set(flavor.name, forKey: Self.flavorKey)
     }
 
     var path: String? {
@@ -154,6 +174,8 @@ final class ProjectModel {
 
     private func resetVerification() {
         verifyTask?.cancel()
+        selectedFlavorName = nil
+        UserDefaults.standard.removeObject(forKey: Self.flavorKey)
         verification = .idle
         lastChecked = nil
         refreshing = false

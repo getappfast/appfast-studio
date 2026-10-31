@@ -9,13 +9,17 @@ this file in the same change.
 Mobile Studio is a native macOS app (SwiftUI, Swift 6, macOS 14+) for building Flutter apps with a coding agent.
 One window shows:
 
-- **Project:** a Flutter folder, checked by Claude (read-only, Haiku), with its git branch and run flavors.
-- **Simulator:** a live iOS Simulator screen drawn in-app from CoreSimulator's framebuffer, with click → tap
-  and drag → swipe.
-- **Run:** `flutter run` / `flutter attach` against the selected simulator, with Hot reload, and *Fix with
-  Claude* when a run fails.
-- **Chat:** Claude Code running in the project folder as the selected account. *Pick* lets the user tap a
-  widget in the running app and attach its source location to the message.
+- **Toolbar** (like Xcode's): Run/Stop, the destination simulator menu, an activity line, Hot Reload, Pick,
+  and toggles for the build log and the chat. Every toolbar action is also in the Product/View menus with a
+  shortcut (⌘R, ⌘., ⇧⌘R, ⇧⌘E, ⇧⌘Y, ⌥⌘0).
+- **Sidebar:** a setup checklist until everything is ready, then the project, Issues, Changes (every file
+  Claude changed, each opening a git diff), Flavors (the one Run uses) and Claude's read-only project check.
+- **Canvas:** a live iOS Simulator screen drawn in-app from CoreSimulator's framebuffer (click → tap,
+  drag → swipe). One banner above it for what matters now (run failed → *Fix with Claude*, an app already
+  running → Reconnect, a fix in progress), and a build log drawer under it.
+- **Chat inspector:** Claude Code running in the project folder as the selected account, with rendered
+  markdown, a step list and clickable file changes. *Fix with Claude* runs appear here as messages too.
+  *Pick* attaches a widget tapped in the running app.
 
 The app shells out to the user's own `claude` CLI, `flutter`, `xcrun simctl` and `git`. It is **not sandboxed**,
 on purpose: it has to launch those tools.
@@ -66,6 +70,12 @@ Core/         Feature-agnostic helpers                 ProcessRunner, Diagnostic
 - **Cross-model rules live in `Workspace`.** "The folder changed, so stop the run, cancel Pick and load that
   folder's chat" is a `Workspace` method. `ContentView` only forwards `onChange` events to it. If you find
   yourself writing `modelA.x(); modelB.y()` in a view, move it to `Workspace`.
+- **Actions and their availability live in `Workspace` too:** `runApp()`, `stopApp()`, `fixFailure()`, … with
+  `canRun`, `runBlocker`, `chatBlocker`, `activity`. The toolbar, the menu commands (`StudioCommands`) and
+  the banners all call these, so they can't disagree. A new action gets a method and a `can…`/`…Blocker`
+  there first, then UI.
+- **Window state** that commands need (chat and log visibility, the diff sheet) is on `Workspace`, not in
+  `@State`.
 - **State is an enum, not a pile of booleans.** Each model exposes a phase (`RunPhase`, `FixPhase`,
   `VerificationState`, `SimulatorPhase`, `PickModel.Phase`, …) and views `switch` over it. Add a case rather
   than another flag.
@@ -108,8 +118,11 @@ Mobile Studio runs an agent with edit rights on the user's code, so these are ha
   A disabled control gets a reason the user can read nearby (see `RunBar.blocker`).
 - **Icon-only buttons** use `Label(title, systemImage:).labelStyle(.iconOnly)`, so VoiceOver reads the title,
   plus `.help(...)`.
-- **Reuse the shared views** in `Views/Components.swift`: `SectionCard` (titled box), `StatusLine`, `Field`,
-  `CommandHint`, and `FileSnapshot.Change.Kind.badge` / `.tint`.
+- **Status never relies on colour alone:** use `StatusBadge` / `StatusTone` (a symbol and a colour), not dots.
+- **Reuse the shared views** in `Views/Components.swift`: `StatusBadge`, `Banner`, `CommandHint`,
+  `FileChangeRow`; in Settings, `SettingsHeader` and `MonospacedValue`. Settings is `Form` +
+  `.formStyle(.grouped)` with `LabeledContent`; empty and error states use `ContentUnavailableView`.
+- **Respect Reduce Motion** for any animation (`@Environment(\.accessibilityReduceMotion)`).
 - **Persistence:** small state goes in `UserDefaults` through `setEncoded(_:forKey:)` /
   `decoded(_:forKey:)`, with a versioned key (`run.failure.v1`). Change the shape, bump the version. Chat
   transcripts live in `~/Library/Application Support/Mobile Studio/Chats/`.
@@ -119,6 +132,33 @@ Mobile Studio runs an agent with edit rights on the user's code, so these are ha
 - **Errors:** services throw (`ClaudeCLIError`, `NSError` from the bridge). Models catch at the boundary and
   turn the error into a phase case with a message the user can read.
 - Shared helpers such as `String.nonEmpty` live in `Core/Extensions.swift`. Don't redeclare private copies.
+
+## Layout pitfalls (macOS 26)
+
+- The sidebar floats over the detail column, and the detail column reserves the sidebar's width as an inset.
+  A `minWidth` on detail content is therefore paid twice, and with the chat inspector open it pushed the
+  whole split view wider than the window (the sidebar started off-screen). Don't put minimum widths on the
+  detail content; size the window instead.
+
+## Seeing the UI
+
+Debug builds can save PNGs of their own windows. This needs no screen-recording permission, and the run
+skips Claude's automatic project check, so it costs nothing:
+
+```bash
+MOBILE_STUDIO_SNAPSHOT=/tmp/shot MOBILE_STUDIO_APPEARANCE=dark MOBILE_STUDIO_SNAPSHOT_SETTINGS=1 \
+  "<DerivedData>/Build/Products/Debug/Mobile Studio.app/Contents/MacOS/Mobile Studio"
+```
+
+It writes `/tmp/shot-main.png` (and `-settings.png`), then quits. `MOBILE_STUDIO_SNAPSHOT_LOG=1` opens the build
+log and `MOBILE_STUDIO_SNAPSHOT_TREE=1` also writes the view hierarchy with frames, which is how the layout bug
+above was found. `MOBILE_STUDIO_SNAPSHOT_RUN=1` presses Run (a real `flutter run`) and
+`MOBILE_STUDIO_SNAPSHOT_TIMES=20,120` captures at each of those seconds, to follow a build through. Point it at a
+throwaway project with `-project.path.v1 /path/to/app`, never at the user's own. To check Fix with Claude without
+spending anything, add `MOBILE_STUDIO_SNAPSHOT_FIX=1` and point `MOBILE_STUDIO_CLAUDE_CLI` at a stand-in script that
+answers `--version` and `auth status`, prints stream-json, and makes the fix. Launch arguments override saved settings for that run only, e.g.
+`-window.chatVisible.v1 '<false/>'`. Glass toolbar platters and AppKit-hosted list rows don't draw in these
+captures; everything else does. See `Snapshot` in `App/AppDelegate.swift`.
 
 ## Tests
 
@@ -133,5 +173,5 @@ Mobile Studio runs an agent with edit rights on the user's code, so these are ha
 
 1. `xcodegen generate` if files moved or were added.
 2. Build with zero warnings, and `test` passes.
-3. For UI changes, run the app and look at the screen you changed, in light and dark mode.
+3. For UI changes, look at the screen you changed in light and dark mode (snapshot it, see above).
 4. Update this file if you changed a rule, a layer or a command.

@@ -110,7 +110,7 @@ final class FixModel {
         var validated: Bool?
         if !files.isEmpty {
             phase = .validating
-            run.start(folder: folder, deviceID: failure.deviceID, deviceName: failure.deviceName)
+            run.start(folder: folder, deviceID: failure.deviceID, deviceName: failure.deviceName, flavor: failure.flavor)
             validated = await Self.outcome(of: run)
             guard !Task.isCancelled else { return }
         }
@@ -147,7 +147,7 @@ final class FixModel {
         A Flutter app failed to run on an iOS Simulator. Find the root cause and fix it with the smallest change \
         that makes it run. The project is the current directory.
 
-        Command that failed: flutter run -d \(failure.deviceID)   (\(failure.deviceName))
+        Command that failed: flutter run -d \(failure.deviceID)\(failure.flavor.map { " --flavor \($0.name)" } ?? "")   (\(failure.deviceName))
         Reported error: \(failure.message)
 
         Last output:

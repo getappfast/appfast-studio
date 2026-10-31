@@ -68,6 +68,12 @@ struct ClaudeCLIService: Sendable {
     /// locations first and only then ask the user's login shell.
     func locate() async -> String? {
         let fm = FileManager.default
+        #if DEBUG
+        // Lets a snapshot run use a stand-in CLI, so flows like Fix can be checked without spending anything.
+        if let path = ProcessInfo.processInfo.environment["MOBILE_STUDIO_CLAUDE_CLI"], fm.isExecutableFile(atPath: path) {
+            return path
+        }
+        #endif
         for candidate in Self.candidatePaths() where fm.isExecutableFile(atPath: candidate) {
             return candidate
         }

@@ -1,34 +1,46 @@
 import SwiftUI
 
-struct StatusLine: View {
-    let color: Color
+/// How a status reads at a glance. Every tone has its own symbol as well as its colour, so it never
+/// depends on colour alone.
+enum StatusTone: Equatable {
+    case success, warning, failure, neutral
+
+    var symbol: String {
+        switch self {
+        case .success: "checkmark.circle.fill"
+        case .warning: "exclamationmark.triangle.fill"
+        case .failure: "xmark.octagon.fill"
+        case .neutral: "circle.dashed"
+        }
+    }
+
+    var tint: Color {
+        switch self {
+        case .success: .green
+        case .warning: .orange
+        case .failure: .red
+        case .neutral: .secondary
+        }
+    }
+}
+
+/// Symbol, title and an optional detail, read by VoiceOver as one phrase.
+struct StatusBadge: View {
+    let tone: StatusTone
     let title: String
-    let detail: String?
+    var detail: String?
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Circle().fill(color).frame(width: 9, height: 9)
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
+            Image(systemName: tone.symbol).foregroundStyle(tone.tint).imageScale(.small)
             Text(title).fontWeight(.semibold)
             if let detail { Text(detail).foregroundStyle(.secondary) }
         }
+        .accessibilityElement(children: .combine)
     }
 }
 
-struct Field: View {
-    let label: String
-    let value: String
-    var monospaced = false
-
-    var body: some View {
-        HStack(alignment: .firstTextBaseline) {
-            Text(label).foregroundStyle(.secondary).frame(width: 100, alignment: .leading)
-            Text(value)
-                .font(monospaced ? .system(.body, design: .monospaced) : .body)
-                .textSelection(.enabled)
-        }
-    }
-}
-
+/// A command to copy into Terminal, with what it is for.
 struct CommandHint: View {
     let label: String
     let command: String
@@ -46,37 +58,53 @@ struct CommandHint: View {
     }
 }
 
-/// A titled box: the header row with optional controls on the right, a divider, then the content.
-/// Used for the project card and each section in Settings.
-struct SectionCard<Accessory: View, Content: View>: View {
+/// A notice floating over the simulator: what happened, and what to do about it.
+struct Banner<Actions: View>: View {
+    let tone: StatusTone
     let title: String
-    let systemImage: String
-    @ViewBuilder var accessory: () -> Accessory
-    @ViewBuilder var content: () -> Content
-
-    init(_ title: String, systemImage: String,
-         @ViewBuilder accessory: @escaping () -> Accessory = { EmptyView() },
-         @ViewBuilder content: @escaping () -> Content) {
-        self.title = title
-        self.systemImage = systemImage
-        self.accessory = accessory
-        self.content = content
-    }
+    var message: String?
+    var showsProgress = false
+    var onDismiss: (() -> Void)?
+    @ViewBuilder var actions: () -> Actions
 
     var body: some View {
-        GroupBox {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack {
-                    Label(title, systemImage: systemImage).font(.headline).lineLimit(1).fixedSize()
-                    Spacer()
-                    accessory()
+        HStack(alignment: .top, spacing: 12) {
+            Group {
+                if showsProgress {
+                    ProgressView().controlSize(.small)
+                } else {
+                    Image(systemName: tone.symbol).foregroundStyle(tone.tint).font(.title3)
                 }
-                Divider()
-                content()
             }
-            .padding(6)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(width: 22)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title).font(.headline)
+                if let message {
+                    Text(message).foregroundStyle(.secondary).lineLimit(3).textSelection(.enabled)
+                }
+                HStack(spacing: 8) { actions() }
+                    .controlSize(.regular)
+                    .padding(.top, 4)
+            }
+            Spacer(minLength: 0)
+            if let onDismiss {
+                Button(action: onDismiss) { Label("Dismiss", systemImage: "xmark").labelStyle(.iconOnly) }
+                    .buttonStyle(.borderless)
+                    .foregroundStyle(.secondary)
+                    .help("Dismiss")
+            }
         }
+        .padding(14)
+        .frame(maxWidth: 560)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(.separator))
+        .shadow(color: .black.opacity(0.15), radius: 10, y: 3)
+    }
+}
+
+extension Banner where Actions == EmptyView {
+    init(tone: StatusTone, title: String, message: String? = nil, showsProgress: Bool = false, onDismiss: (() -> Void)? = nil) {
+        self.init(tone: tone, title: title, message: message, showsProgress: showsProgress, onDismiss: onDismiss) { EmptyView() }
     }
 }
 
@@ -88,5 +116,27 @@ extension FileSnapshot.Change.Kind {
 
     var tint: Color {
         switch self { case .modified: .orange; case .added: .green; case .deleted: .red }
+    }
+
+    var spokenName: String {
+        switch self { case .modified: "Modified"; case .added: "Added"; case .deleted: "Deleted" }
+    }
+}
+
+/// One changed file: its M/A/D badge and path. Opens the diff when the row is clicked.
+struct FileChangeRow: View {
+    let change: FileSnapshot.Change
+    var font: Font = .system(.callout, design: .monospaced)
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Text(change.kind.badge)
+                .foregroundStyle(change.kind.tint)
+                .fontWeight(.semibold)
+            Text(change.path).lineLimit(1).truncationMode(.head)
+        }
+        .font(font)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(change.kind.spokenName) \(change.path)")
     }
 }

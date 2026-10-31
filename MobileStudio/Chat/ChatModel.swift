@@ -80,6 +80,69 @@ final class ChatModel {
         process?.cancel()
     }
 
+    /// Every file changed in this conversation, as it stands now: a file added and then edited is still
+    /// "added", and one added and then deleted again is left out.
+    var changedFiles: [FileSnapshot.Change] {
+        var kinds: [String: FileSnapshot.Change.Kind] = [:]
+        for change in messages.flatMap(\.files) {
+            switch (kinds[change.path], change.kind) {
+            case (.added?, .deleted): kinds[change.path] = nil
+            case (.added?, _): break
+            case (.deleted?, .added): kinds[change.path] = .modified
+            default: kinds[change.path] = change.kind
+            }
+        }
+        return kinds.map { FileSnapshot.Change(path: $0.key, kind: $0.value) }.sorted { $0.path < $1.path }
+    }
+
+    // MARK: Fix with Claude
+
+    /// Shows a Fix with Claude run in the transcript: the request now, Claude's report when it ends.
+    /// Fixes run outside the chat's Claude session, so they don't change what the conversation remembers.
+    @discardableResult
+    func beginFix(_ failure: RunFailure) -> UUID {
+        messages.append(ChatMessage(role: .user, text: "Fix the failed run: \(failure.message)"))
+        let reply = ChatMessage(role: .assistant, text: "", pending: true)
+        messages.append(reply)
+        save()
+        return reply.id
+    }
+
+    func updateFix(_ id: UUID, activity: [String]) {
+        guard let index = index(of: id) else { return }
+        messages[index].activity = activity
+    }
+
+    func finishFix(_ id: UUID, with phase: FixPhase) {
+        guard let index = index(of: id) else { return }
+        messages[index].pending = false
+        switch phase {
+        case .done(let outcome):
+            messages[index].text = Self.describe(outcome)
+            messages[index].files = outcome.files
+            messages[index].cost = outcome.cost
+        case .failed(let message):
+            messages[index].error = message
+        case .idle, .fixing, .validating:
+            messages[index].error = "Cancelled."
+        }
+        save()
+    }
+
+    private static func describe(_ outcome: FixOutcome) -> String {
+        let report = outcome.report
+        let verdict = switch outcome.validated {
+        case true?: "**Fixed and verified.** The app runs."
+        case false?: "**Changed, but it still fails.** The app did not run after the fix."
+        case nil: report.fixed ? "**No files changed.**" : "**Nothing to fix in the project.**"
+        }
+        var parts = [verdict, "**Cause:** \(report.rootCause)", "**What was done:** \(report.summary)"]
+        if !report.remainingIssues.isEmpty {
+            parts.append("**Still open:**\n" + report.remainingIssues.map { "- \($0)" }.joined(separator: "\n"))
+        }
+        return parts.joined(separator: "\n\n")
+    }
+
     // MARK: Sending
 
     func send(_ text: String, references: [PickedWidget] = [], folder: String, claude: ClaudeAccess, profile: Profile) {

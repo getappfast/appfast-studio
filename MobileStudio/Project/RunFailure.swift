@@ -6,6 +6,8 @@ struct RunFailure: Equatable, Sendable, Codable {
     let folder: String
     let deviceID: String
     let deviceName: String
+    /// Nil for a project without flavors, and for failures saved before flavors could be run.
+    var flavor: RunFlavor?
     let message: String
     /// The last lines of Flutter's output.
     let output: [String]

@@ -6,39 +6,49 @@ struct SettingsView: View {
 
     var body: some View {
         TabView {
-            page {
-                CLICard(studio: studio)
-                AccountsCard(studio: studio)
-                ModelsCard(studio: studio)
+            Form {
+                CLISection(studio: studio)
+                AccountsSection(studio: studio)
+                ModelsSection(studio: studio)
             }
+            .formStyle(.grouped)
             .tabItem { Label("Claude", systemImage: "sparkles") }
 
-            page { DartSDKCard(dart: dart) }
+            Form { DartSDKSection(dart: dart) }
+                .formStyle(.grouped)
                 .tabItem { Label("Tools", systemImage: "wrench.and.screwdriver") }
                 .task { await dart.refresh() }
         }
-        .frame(width: 580, height: 640)
+        .frame(width: 600, height: 620)
     }
+}
 
-    private func page<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) { content() }
-                .padding(24)
-                .frame(maxWidth: .infinity, alignment: .leading)
+/// A Settings section header with its controls on the right.
+struct SettingsHeader<Accessory: View>: View {
+    let title: String
+    @ViewBuilder var accessory: () -> Accessory
+
+    var body: some View {
+        HStack {
+            Text(title)
+            Spacer()
+            accessory().controlSize(.small).font(.body)
         }
     }
 }
 
-private struct DartSDKCard: View {
+private struct DartSDKSection: View {
     let dart: DartSDKModel
 
     var body: some View {
-        SectionCard("Dart SDK", systemImage: "chevron.left.forwardslash.chevron.right") {
-            if dart.state == .checking { ProgressView().controlSize(.small) }
-            Button("Check again") { Task { await dart.refresh() } }
-                .disabled(dart.state == .checking)
-        } content: {
+        Section {
             content
+        } header: {
+            SettingsHeader(title: "Dart SDK") {
+                if dart.state == .checking { ProgressView().controlSize(.small) }
+                Button("Check Again") { Task { await dart.refresh() } }
+                    .disabled(dart.state == .checking)
+            }
         }
     }
 
@@ -48,29 +58,42 @@ private struct DartSDKCard: View {
         case .checking:
             Text("Looking for the Dart SDK…").foregroundStyle(.secondary)
         case .notInstalled:
-            StatusLine(color: .red, title: "Not installed",
-                       detail: "Mobile Studio could not find the dart command.")
-            CommandHint(label: "Install it, then check again:",
-                        command: "brew tap dart-lang/dart && brew install dart")
+            StatusBadge(tone: .failure, title: "Not installed", detail: "Mobile Studio could not find the dart command.")
+            CommandHint(label: "Install it, then check again:", command: "brew tap dart-lang/dart && brew install dart")
         case .failed(let message):
-            StatusLine(color: .orange, title: "Could not check", detail: message)
+            StatusBadge(tone: .warning, title: "Could not check", detail: message)
         case .installed(let install):
             if install.onPath {
-                StatusLine(color: .green, title: "Installed and configured", detail: "Version \(install.version)")
+                StatusBadge(tone: .success, title: "Installed and configured")
             } else {
-                StatusLine(color: .orange, title: "Installed, not on PATH", detail: "Version \(install.version)")
+                StatusBadge(tone: .warning, title: "Installed, not on PATH")
             }
-            Field(label: "Version", value: install.channel.map { "\(install.version) (\($0))" } ?? install.version)
-            Field(label: "Path", value: install.path, monospaced: true)
+            LabeledContent("Version", value: install.channel.map { "\(install.version) (\($0))" } ?? install.version)
+            LabeledContent("Path") { MonospacedValue(install.path) }
             if let root = install.flutterRoot {
-                Field(label: "Provided by", value: "Flutter SDK")
-                Field(label: "Flutter", value: root, monospaced: true)
+                LabeledContent("Provided by", value: "Flutter SDK")
+                LabeledContent("Flutter") { MonospacedValue(root) }
             }
-            Field(label: "PATH", value: install.onPath ? "Found by your shell" : "Not found by your shell")
+            LabeledContent("PATH", value: install.onPath ? "Found by your shell" : "Not found by your shell")
             if !install.onPath {
                 CommandHint(label: "Add it to your shell profile (~/.zshrc):",
                             command: "export PATH=\"$PATH:\(install.binDirectory)\"")
             }
         }
+    }
+}
+
+/// A path or ID: monospaced, selectable, shortened in the middle when it doesn't fit.
+struct MonospacedValue: View {
+    let value: String
+    init(_ value: String) { self.value = value }
+
+    var body: some View {
+        Text(value)
+            .font(.system(.callout, design: .monospaced))
+            .lineLimit(1)
+            .truncationMode(.middle)
+            .textSelection(.enabled)
+            .help(value)
     }
 }

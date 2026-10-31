@@ -8,8 +8,11 @@ show Claude exactly what you mean.
 
 - **Live simulator in the window.** Boot any installed iOS Simulator and see its screen in the app. Click to
   tap, drag to swipe. There's no Simulator.app window and no screen-recording permission involved.
-- **Run and Hot reload.** One button runs the project on the selected simulator. Mobile Studio also finds an
-  app left running by an earlier run or a terminal and reconnects to it.
+- **Run and Hot Reload, Xcode-style.** Pick a destination and press Run (⌘R). If the simulator is off, it boots
+  first. Projects with flavors run the flavor you pick in the sidebar. Mobile Studio also finds an app left
+  running by an earlier run or a terminal and offers to reconnect.
+- **Build log** under the device (⇧⌘Y), and a banner that says what to do when something goes wrong.
+- **Changes at a glance.** The sidebar lists every file Claude changed; click one to see its diff.
 - **Chat with Claude Code** in your project folder. Changed files are listed from the disk itself, not from
   what Claude says it did.
 - **Pick.** Tap an element in the running app to attach its widget and source location to your next message.
@@ -52,16 +55,26 @@ xcodebuild -project MobileStudio.xcodeproj -scheme MobileStudio test
 
 ## Using it
 
-1. Open **Settings (⌘,)** and check that the Claude CLI is found and an account is signed in.
-2. Click **Choose folder…** and select your Flutter project, the folder that contains `pubspec.yaml`.
-3. Pick a simulator, then click **Boot**.
-4. Click **Run on <device>**. Once it's running, use **Hot reload** and **Pick**, or just chat.
+1. Follow **Get Started** in the sidebar: it checks the Claude CLI, your sign-in, the simulators and your project.
+2. Choose your Flutter project (⌘O), the folder that contains `pubspec.yaml`.
+3. Pick a simulator from the toolbar and press **Run** (⌘R).
+4. Once it's running, use **Hot Reload** (⇧⌘R) and **Pick** (⇧⌘E), or just ask Claude in the chat (⌥⌘0 shows it).
+
+| Shortcut | Action |
+|---|---|
+| ⌘R / ⌘. | Run / Stop |
+| ⇧⌘R | Hot Reload |
+| ⇧⌘E | Pick an element in the running app |
+| ⇧⌘Y | Show or hide the build log |
+| ⌥⌘0 | Show or hide the chat |
+| ⌘O | Open a Flutter project |
+| ⇧⌘N | New chat |
 
 ## How it works
 
 | Area | Folder | Notes |
 |---|---|---|
-| App shell | `MobileStudio/App` | Composition root, `Workspace` (the main window's models and the rules between them) |
+| App shell | `MobileStudio/App` | Composition root, `Workspace` (the main window's models, actions and the rules between them), menu commands |
 | Views | `MobileStudio/Views` | SwiftUI, layout only |
 | Project and run | `MobileStudio/Project` | Folder inspection, `flutter run`/`attach`, output parsing, Fix with Claude, file snapshots |
 | Chat | `MobileStudio/Chat` | Conversation per project folder, saved in Application Support |
