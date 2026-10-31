@@ -1,0 +1,57 @@
+name: MobileStudio
+options:
+  bundleIdPrefix: com.leo.mobilestudio
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+targets:
+  MobileStudio:
+    type: application
+    platform: macOS
+    sources:
+      - MobileStudio
+    info:
+      path: MobileStudio/Info.plist
+      properties:
+        CFBundleDisplayName: Mobile Studio
+        LSMinimumSystemVersion: "14.0"
+        NSHumanReadableCopyright: ""
+    entitlements:
+      path: MobileStudio/MobileStudio.entitlements
+      properties: {}   # not sandboxed: the app has to launch the user's claude CLI
+    dependencies:
+      - sdk: IOSurface.framework
+    settings:
+      base:
+        SWIFT_OBJC_BRIDGING_HEADER: MobileStudio/MobileStudio-Bridging-Header.h
+        PRODUCT_BUNDLE_IDENTIFIER: com.leo.mobilestudio.app
+        PRODUCT_NAME: Mobile Studio
+        GENERATE_INFOPLIST_FILE: NO
+        ENABLE_APP_SANDBOX: NO
+        ENABLE_HARDENED_RUNTIME: YES
+        CODE_SIGN_STYLE: Automatic
+        CODE_SIGN_IDENTITY: "-"
+        ASSETCATALOG_COMPILER_APPICON_NAME: ""
+    scheme:
+      testTargets:
+        - MobileStudioTests
+  MobileStudioTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - MobileStudioTests
+    dependencies:
+      - target: MobileStudio
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: com.leo.mobilestudio.tests
+        # The app's product name has a space, so the default test host path doesn't exist.
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Mobile Studio.app/Contents/MacOS/Mobile Studio"
+        BUNDLE_LOADER: "$(TEST_HOST)"
+        CODE_SIGN_IDENTITY: "-"

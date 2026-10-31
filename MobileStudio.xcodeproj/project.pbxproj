@@ -1,0 +1,711 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		02920B83114CBE861BD6B4F7 /* RunPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CD23B46B024DECACE1A439A /* RunPanel.swift */; };
+		10534CA09F73CA7899F393AA /* DartSDKModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E1D72C1DD8CF0F35A562EBE /* DartSDKModel.swift */; };
+		1138CCAA09F59B08F3B291EB /* ClaudeEvents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D2C2092D4ED47BA92DE07C0 /* ClaudeEvents.swift */; };
+		1623ED5928D9F28529255CB4 /* PickModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51EFD1E26DE06F3BA89C5719 /* PickModel.swift */; };
+		16A5B335DAF4BB74A24D84E6 /* RunningAppFinder.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8C6540E59C1B8EDA8D81C10 /* RunningAppFinder.swift */; };
+		21FBD7539922E79424654951 /* ClaudeStreamProcess.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EAF3766A5E4C80EDBA71CE6 /* ClaudeStreamProcess.swift */; };
+		2D3897E2057D19CFE1F80A0F /* CLIView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9116D54E4720D142D69AF9C /* CLIView.swift */; };
+		3B202C7907F985099AEF3120 /* RunBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A9C347322BB01BA2756B368 /* RunBar.swift */; };
+		3C2D137AB564685806DF621F /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49567BA1A7346DA894DA0A8F /* SettingsView.swift */; };
+		3FF85A3DB056F141EB8D7094 /* ClaudeLoginProcess.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3C4EF6963B8A7C4682B6189 /* ClaudeLoginProcess.swift */; };
+		41799181973BA59D4911DA49 /* ModelsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC5563599B450CC1AF3C60BB /* ModelsView.swift */; };
+		4D0F134BCD641252A94CC05B /* ClaudeModelService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59BFC66633AD59CD4919DF83 /* ClaudeModelService.swift */; };
+		4D315C82E5DA16632DF64789 /* SimulatorModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 837641C453C83B5FB23DBD28 /* SimulatorModel.swift */; };
+		5824A377E2846FA63755716E /* DartSDKService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A332F66AE4C1E543006642F /* DartSDKService.swift */; };
+		59CBE0987639CCE89F448155 /* FlutterOutputTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CBFC2D8B02BA0841E6E48B7 /* FlutterOutputTests.swift */; };
+		600F447CE71F63B3AC477E1A /* ProjectView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5EDA7C9FB65249BD33D5816 /* ProjectView.swift */; };
+		6B80827696964634962BF5EF /* InspectorClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68A8C87B6E1683121FB0AC3F /* InspectorClient.swift */; };
+		6CA9A32DB8131BDE7F0FA608 /* ProjectModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BDCF398457D0259E7586C9D /* ProjectModel.swift */; };
+		7434F76CE501E776D2D9C55F /* StudioModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87BB1F715EAE3BA6CDAC2B98 /* StudioModel.swift */; };
+		7917AE5E78D1C8421E6608CD /* CoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 063160B764E8BEA408180098 /* CoreTests.swift */; };
+		7C824D9096EB8267C7D677EF /* MSSimulatorDisplay.m in Sources */ = {isa = PBXBuildFile; fileRef = 6733DBD5625108AFC9CC438B /* MSSimulatorDisplay.m */; };
+		81D861A8D3AF5262758DCB71 /* DiagnosticLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B4558791E4DC76EC183EE44 /* DiagnosticLog.swift */; };
+		87CC7F96965942B647137614 /* FixModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABF3B83D36B28C480AEEE96B /* FixModel.swift */; };
+		89F18572B452B5B977141723 /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = 836E335207FDB9F1BA85D373 /* Components.swift */; };
+		8A7D4F74F116AA88F63F7461 /* FileSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05D882B88E504A6D26DC1AC3 /* FileSnapshot.swift */; };
+		8E8CD5F80F9C44DBB1C81F95 /* MobileStudioApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D46FFCDF80E4AF9D79D83DC /* MobileStudioApp.swift */; };
+		9B86497350FBAB87C67B5AB2 /* ProjectVerifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = C99F1897F9F1747834466EAC /* ProjectVerifier.swift */; };
+		9FA1ED4E7758FCED2E257A5A /* FlutterProject.swift in Sources */ = {isa = PBXBuildFile; fileRef = D77CAE1293C3C56947E04276 /* FlutterProject.swift */; };
+		A96F4E829469D36B499384ED /* ClaudeCLIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2278BC7E8E3DF50FADCAF3CC /* ClaudeCLIService.swift */; };
+		AFEFE6DA8E8A106A95BDD940 /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53B651022902A63C0841C077 /* Extensions.swift */; };
+		B14665D0241E67EC7BC85F24 /* FlutterRunModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 639D4D8A19632523364D91B0 /* FlutterRunModel.swift */; };
+		B96D69F0F30ACE6ADDBA6254 /* RunFailure.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93480E8461B93756995EE712 /* RunFailure.swift */; };
+		BA207E58CC616073F36B0906 /* SimulatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3E94F545A9D3C4FB20FE9B3 /* SimulatorView.swift */; };
+		C247D3C87F351058FE0BDCBE /* IOSurface.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 043B1B8B9F21AA69AB5E30DC /* IOSurface.framework */; };
+		C360330888C2E8137155D5CE /* GitBranch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68D7AC6C1B1CCF922B4958EC /* GitBranch.swift */; };
+		C36F3EF8094242BBBC4198F0 /* Workspace.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73DD97B9A95A0F4611E9613F /* Workspace.swift */; };
+		C46E4924FA7AAD7F36B8FF01 /* Profile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BB819787A074A94AE997730 /* Profile.swift */; };
+		C58C1E2292EAABB8505F3C04 /* ClaudeAccess.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9784DC6C60D28D725C553620 /* ClaudeAccess.swift */; };
+		C5F83ABA84F9ABF6030384BF /* ChatModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DB5D2BB71D48054337D0E82 /* ChatModel.swift */; };
+		C9E99D3265100508B7475FED /* ShellEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C34D86D100466FDA9871DD6 /* ShellEnvironment.swift */; };
+		CF296FE4DF376BB75A014701 /* ChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA5DFB1D3B3C6D134BA24C81 /* ChatView.swift */; };
+		D20AD300B5A1909161114964 /* ClaudeModelsModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FA1C4963449C9792E24C74C /* ClaudeModelsModel.swift */; };
+		D320DEB4B6691309C9C860E7 /* SimctlService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEDDFB47D8F146F8EEAFB2C9 /* SimctlService.swift */; };
+		DC01A725964492C31EBD1C0E /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3182C9E8D192D1016590E47F /* AppDelegate.swift */; };
+		DD688942598725357BCDBD0D /* AccountsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D9CFA723DEEC7EA441E509B /* AccountsView.swift */; };
+		DD7448482A42B7DDF69BE317 /* ClaudeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6E172ED02B0EEBAEB12D76A /* ClaudeTests.swift */; };
+		DF72A30A6524CADFEFB4EC8D /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37D6BAB1CD6A090384AAC0E1 /* ContentView.swift */; };
+		E039908B510BE1E52118626A /* ProfileStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F9AD621012B94161C4BBFCD /* ProfileStore.swift */; };
+		E22D008167C8CD0081FF8B40 /* FlavorValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F0D578CEE0D155ED69F804F /* FlavorValidator.swift */; };
+		E32BEB7B055DB22E3E088602 /* FlutterRunProcess.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6345991BF3AE76BA8A97FED /* FlutterRunProcess.swift */; };
+		E384350CB4BFF2B479CA04A4 /* ProcessRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CF293A1D6EA1DBE1484F1AE /* ProcessRunner.swift */; };
+		E7CA2EE69C76894BBD386E14 /* FlutterOutput.swift in Sources */ = {isa = PBXBuildFile; fileRef = F183B1551D688724E9F4B73C /* FlutterOutput.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		ECF3221EAE59E0CC452794CD /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 9ACDCE7FAB63B2ECC1FAA2BE /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 6940315085625505943FCFCE;
+			remoteInfo = MobileStudio;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		01996E92B8E3291C7FD095EF /* MobileStudioTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MobileStudioTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		028CF66041A3A24FA004735B /* MobileStudio.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MobileStudio.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		043B1B8B9F21AA69AB5E30DC /* IOSurface.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOSurface.framework; path = System/Library/Frameworks/IOSurface.framework; sourceTree = SDKROOT; };
+		05D882B88E504A6D26DC1AC3 /* FileSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileSnapshot.swift; sourceTree = "<group>"; };
+		063160B764E8BEA408180098 /* CoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreTests.swift; sourceTree = "<group>"; };
+		0DB5D2BB71D48054337D0E82 /* ChatModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatModel.swift; sourceTree = "<group>"; };
+		0EAF3766A5E4C80EDBA71CE6 /* ClaudeStreamProcess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeStreamProcess.swift; sourceTree = "<group>"; };
+		0F9AD621012B94161C4BBFCD /* ProfileStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileStore.swift; sourceTree = "<group>"; };
+		1A332F66AE4C1E543006642F /* DartSDKService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DartSDKService.swift; sourceTree = "<group>"; };
+		2278BC7E8E3DF50FADCAF3CC /* ClaudeCLIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeCLIService.swift; sourceTree = "<group>"; };
+		2CBFC2D8B02BA0841E6E48B7 /* FlutterOutputTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlutterOutputTests.swift; sourceTree = "<group>"; };
+		2CF293A1D6EA1DBE1484F1AE /* ProcessRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessRunner.swift; sourceTree = "<group>"; };
+		3182C9E8D192D1016590E47F /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		37D6BAB1CD6A090384AAC0E1 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		38D2945DE35CE29A9326C48E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		49567BA1A7346DA894DA0A8F /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		4A9C347322BB01BA2756B368 /* RunBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunBar.swift; sourceTree = "<group>"; };
+		4B4558791E4DC76EC183EE44 /* DiagnosticLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagnosticLog.swift; sourceTree = "<group>"; };
+		4B8BB98EBC819D9B44DA13E7 /* MobileStudio-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "MobileStudio-Bridging-Header.h"; sourceTree = "<group>"; };
+		51EFD1E26DE06F3BA89C5719 /* PickModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PickModel.swift; sourceTree = "<group>"; };
+		53B651022902A63C0841C077 /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
+		59BFC66633AD59CD4919DF83 /* ClaudeModelService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeModelService.swift; sourceTree = "<group>"; };
+		5CD23B46B024DECACE1A439A /* RunPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunPanel.swift; sourceTree = "<group>"; };
+		5D46FFCDF80E4AF9D79D83DC /* MobileStudioApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileStudioApp.swift; sourceTree = "<group>"; };
+		5D9CFA723DEEC7EA441E509B /* AccountsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountsView.swift; sourceTree = "<group>"; };
+		5F0D578CEE0D155ED69F804F /* FlavorValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlavorValidator.swift; sourceTree = "<group>"; };
+		639D4D8A19632523364D91B0 /* FlutterRunModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlutterRunModel.swift; sourceTree = "<group>"; };
+		6733DBD5625108AFC9CC438B /* MSSimulatorDisplay.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = MSSimulatorDisplay.m; sourceTree = "<group>"; };
+		68A8C87B6E1683121FB0AC3F /* InspectorClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InspectorClient.swift; sourceTree = "<group>"; };
+		68D7AC6C1B1CCF922B4958EC /* GitBranch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitBranch.swift; sourceTree = "<group>"; };
+		73DD97B9A95A0F4611E9613F /* Workspace.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Workspace.swift; sourceTree = "<group>"; };
+		836E335207FDB9F1BA85D373 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
+		837641C453C83B5FB23DBD28 /* SimulatorModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SimulatorModel.swift; sourceTree = "<group>"; };
+		87BB1F715EAE3BA6CDAC2B98 /* StudioModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudioModel.swift; sourceTree = "<group>"; };
+		8BB819787A074A94AE997730 /* Profile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Profile.swift; sourceTree = "<group>"; };
+		8BDCF398457D0259E7586C9D /* ProjectModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectModel.swift; sourceTree = "<group>"; };
+		8C34D86D100466FDA9871DD6 /* ShellEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShellEnvironment.swift; sourceTree = "<group>"; };
+		8D2C2092D4ED47BA92DE07C0 /* ClaudeEvents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeEvents.swift; sourceTree = "<group>"; };
+		8E1D72C1DD8CF0F35A562EBE /* DartSDKModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DartSDKModel.swift; sourceTree = "<group>"; };
+		90E92DB27276DFCC7FDB1B0F /* MSSimulatorDisplay.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MSSimulatorDisplay.h; sourceTree = "<group>"; };
+		93480E8461B93756995EE712 /* RunFailure.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunFailure.swift; sourceTree = "<group>"; };
+		9784DC6C60D28D725C553620 /* ClaudeAccess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeAccess.swift; sourceTree = "<group>"; };
+		9FA1C4963449C9792E24C74C /* ClaudeModelsModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeModelsModel.swift; sourceTree = "<group>"; };
+		A3C4EF6963B8A7C4682B6189 /* ClaudeLoginProcess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeLoginProcess.swift; sourceTree = "<group>"; };
+		ABF3B83D36B28C480AEEE96B /* FixModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FixModel.swift; sourceTree = "<group>"; };
+		C3E94F545A9D3C4FB20FE9B3 /* SimulatorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SimulatorView.swift; sourceTree = "<group>"; };
+		C8C6540E59C1B8EDA8D81C10 /* RunningAppFinder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunningAppFinder.swift; sourceTree = "<group>"; };
+		C99F1897F9F1747834466EAC /* ProjectVerifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectVerifier.swift; sourceTree = "<group>"; };
+		CC5563599B450CC1AF3C60BB /* ModelsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelsView.swift; sourceTree = "<group>"; };
+		CE6A2C879F4AD944F31375A9 /* MobileStudio.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MobileStudio.entitlements; sourceTree = "<group>"; };
+		D77CAE1293C3C56947E04276 /* FlutterProject.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlutterProject.swift; sourceTree = "<group>"; };
+		DEDDFB47D8F146F8EEAFB2C9 /* SimctlService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SimctlService.swift; sourceTree = "<group>"; };
+		E6345991BF3AE76BA8A97FED /* FlutterRunProcess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlutterRunProcess.swift; sourceTree = "<group>"; };
+		EA5DFB1D3B3C6D134BA24C81 /* ChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatView.swift; sourceTree = "<group>"; };
+		F183B1551D688724E9F4B73C /* FlutterOutput.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlutterOutput.swift; sourceTree = "<group>"; };
+		F5EDA7C9FB65249BD33D5816 /* ProjectView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectView.swift; sourceTree = "<group>"; };
+		F6E172ED02B0EEBAEB12D76A /* ClaudeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeTests.swift; sourceTree = "<group>"; };
+		F9116D54E4720D142D69AF9C /* CLIView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CLIView.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		10FAC14F2BBFEF03946796AA /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C247D3C87F351058FE0BDCBE /* IOSurface.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		047BAEF1B20DC978D26379BE /* Accounts */ = {
+			isa = PBXGroup;
+			children = (
+				A3C4EF6963B8A7C4682B6189 /* ClaudeLoginProcess.swift */,
+				8BB819787A074A94AE997730 /* Profile.swift */,
+				0F9AD621012B94161C4BBFCD /* ProfileStore.swift */,
+			);
+			path = Accounts;
+			sourceTree = "<group>";
+		};
+		05016BCE7065A105116698CD /* Core */ = {
+			isa = PBXGroup;
+			children = (
+				4B4558791E4DC76EC183EE44 /* DiagnosticLog.swift */,
+				53B651022902A63C0841C077 /* Extensions.swift */,
+				2CF293A1D6EA1DBE1484F1AE /* ProcessRunner.swift */,
+				8C34D86D100466FDA9871DD6 /* ShellEnvironment.swift */,
+			);
+			path = Core;
+			sourceTree = "<group>";
+		};
+		0E82AEEFE41A5449A5065B57 /* Inspector */ = {
+			isa = PBXGroup;
+			children = (
+				68A8C87B6E1683121FB0AC3F /* InspectorClient.swift */,
+				51EFD1E26DE06F3BA89C5719 /* PickModel.swift */,
+			);
+			path = Inspector;
+			sourceTree = "<group>";
+		};
+		2D4B34B8F8EF16251AD6E606 /* Project */ = {
+			isa = PBXGroup;
+			children = (
+				05D882B88E504A6D26DC1AC3 /* FileSnapshot.swift */,
+				ABF3B83D36B28C480AEEE96B /* FixModel.swift */,
+				5F0D578CEE0D155ED69F804F /* FlavorValidator.swift */,
+				F183B1551D688724E9F4B73C /* FlutterOutput.swift */,
+				D77CAE1293C3C56947E04276 /* FlutterProject.swift */,
+				639D4D8A19632523364D91B0 /* FlutterRunModel.swift */,
+				E6345991BF3AE76BA8A97FED /* FlutterRunProcess.swift */,
+				68D7AC6C1B1CCF922B4958EC /* GitBranch.swift */,
+				8BDCF398457D0259E7586C9D /* ProjectModel.swift */,
+				C99F1897F9F1747834466EAC /* ProjectVerifier.swift */,
+				93480E8461B93756995EE712 /* RunFailure.swift */,
+				C8C6540E59C1B8EDA8D81C10 /* RunningAppFinder.swift */,
+			);
+			path = Project;
+			sourceTree = "<group>";
+		};
+		393674EDED48CB64C5C5CB42 /* Chat */ = {
+			isa = PBXGroup;
+			children = (
+				0DB5D2BB71D48054337D0E82 /* ChatModel.swift */,
+			);
+			path = Chat;
+			sourceTree = "<group>";
+		};
+		4721E5AFB581C85F9984B43B /* ClaudeCLI */ = {
+			isa = PBXGroup;
+			children = (
+				9784DC6C60D28D725C553620 /* ClaudeAccess.swift */,
+				2278BC7E8E3DF50FADCAF3CC /* ClaudeCLIService.swift */,
+				8D2C2092D4ED47BA92DE07C0 /* ClaudeEvents.swift */,
+				59BFC66633AD59CD4919DF83 /* ClaudeModelService.swift */,
+				9FA1C4963449C9792E24C74C /* ClaudeModelsModel.swift */,
+				0EAF3766A5E4C80EDBA71CE6 /* ClaudeStreamProcess.swift */,
+			);
+			path = ClaudeCLI;
+			sourceTree = "<group>";
+		};
+		48D012A9F993834E0D46E873 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				028CF66041A3A24FA004735B /* MobileStudio.app */,
+				01996E92B8E3291C7FD095EF /* MobileStudioTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		513A0B08BB9A18A954D5FE83 /* MobileStudioTests */ = {
+			isa = PBXGroup;
+			children = (
+				F6E172ED02B0EEBAEB12D76A /* ClaudeTests.swift */,
+				063160B764E8BEA408180098 /* CoreTests.swift */,
+				2CBFC2D8B02BA0841E6E48B7 /* FlutterOutputTests.swift */,
+			);
+			path = MobileStudioTests;
+			sourceTree = "<group>";
+		};
+		9439E49549181DF693C38AF6 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				3182C9E8D192D1016590E47F /* AppDelegate.swift */,
+				37D6BAB1CD6A090384AAC0E1 /* ContentView.swift */,
+				5D46FFCDF80E4AF9D79D83DC /* MobileStudioApp.swift */,
+				87BB1F715EAE3BA6CDAC2B98 /* StudioModel.swift */,
+				73DD97B9A95A0F4611E9613F /* Workspace.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		94C61DB84DA8374248EDDF60 /* MobileStudio */ = {
+			isa = PBXGroup;
+			children = (
+				38D2945DE35CE29A9326C48E /* Info.plist */,
+				4B8BB98EBC819D9B44DA13E7 /* MobileStudio-Bridging-Header.h */,
+				CE6A2C879F4AD944F31375A9 /* MobileStudio.entitlements */,
+				047BAEF1B20DC978D26379BE /* Accounts */,
+				9439E49549181DF693C38AF6 /* App */,
+				393674EDED48CB64C5C5CB42 /* Chat */,
+				4721E5AFB581C85F9984B43B /* ClaudeCLI */,
+				05016BCE7065A105116698CD /* Core */,
+				C12A557A13CF05AAF937069C /* Dart */,
+				0E82AEEFE41A5449A5065B57 /* Inspector */,
+				2D4B34B8F8EF16251AD6E606 /* Project */,
+				C99F5BA3E23D5BBB405198BA /* Simulator */,
+				B427E34AE687C0C01D49E1AF /* Views */,
+			);
+			path = MobileStudio;
+			sourceTree = "<group>";
+		};
+		B427E34AE687C0C01D49E1AF /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				5D9CFA723DEEC7EA441E509B /* AccountsView.swift */,
+				EA5DFB1D3B3C6D134BA24C81 /* ChatView.swift */,
+				F9116D54E4720D142D69AF9C /* CLIView.swift */,
+				836E335207FDB9F1BA85D373 /* Components.swift */,
+				CC5563599B450CC1AF3C60BB /* ModelsView.swift */,
+				F5EDA7C9FB65249BD33D5816 /* ProjectView.swift */,
+				4A9C347322BB01BA2756B368 /* RunBar.swift */,
+				5CD23B46B024DECACE1A439A /* RunPanel.swift */,
+				49567BA1A7346DA894DA0A8F /* SettingsView.swift */,
+				C3E94F545A9D3C4FB20FE9B3 /* SimulatorView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		C12A557A13CF05AAF937069C /* Dart */ = {
+			isa = PBXGroup;
+			children = (
+				8E1D72C1DD8CF0F35A562EBE /* DartSDKModel.swift */,
+				1A332F66AE4C1E543006642F /* DartSDKService.swift */,
+			);
+			path = Dart;
+			sourceTree = "<group>";
+		};
+		C99F5BA3E23D5BBB405198BA /* Simulator */ = {
+			isa = PBXGroup;
+			children = (
+				90E92DB27276DFCC7FDB1B0F /* MSSimulatorDisplay.h */,
+				6733DBD5625108AFC9CC438B /* MSSimulatorDisplay.m */,
+				DEDDFB47D8F146F8EEAFB2C9 /* SimctlService.swift */,
+				837641C453C83B5FB23DBD28 /* SimulatorModel.swift */,
+			);
+			path = Simulator;
+			sourceTree = "<group>";
+		};
+		DDAFD06B649772A7B2A2A8FD = {
+			isa = PBXGroup;
+			children = (
+				94C61DB84DA8374248EDDF60 /* MobileStudio */,
+				513A0B08BB9A18A954D5FE83 /* MobileStudioTests */,
+				E15E3FAE7711E55F95345D58 /* Frameworks */,
+				48D012A9F993834E0D46E873 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		E15E3FAE7711E55F95345D58 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				043B1B8B9F21AA69AB5E30DC /* IOSurface.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		0F1331217A6E51CCED3EDC46 /* MobileStudioTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CD51C77612E05B39659AAADF /* Build configuration list for PBXNativeTarget "MobileStudioTests" */;
+			buildPhases = (
+				03FF68125183CBD4F369C7AE /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				33864BEC861513A78D3862CA /* PBXTargetDependency */,
+			);
+			name = MobileStudioTests;
+			packageProductDependencies = (
+			);
+			productName = MobileStudioTests;
+			productReference = 01996E92B8E3291C7FD095EF /* MobileStudioTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		6940315085625505943FCFCE /* MobileStudio */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C7A1BBFBB832668BF1191D6C /* Build configuration list for PBXNativeTarget "MobileStudio" */;
+			buildPhases = (
+				41B11807EEB0DE52D2A4774D /* Sources */,
+				10FAC14F2BBFEF03946796AA /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = MobileStudio;
+			packageProductDependencies = (
+			);
+			productName = MobileStudio;
+			productReference = 028CF66041A3A24FA004735B /* MobileStudio.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		9ACDCE7FAB63B2ECC1FAA2BE /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					6940315085625505943FCFCE = {
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = FF7D33EB5693A9E179EFCD3F /* Build configuration list for PBXProject "MobileStudio" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = DDAFD06B649772A7B2A2A8FD;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 48D012A9F993834E0D46E873 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				6940315085625505943FCFCE /* MobileStudio */,
+				0F1331217A6E51CCED3EDC46 /* MobileStudioTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		03FF68125183CBD4F369C7AE /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DD7448482A42B7DDF69BE317 /* ClaudeTests.swift in Sources */,
+				7917AE5E78D1C8421E6608CD /* CoreTests.swift in Sources */,
+				59CBE0987639CCE89F448155 /* FlutterOutputTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		41B11807EEB0DE52D2A4774D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DD688942598725357BCDBD0D /* AccountsView.swift in Sources */,
+				DC01A725964492C31EBD1C0E /* AppDelegate.swift in Sources */,
+				2D3897E2057D19CFE1F80A0F /* CLIView.swift in Sources */,
+				C5F83ABA84F9ABF6030384BF /* ChatModel.swift in Sources */,
+				CF296FE4DF376BB75A014701 /* ChatView.swift in Sources */,
+				C58C1E2292EAABB8505F3C04 /* ClaudeAccess.swift in Sources */,
+				A96F4E829469D36B499384ED /* ClaudeCLIService.swift in Sources */,
+				1138CCAA09F59B08F3B291EB /* ClaudeEvents.swift in Sources */,
+				3FF85A3DB056F141EB8D7094 /* ClaudeLoginProcess.swift in Sources */,
+				4D0F134BCD641252A94CC05B /* ClaudeModelService.swift in Sources */,
+				D20AD300B5A1909161114964 /* ClaudeModelsModel.swift in Sources */,
+				21FBD7539922E79424654951 /* ClaudeStreamProcess.swift in Sources */,
+				89F18572B452B5B977141723 /* Components.swift in Sources */,
+				DF72A30A6524CADFEFB4EC8D /* ContentView.swift in Sources */,
+				10534CA09F73CA7899F393AA /* DartSDKModel.swift in Sources */,
+				5824A377E2846FA63755716E /* DartSDKService.swift in Sources */,
+				81D861A8D3AF5262758DCB71 /* DiagnosticLog.swift in Sources */,
+				AFEFE6DA8E8A106A95BDD940 /* Extensions.swift in Sources */,
+				8A7D4F74F116AA88F63F7461 /* FileSnapshot.swift in Sources */,
+				87CC7F96965942B647137614 /* FixModel.swift in Sources */,
+				E22D008167C8CD0081FF8B40 /* FlavorValidator.swift in Sources */,
+				E7CA2EE69C76894BBD386E14 /* FlutterOutput.swift in Sources */,
+				9FA1ED4E7758FCED2E257A5A /* FlutterProject.swift in Sources */,
+				B14665D0241E67EC7BC85F24 /* FlutterRunModel.swift in Sources */,
+				E32BEB7B055DB22E3E088602 /* FlutterRunProcess.swift in Sources */,
+				C360330888C2E8137155D5CE /* GitBranch.swift in Sources */,
+				6B80827696964634962BF5EF /* InspectorClient.swift in Sources */,
+				7C824D9096EB8267C7D677EF /* MSSimulatorDisplay.m in Sources */,
+				8E8CD5F80F9C44DBB1C81F95 /* MobileStudioApp.swift in Sources */,
+				41799181973BA59D4911DA49 /* ModelsView.swift in Sources */,
+				1623ED5928D9F28529255CB4 /* PickModel.swift in Sources */,
+				E384350CB4BFF2B479CA04A4 /* ProcessRunner.swift in Sources */,
+				C46E4924FA7AAD7F36B8FF01 /* Profile.swift in Sources */,
+				E039908B510BE1E52118626A /* ProfileStore.swift in Sources */,
+				6CA9A32DB8131BDE7F0FA608 /* ProjectModel.swift in Sources */,
+				9B86497350FBAB87C67B5AB2 /* ProjectVerifier.swift in Sources */,
+				600F447CE71F63B3AC477E1A /* ProjectView.swift in Sources */,
+				3B202C7907F985099AEF3120 /* RunBar.swift in Sources */,
+				B96D69F0F30ACE6ADDBA6254 /* RunFailure.swift in Sources */,
+				02920B83114CBE861BD6B4F7 /* RunPanel.swift in Sources */,
+				16A5B335DAF4BB74A24D84E6 /* RunningAppFinder.swift in Sources */,
+				3C2D137AB564685806DF621F /* SettingsView.swift in Sources */,
+				C9E99D3265100508B7475FED /* ShellEnvironment.swift in Sources */,
+				D320DEB4B6691309C9C860E7 /* SimctlService.swift in Sources */,
+				4D315C82E5DA16632DF64789 /* SimulatorModel.swift in Sources */,
+				BA207E58CC616073F36B0906 /* SimulatorView.swift in Sources */,
+				7434F76CE501E776D2D9C55F /* StudioModel.swift in Sources */,
+				C36F3EF8094242BBBC4198F0 /* Workspace.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		33864BEC861513A78D3862CA /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 6940315085625505943FCFCE /* MobileStudio */;
+			targetProxy = ECF3221EAE59E0CC452794CD /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		25AA58351E258D82E927E7B2 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 0.1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		5E3271D7D4A03C7CB73D2413 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = "";
+				CODE_SIGN_ENTITLEMENTS = MobileStudio/MobileStudio.entitlements;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_APP_SANDBOX = NO;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = MobileStudio/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.leo.mobilestudio.app;
+				PRODUCT_NAME = "Mobile Studio";
+				SDKROOT = macosx;
+				SWIFT_OBJC_BRIDGING_HEADER = "MobileStudio/MobileStudio-Bridging-Header.h";
+			};
+			name = Release;
+		};
+		6669CD162DC79613C96BD22F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 0.1.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		784D5EF645DF5CABC7A28A01 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_IDENTITY = "-";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.leo.mobilestudio.tests;
+				SDKROOT = macosx;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Mobile Studio.app/Contents/MacOS/Mobile Studio";
+			};
+			name = Release;
+		};
+		91ED63BD51194F5860E8E797 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = "";
+				CODE_SIGN_ENTITLEMENTS = MobileStudio/MobileStudio.entitlements;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_APP_SANDBOX = NO;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = MobileStudio/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.leo.mobilestudio.app;
+				PRODUCT_NAME = "Mobile Studio";
+				SDKROOT = macosx;
+				SWIFT_OBJC_BRIDGING_HEADER = "MobileStudio/MobileStudio-Bridging-Header.h";
+			};
+			name = Debug;
+		};
+		989339CBC0F810AAF96071F0 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_IDENTITY = "-";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.leo.mobilestudio.tests;
+				SDKROOT = macosx;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Mobile Studio.app/Contents/MacOS/Mobile Studio";
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		C7A1BBFBB832668BF1191D6C /* Build configuration list for PBXNativeTarget "MobileStudio" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				91ED63BD51194F5860E8E797 /* Debug */,
+				5E3271D7D4A03C7CB73D2413 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		CD51C77612E05B39659AAADF /* Build configuration list for PBXNativeTarget "MobileStudioTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				989339CBC0F810AAF96071F0 /* Debug */,
+				784D5EF645DF5CABC7A28A01 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		FF7D33EB5693A9E179EFCD3F /* Build configuration list for PBXProject "MobileStudio" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				25AA58351E258D82E927E7B2 /* Debug */,
+				6669CD162DC79613C96BD22F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 9ACDCE7FAB63B2ECC1FAA2BE /* Project object */;
+}
