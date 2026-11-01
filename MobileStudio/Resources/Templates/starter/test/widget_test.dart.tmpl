@@ -1,0 +1,12 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:{{package_name}}/app/app.dart';
+
+void main() {
+  testWidgets('shows the home screen', (tester) async {
+    await tester.pumpWidget(const ProviderScope(child: App()));
+    await tester.pumpAndSettle();
+
+    expect(find.text('{{app_name|dart}}'), findsWidgets);
+  });
+}

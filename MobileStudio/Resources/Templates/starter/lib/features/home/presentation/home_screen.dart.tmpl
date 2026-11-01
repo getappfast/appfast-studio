@@ -1,0 +1,31 @@
+import 'package:flutter/material.dart';
+
+/// The first screen. Replace its body as the app takes shape.
+class HomeScreen extends StatelessWidget {
+  const HomeScreen({super.key});
+
+  static const _description = '{{description|dart}}';
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return Scaffold(
+      appBar: AppBar(title: const Text('{{app_name|dart}}')),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('{{app_name|dart}}', style: textTheme.headlineMedium),
+              if (_description.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Text(_description, style: textTheme.bodyLarge, textAlign: TextAlign.center),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

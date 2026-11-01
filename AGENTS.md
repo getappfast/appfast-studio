@@ -101,6 +101,20 @@ Core/         Feature-agnostic helpers                 ProcessRunner, Diagnostic
   private CoreSimulator/SimulatorKit API. It reports every failure as `NSError`, never crashes, and is reached
   only through `SimulatorModel`.
 
+## New Project
+
+Creating a project never needs Claude. `NewProjectModel` (`Project/`) runs `CreateStep`s in order through
+`NewProjectService`: `flutter create` → app-ID rewrite (`AppIDWriter`, only when the ID doesn't end in the package
+name) → starter files → `flutter pub add go_router flutter_riverpod` → local `git init` + first commit (skipped
+with a note when git has no name). All rules about names, IDs and folders live in `NewProjectRequest.validate()`,
+and the `flutter create` arguments in `FlutterCreateCommand`; the sheet only displays them. A failure keeps the
+folder and `retry()` resumes at the failed step. The starter is `Resources/Templates/starter/**/*.tmpl`
+(a folder reference in `project.yml`, filled by `TemplateRenderer`: `{{x}}`, or `{{x|dart}}` inside a Dart string).
+Every placeholder must have a value in `StarterTemplate.values`; a test renders the whole starter. The full
+plan is `docs/plans/new-project.md`. To check the starter really builds (needs Flutter and network), run a Debug
+build with `MOBILE_STUDIO_SNAPSHOT_NEW_PROJECT=/tmp/x`: it creates a project, runs `flutter analyze` and `flutter
+test`, and logs to `snapshot.log`.
+
 ## Running Claude safely
 
 Mobile Studio runs an agent with edit rights on the user's code, so these are hard rules:

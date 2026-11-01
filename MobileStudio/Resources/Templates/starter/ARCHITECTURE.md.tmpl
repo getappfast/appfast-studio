@@ -1,0 +1,27 @@
+# How {{app_name}} is organised
+
+Read this before changing code. The rules are short on purpose.
+
+## Layout
+
+- `lib/app/` is the shell: `app.dart` (the app), `router.dart` (every route), `theme.dart` (every colour).
+- `lib/features/<name>/` is one feature. Add a feature by adding a folder, not by editing other features.
+  - `presentation/` screens and widgets. They show state and call methods; they hold no logic.
+  - `application/` state and logic (Riverpod providers and notifiers).
+  - `data/` models and repositories: anything that reads or writes storage or the network.
+- `lib/core/` is shared code used by more than one feature (`widgets/`, `utils/`).
+
+## Rules
+
+1. One folder per feature.
+2. Dependencies point down: `presentation` uses `application`, `application` uses `data`, never the reverse.
+3. Routes are declared in `lib/app/router.dart` only.
+4. Colours come from `lib/app/theme.dart` only. Use `Theme.of(context)`, not hard-coded colours.
+5. Every new screen gets a route and a widget test in `test/`.
+6. Imports use `package:{{package_name}}/...`, not relative paths.
+
+## Tools
+
+- State: Riverpod (`flutter_riverpod`), without code generation.
+- Navigation: `go_router`.
+- Checks: `flutter analyze` and `flutter test` should both pass before a change is done.

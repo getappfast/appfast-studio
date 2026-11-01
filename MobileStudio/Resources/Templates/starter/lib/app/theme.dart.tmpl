@@ -1,0 +1,18 @@
+import 'package:flutter/material.dart';
+
+/// Colours come from here and nowhere else. Change [seed] to restyle the whole app.
+class AppTheme {
+  const AppTheme._();
+
+  static const seed = Color(0xFF2E7D6B);
+
+  static final light = _build(Brightness.light);
+  static final dark = _build(Brightness.dark);
+
+  static ThemeData _build(Brightness brightness) {
+    return ThemeData(
+      useMaterial3: true,
+      colorScheme: ColorScheme.fromSeed(seedColor: seed, brightness: brightness),
+    );
+  }
+}

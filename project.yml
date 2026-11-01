@@ -14,7 +14,12 @@ targets:
     type: application
     platform: macOS
     sources:
-      - MobileStudio
+      - path: MobileStudio
+        excludes:
+          - Resources/Templates/**
+      # A folder reference keeps the starter's directory layout inside the app bundle.
+      - path: MobileStudio/Resources/Templates
+        type: folder
     info:
       path: MobileStudio/Info.plist
       properties:

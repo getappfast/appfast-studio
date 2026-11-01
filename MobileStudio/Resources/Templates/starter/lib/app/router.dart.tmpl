@@ -1,0 +1,12 @@
+import 'package:go_router/go_router.dart';
+import 'package:{{package_name}}/features/home/presentation/home_screen.dart';
+
+/// Every screen of the app is listed here, and only here.
+final router = GoRouter(
+  routes: [
+    GoRoute(
+      path: '/',
+      builder: (context, state) => const HomeScreen(),
+    ),
+  ],
+);

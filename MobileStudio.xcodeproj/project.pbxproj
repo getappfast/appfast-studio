@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		049029C860295B549B622298 /* Checkpoints.swift in Sources */ = {isa = PBXBuildFile; fileRef = 275CF361D5418A2D7204D8BD /* Checkpoints.swift */; };
+		0D7EF68C237F34D7954C7C8E /* Templates in Resources */ = {isa = PBXBuildFile; fileRef = CD947D9F02DDBB14858B6C8A /* Templates */; };
 		10534CA09F73CA7899F393AA /* DartSDKModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E1D72C1DD8CF0F35A562EBE /* DartSDKModel.swift */; };
 		1138CCAA09F59B08F3B291EB /* ClaudeEvents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D2C2092D4ED47BA92DE07C0 /* ClaudeEvents.swift */; };
 		1623ED5928D9F28529255CB4 /* PickModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51EFD1E26DE06F3BA89C5719 /* PickModel.swift */; };
@@ -17,7 +18,10 @@
 		28902DECFE727584B5AECE12 /* LogAndDiffViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8BFF51074EE2AD390002E0C /* LogAndDiffViews.swift */; };
 		28EF0A77B1ACB1B288DFCAAD /* Choices.swift in Sources */ = {isa = PBXBuildFile; fileRef = D39B7E02CBED08183520404D /* Choices.swift */; };
 		2D3897E2057D19CFE1F80A0F /* CLIView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9116D54E4720D142D69AF9C /* CLIView.swift */; };
+		330E3903766DDDA4A944DF8F /* NewProjectRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = C63653408F338F048F7134B1 /* NewProjectRequest.swift */; };
+		368407136B160092BD1E82B9 /* FlutterCreateCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58AFE7EDB4E11C891B109972 /* FlutterCreateCommand.swift */; };
 		3C2D137AB564685806DF621F /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49567BA1A7346DA894DA0A8F /* SettingsView.swift */; };
+		3F36C1435F932116A5AAAA98 /* NewProjectService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0BD22E8F538B4C254140309C /* NewProjectService.swift */; };
 		3FA52E1C9AF1E1CEEF8EBEED /* LowCodeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14C8AF9DA1D80B016009385B /* LowCodeTests.swift */; };
 		3FF85A3DB056F141EB8D7094 /* ClaudeLoginProcess.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3C4EF6963B8A7C4682B6189 /* ClaudeLoginProcess.swift */; };
 		41799181973BA59D4911DA49 /* ModelsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC5563599B450CC1AF3C60BB /* ModelsView.swift */; };
@@ -35,19 +39,23 @@
 		77FB02DA2994BE1BDF8C74E0 /* Toolbar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 648481D249AAC7C0EEB3EA81 /* Toolbar.swift */; };
 		7917AE5E78D1C8421E6608CD /* CoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 063160B764E8BEA408180098 /* CoreTests.swift */; };
 		7C824D9096EB8267C7D677EF /* MSSimulatorDisplay.m in Sources */ = {isa = PBXBuildFile; fileRef = 6733DBD5625108AFC9CC438B /* MSSimulatorDisplay.m */; };
+		81558967177AAB6B214A011A /* NewProjectSmokeTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FB8BC040B6D1F0A7060BD1E /* NewProjectSmokeTest.swift */; };
 		81D861A8D3AF5262758DCB71 /* DiagnosticLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B4558791E4DC76EC183EE44 /* DiagnosticLog.swift */; };
 		87CC7F96965942B647137614 /* FixModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABF3B83D36B28C480AEEE96B /* FixModel.swift */; };
 		89F18572B452B5B977141723 /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = 836E335207FDB9F1BA85D373 /* Components.swift */; };
 		8A7D4F74F116AA88F63F7461 /* FileSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05D882B88E504A6D26DC1AC3 /* FileSnapshot.swift */; };
 		8E8CD5F80F9C44DBB1C81F95 /* MobileStudioApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D46FFCDF80E4AF9D79D83DC /* MobileStudioApp.swift */; };
+		9B246A716907C7801B3A2688 /* NewProjectModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8EB0B668ABF720678A711BC2 /* NewProjectModel.swift */; };
 		9B86497350FBAB87C67B5AB2 /* ProjectVerifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = C99F1897F9F1747834466EAC /* ProjectVerifier.swift */; };
 		9FA1ED4E7758FCED2E257A5A /* FlutterProject.swift in Sources */ = {isa = PBXBuildFile; fileRef = D77CAE1293C3C56947E04276 /* FlutterProject.swift */; };
+		A12522DB981B01B6CB0EA57E /* AppIDWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = A070EDD9454BAC50C13296F5 /* AppIDWriter.swift */; };
 		A86577D8E32FF3E89BECC19F /* GitDiff.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1878D0756FDCF9BD088709B2 /* GitDiff.swift */; };
 		A96F4E829469D36B499384ED /* ClaudeCLIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2278BC7E8E3DF50FADCAF3CC /* ClaudeCLIService.swift */; };
 		AFEFE6DA8E8A106A95BDD940 /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53B651022902A63C0841C077 /* Extensions.swift */; };
 		B14665D0241E67EC7BC85F24 /* FlutterRunModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 639D4D8A19632523364D91B0 /* FlutterRunModel.swift */; };
 		B96D69F0F30ACE6ADDBA6254 /* RunFailure.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93480E8461B93756995EE712 /* RunFailure.swift */; };
 		BA207E58CC616073F36B0906 /* SimulatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3E94F545A9D3C4FB20FE9B3 /* SimulatorView.swift */; };
+		C1A774E549AE72C69E564D45 /* StarterTemplate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 622CCEDDE0A20A5417BD7133 /* StarterTemplate.swift */; };
 		C247D3C87F351058FE0BDCBE /* IOSurface.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 043B1B8B9F21AA69AB5E30DC /* IOSurface.framework */; };
 		C360330888C2E8137155D5CE /* GitBranch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68D7AC6C1B1CCF922B4958EC /* GitBranch.swift */; };
 		C36F3EF8094242BBBC4198F0 /* Workspace.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73DD97B9A95A0F4611E9613F /* Workspace.swift */; };
@@ -71,6 +79,7 @@
 		E5E6AD58802BBE42470370CD /* ProjectNames.swift in Sources */ = {isa = PBXBuildFile; fileRef = E214ACAAE40C3011FC668B13 /* ProjectNames.swift */; };
 		E7CA2EE69C76894BBD386E14 /* FlutterOutput.swift in Sources */ = {isa = PBXBuildFile; fileRef = F183B1551D688724E9F4B73C /* FlutterOutput.swift */; };
 		FD96278AD7C20217835C1298 /* RedesignTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D4DC322C08FF23E9822B4ED /* RedesignTests.swift */; };
+		FE74742F748C93FFB142D4A9 /* NewProjectTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA38FD2679D98A9E7976E7B3 /* NewProjectTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -90,6 +99,7 @@
 		043B1B8B9F21AA69AB5E30DC /* IOSurface.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOSurface.framework; path = System/Library/Frameworks/IOSurface.framework; sourceTree = SDKROOT; };
 		05D882B88E504A6D26DC1AC3 /* FileSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileSnapshot.swift; sourceTree = "<group>"; };
 		063160B764E8BEA408180098 /* CoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreTests.swift; sourceTree = "<group>"; };
+		0BD22E8F538B4C254140309C /* NewProjectService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewProjectService.swift; sourceTree = "<group>"; };
 		0DB5D2BB71D48054337D0E82 /* ChatModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatModel.swift; sourceTree = "<group>"; };
 		0EAF3766A5E4C80EDBA71CE6 /* ClaudeStreamProcess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeStreamProcess.swift; sourceTree = "<group>"; };
 		0F9AD621012B94161C4BBFCD /* ProfileStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileStore.swift; sourceTree = "<group>"; };
@@ -111,11 +121,13 @@
 		4B8BB98EBC819D9B44DA13E7 /* MobileStudio-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "MobileStudio-Bridging-Header.h"; sourceTree = "<group>"; };
 		51EFD1E26DE06F3BA89C5719 /* PickModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PickModel.swift; sourceTree = "<group>"; };
 		53B651022902A63C0841C077 /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
+		58AFE7EDB4E11C891B109972 /* FlutterCreateCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlutterCreateCommand.swift; sourceTree = "<group>"; };
 		59BFC66633AD59CD4919DF83 /* ClaudeModelService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeModelService.swift; sourceTree = "<group>"; };
 		5B57B38CEAE21EB2ADB5B0FC /* AppFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppFlowTests.swift; sourceTree = "<group>"; };
 		5D46FFCDF80E4AF9D79D83DC /* MobileStudioApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileStudioApp.swift; sourceTree = "<group>"; };
 		5D9CFA723DEEC7EA441E509B /* AccountsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountsView.swift; sourceTree = "<group>"; };
 		5F0D578CEE0D155ED69F804F /* FlavorValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlavorValidator.swift; sourceTree = "<group>"; };
+		622CCEDDE0A20A5417BD7133 /* StarterTemplate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StarterTemplate.swift; sourceTree = "<group>"; };
 		62DC339195DB99B74FCE89E4 /* StatusRenderingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusRenderingTests.swift; sourceTree = "<group>"; };
 		639D4D8A19632523364D91B0 /* FlutterRunModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlutterRunModel.swift; sourceTree = "<group>"; };
 		648481D249AAC7C0EEB3EA81 /* Toolbar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Toolbar.swift; sourceTree = "<group>"; };
@@ -123,6 +135,7 @@
 		68A8C87B6E1683121FB0AC3F /* InspectorClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InspectorClient.swift; sourceTree = "<group>"; };
 		68D7AC6C1B1CCF922B4958EC /* GitBranch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitBranch.swift; sourceTree = "<group>"; };
 		6E2A05DDF9704E65DF13A99D /* MarkdownBlocks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownBlocks.swift; sourceTree = "<group>"; };
+		6FB8BC040B6D1F0A7060BD1E /* NewProjectSmokeTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewProjectSmokeTest.swift; sourceTree = "<group>"; };
 		73DD97B9A95A0F4611E9613F /* Workspace.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Workspace.swift; sourceTree = "<group>"; };
 		836E335207FDB9F1BA85D373 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
 		837641C453C83B5FB23DBD28 /* SimulatorModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SimulatorModel.swift; sourceTree = "<group>"; };
@@ -132,17 +145,22 @@
 		8C34D86D100466FDA9871DD6 /* ShellEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShellEnvironment.swift; sourceTree = "<group>"; };
 		8D2C2092D4ED47BA92DE07C0 /* ClaudeEvents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeEvents.swift; sourceTree = "<group>"; };
 		8E1D72C1DD8CF0F35A562EBE /* DartSDKModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DartSDKModel.swift; sourceTree = "<group>"; };
+		8EB0B668ABF720678A711BC2 /* NewProjectModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewProjectModel.swift; sourceTree = "<group>"; };
 		90E92DB27276DFCC7FDB1B0F /* MSSimulatorDisplay.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MSSimulatorDisplay.h; sourceTree = "<group>"; };
 		93480E8461B93756995EE712 /* RunFailure.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunFailure.swift; sourceTree = "<group>"; };
 		9784DC6C60D28D725C553620 /* ClaudeAccess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeAccess.swift; sourceTree = "<group>"; };
 		9FA1C4963449C9792E24C74C /* ClaudeModelsModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeModelsModel.swift; sourceTree = "<group>"; };
+		A070EDD9454BAC50C13296F5 /* AppIDWriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppIDWriter.swift; sourceTree = "<group>"; };
 		A3C4EF6963B8A7C4682B6189 /* ClaudeLoginProcess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeLoginProcess.swift; sourceTree = "<group>"; };
 		ABF3B83D36B28C480AEEE96B /* FixModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FixModel.swift; sourceTree = "<group>"; };
 		B8BFF51074EE2AD390002E0C /* LogAndDiffViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogAndDiffViews.swift; sourceTree = "<group>"; };
+		BA38FD2679D98A9E7976E7B3 /* NewProjectTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewProjectTests.swift; sourceTree = "<group>"; };
 		C3E94F545A9D3C4FB20FE9B3 /* SimulatorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SimulatorView.swift; sourceTree = "<group>"; };
+		C63653408F338F048F7134B1 /* NewProjectRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewProjectRequest.swift; sourceTree = "<group>"; };
 		C8C6540E59C1B8EDA8D81C10 /* RunningAppFinder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunningAppFinder.swift; sourceTree = "<group>"; };
 		C99F1897F9F1747834466EAC /* ProjectVerifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectVerifier.swift; sourceTree = "<group>"; };
 		CC5563599B450CC1AF3C60BB /* ModelsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelsView.swift; sourceTree = "<group>"; };
+		CD947D9F02DDBB14858B6C8A /* Templates */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Templates; path = MobileStudio/Resources/Templates; sourceTree = SOURCE_ROOT; };
 		CE6A2C879F4AD944F31375A9 /* MobileStudio.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MobileStudio.entitlements; sourceTree = "<group>"; };
 		D39B7E02CBED08183520404D /* Choices.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Choices.swift; sourceTree = "<group>"; };
 		D77CAE1293C3C56947E04276 /* FlutterProject.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlutterProject.swift; sourceTree = "<group>"; };
@@ -202,20 +220,26 @@
 			isa = PBXGroup;
 			children = (
 				3887AD55272504EA7A2C1D90 /* AppFlow.swift */,
+				A070EDD9454BAC50C13296F5 /* AppIDWriter.swift */,
 				05D882B88E504A6D26DC1AC3 /* FileSnapshot.swift */,
 				ABF3B83D36B28C480AEEE96B /* FixModel.swift */,
 				5F0D578CEE0D155ED69F804F /* FlavorValidator.swift */,
+				58AFE7EDB4E11C891B109972 /* FlutterCreateCommand.swift */,
 				F183B1551D688724E9F4B73C /* FlutterOutput.swift */,
 				D77CAE1293C3C56947E04276 /* FlutterProject.swift */,
 				639D4D8A19632523364D91B0 /* FlutterRunModel.swift */,
 				E6345991BF3AE76BA8A97FED /* FlutterRunProcess.swift */,
 				68D7AC6C1B1CCF922B4958EC /* GitBranch.swift */,
 				1878D0756FDCF9BD088709B2 /* GitDiff.swift */,
+				8EB0B668ABF720678A711BC2 /* NewProjectModel.swift */,
+				C63653408F338F048F7134B1 /* NewProjectRequest.swift */,
+				0BD22E8F538B4C254140309C /* NewProjectService.swift */,
 				8BDCF398457D0259E7586C9D /* ProjectModel.swift */,
 				E214ACAAE40C3011FC668B13 /* ProjectNames.swift */,
 				C99F1897F9F1747834466EAC /* ProjectVerifier.swift */,
 				93480E8461B93756995EE712 /* RunFailure.swift */,
 				C8C6540E59C1B8EDA8D81C10 /* RunningAppFinder.swift */,
+				622CCEDDE0A20A5417BD7133 /* StarterTemplate.swift */,
 			);
 			path = Project;
 			sourceTree = "<group>";
@@ -261,6 +285,7 @@
 				063160B764E8BEA408180098 /* CoreTests.swift */,
 				2CBFC2D8B02BA0841E6E48B7 /* FlutterOutputTests.swift */,
 				14C8AF9DA1D80B016009385B /* LowCodeTests.swift */,
+				BA38FD2679D98A9E7976E7B3 /* NewProjectTests.swift */,
 				2D4DC322C08FF23E9822B4ED /* RedesignTests.swift */,
 				62DC339195DB99B74FCE89E4 /* StatusRenderingTests.swift */,
 			);
@@ -273,6 +298,7 @@
 				3182C9E8D192D1016590E47F /* AppDelegate.swift */,
 				37D6BAB1CD6A090384AAC0E1 /* ContentView.swift */,
 				5D46FFCDF80E4AF9D79D83DC /* MobileStudioApp.swift */,
+				6FB8BC040B6D1F0A7060BD1E /* NewProjectSmokeTest.swift */,
 				0400B24E40E0E4808CF7D091 /* StudioCommands.swift */,
 				87BB1F715EAE3BA6CDAC2B98 /* StudioModel.swift */,
 				73DD97B9A95A0F4611E9613F /* Workspace.swift */,
@@ -294,10 +320,19 @@
 				C12A557A13CF05AAF937069C /* Dart */,
 				0E82AEEFE41A5449A5065B57 /* Inspector */,
 				2D4B34B8F8EF16251AD6E606 /* Project */,
+				A3A9B403E94AAE0D80BE7432 /* Resources */,
 				C99F5BA3E23D5BBB405198BA /* Simulator */,
 				B427E34AE687C0C01D49E1AF /* Views */,
 			);
 			path = MobileStudio;
+			sourceTree = "<group>";
+		};
+		A3A9B403E94AAE0D80BE7432 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				CD947D9F02DDBB14858B6C8A /* Templates */,
+			);
+			path = Resources;
 			sourceTree = "<group>";
 		};
 		B427E34AE687C0C01D49E1AF /* Views */ = {
@@ -382,6 +417,7 @@
 			buildConfigurationList = C7A1BBFBB832668BF1191D6C /* Build configuration list for PBXNativeTarget "MobileStudio" */;
 			buildPhases = (
 				41B11807EEB0DE52D2A4774D /* Sources */,
+				E9993DD3F62CC87ABCE98E36 /* Resources */,
 				10FAC14F2BBFEF03946796AA /* Frameworks */,
 			);
 			buildRules = (
@@ -429,6 +465,17 @@
 		};
 /* End PBXProject section */
 
+/* Begin PBXResourcesBuildPhase section */
+		E9993DD3F62CC87ABCE98E36 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0D7EF68C237F34D7954C7C8E /* Templates in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		03FF68125183CBD4F369C7AE /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
@@ -439,6 +486,7 @@
 				7917AE5E78D1C8421E6608CD /* CoreTests.swift in Sources */,
 				59CBE0987639CCE89F448155 /* FlutterOutputTests.swift in Sources */,
 				3FA52E1C9AF1E1CEEF8EBEED /* LowCodeTests.swift in Sources */,
+				FE74742F748C93FFB142D4A9 /* NewProjectTests.swift in Sources */,
 				FD96278AD7C20217835C1298 /* RedesignTests.swift in Sources */,
 				2309F0E4763FC86498DCB8EC /* StatusRenderingTests.swift in Sources */,
 			);
@@ -451,6 +499,7 @@
 				DD688942598725357BCDBD0D /* AccountsView.swift in Sources */,
 				DC01A725964492C31EBD1C0E /* AppDelegate.swift in Sources */,
 				5FA1E9C44FDC17093DAAB1E8 /* AppFlow.swift in Sources */,
+				A12522DB981B01B6CB0EA57E /* AppIDWriter.swift in Sources */,
 				2D3897E2057D19CFE1F80A0F /* CLIView.swift in Sources */,
 				C5F83ABA84F9ABF6030384BF /* ChatModel.swift in Sources */,
 				CF296FE4DF376BB75A014701 /* ChatView.swift in Sources */,
@@ -473,6 +522,7 @@
 				87CC7F96965942B647137614 /* FixModel.swift in Sources */,
 				E22D008167C8CD0081FF8B40 /* FlavorValidator.swift in Sources */,
 				CFBF633E3828AF829F80D396 /* FlowView.swift in Sources */,
+				368407136B160092BD1E82B9 /* FlutterCreateCommand.swift in Sources */,
 				E7CA2EE69C76894BBD386E14 /* FlutterOutput.swift in Sources */,
 				9FA1ED4E7758FCED2E257A5A /* FlutterProject.swift in Sources */,
 				B14665D0241E67EC7BC85F24 /* FlutterRunModel.swift in Sources */,
@@ -485,6 +535,10 @@
 				5F27FC387AEA2167F2F65919 /* MarkdownBlocks.swift in Sources */,
 				8E8CD5F80F9C44DBB1C81F95 /* MobileStudioApp.swift in Sources */,
 				41799181973BA59D4911DA49 /* ModelsView.swift in Sources */,
+				9B246A716907C7801B3A2688 /* NewProjectModel.swift in Sources */,
+				330E3903766DDDA4A944DF8F /* NewProjectRequest.swift in Sources */,
+				3F36C1435F932116A5AAAA98 /* NewProjectService.swift in Sources */,
+				81558967177AAB6B214A011A /* NewProjectSmokeTest.swift in Sources */,
 				1623ED5928D9F28529255CB4 /* PickModel.swift in Sources */,
 				E384350CB4BFF2B479CA04A4 /* ProcessRunner.swift in Sources */,
 				C46E4924FA7AAD7F36B8FF01 /* Profile.swift in Sources */,
@@ -500,6 +554,7 @@
 				D320DEB4B6691309C9C860E7 /* SimctlService.swift in Sources */,
 				4D315C82E5DA16632DF64789 /* SimulatorModel.swift in Sources */,
 				BA207E58CC616073F36B0906 /* SimulatorView.swift in Sources */,
+				C1A774E549AE72C69E564D45 /* StarterTemplate.swift in Sources */,
 				4CAFA92782B71E26DF7DD64E /* StudioCommands.swift in Sources */,
 				7434F76CE501E776D2D9C55F /* StudioModel.swift in Sources */,
 				77FB02DA2994BE1BDF8C74E0 /* Toolbar.swift in Sources */,

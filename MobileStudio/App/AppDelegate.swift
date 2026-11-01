@@ -46,6 +46,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 ///     MOBILE_STUDIO_SNAPSHOT_CHAT="message"     with RUN: send this chat message once the app runs
 ///     MOBILE_STUDIO_SNAPSHOT_UNDO_AFTER=20      then undo its edits this many seconds after the answer
 ///     MOBILE_STUDIO_SNAPSHOT_CHOOSE=1           or pick the recommended options of the answer's choice card
+///     MOBILE_STUDIO_SNAPSHOT_NEW_PROJECT=/tmp/x  create a project in that folder, run flutter analyze + test, log, quit
 ///     MOBILE_STUDIO_CLAUDE_CLI=/path/to/stub    use this claude executable instead of the installed one
 ///
 /// Snapshot runs skip Claude's automatic project check, so they cost nothing.
@@ -67,6 +68,7 @@ enum Snapshot {
         case "contrast-dark": NSApp.appearance = NSAppearance(named: .accessibilityHighContrastDarkAqua)
         default: break
         }
+        if NewProjectSmokeTest.runIfRequested() { return }
         guard let base = env[pathKey] else { return }
         // Menus follow the focused window, so the app has to be frontmost for shortcuts to reach them.
         NSApp.activate()
