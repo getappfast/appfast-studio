@@ -103,6 +103,15 @@ struct SimulatorScreen: NSViewRepresentable {
     }
 }
 
+/// A rounded rectangle whose corner radius is a share of its width, with the continuous curve iOS uses.
+struct ProportionalRoundedRectangle: Shape {
+    var fraction: CGFloat
+
+    func path(in rect: CGRect) -> Path {
+        RoundedRectangle(cornerRadius: rect.width * fraction, style: .continuous).path(in: rect)
+    }
+}
+
 extension SimulatorDevice {
     /// Roughly the display's corner radius over its width: rounded for Face ID iPhones, square for
     /// Home-button ones, slight for iPads.
@@ -162,6 +171,8 @@ struct SimulatorCanvas: View {
         return SimulatorScreen(display: model.display, cornerFraction: corner,
                                accessibilityName: "\(device.name) screen", onTap: model.recordTap)
             .aspectRatio(size, contentMode: .fit)
+            // The layer's own corner radius is not enough once the screen sits inside a frame: clip the view itself.
+            .clipShape(ProportionalRoundedRectangle(fraction: corner))
             .overlay {
                 if isPicking {
                     GeometryReader { proxy in
