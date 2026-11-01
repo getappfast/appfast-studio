@@ -52,6 +52,8 @@ struct StudioCommands: Commands {
             Button("Show App Flow") { workspace.canvas = .flow }
                 .keyboardShortcut("2")
                 .disabled(state.isShowingFlow)
+            Button(state.showsDeviceFrame ? "Hide Device Frame" : "Show Device Frame") { workspace.showsDeviceFrame.toggle() }
+                .disabled(state.isShowingFlow)
             Divider()
             Button(state.isChatVisible ? "Hide Chat" : "Show Chat") { workspace.isChatVisible.toggle() }
                 .keyboardShortcut("0", modifiers: [.command, .option])

@@ -21,6 +21,9 @@ One window shows:
   map of the screens (`FlowCanvas`): `FlowFinder` reads the Dart source for navigation (Navigator, named routes,
   go_router, auto_route, tabs) into an `AppFlow`, drawn left to right from the start screen. It stays fresh like
   the Screens list. The device view stays underneath, hidden, because removing it stops the display stream.
+  The device sits in its real hardware frame (`DeviceChrome`), read at runtime from the files Xcode installs
+  in `/Library/Developer/DeviceKit/Chrome`; nothing of Apple's is bundled. Devices without a composite
+  frame (iPads) or machines without Xcode's files show the bare screen. View ▸ Hide Device Frame turns it off.
 - **Chat inspector:** Claude Code running in the project folder as the selected account. Answers lead with
   the outcome in plain words; technical notes and steps sit behind a disclosure. Each answer that changed
   files has **Undo**. *Fix with Claude* runs appear here as messages too. *Point at…* attaches a widget

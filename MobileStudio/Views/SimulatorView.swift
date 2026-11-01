@@ -119,7 +119,10 @@ struct SimulatorCanvas: View {
     let model: SimulatorModel
     /// Pick is waiting for a tap: the screen gets an outline and a crosshair so it's clear where to click.
     var isPicking = false
+    /// Draw the device's hardware frame around the screen when Xcode has one for it.
+    var showsFrame = true
     @State private var hovering = false
+    @State private var chrome: DeviceChrome?
 
     var body: some View {
         VStack(spacing: 12) {
@@ -139,26 +142,51 @@ struct SimulatorCanvas: View {
     @ViewBuilder
     private var screen: some View {
         if model.display != nil, let size = model.screenSize, let device = model.selected {
-            SimulatorScreen(display: model.display, cornerFraction: device.screenCornerFraction,
-                            accessibilityName: "\(device.name) screen", onTap: model.recordTap)
-                .aspectRatio(size, contentMode: .fit)
-                .overlay {
-                    if isPicking {
-                        GeometryReader { proxy in
-                            RoundedRectangle(cornerRadius: proxy.size.width * device.screenCornerFraction, style: .continuous)
-                                .strokeBorder(Color.accentColor, style: StrokeStyle(lineWidth: 3, dash: [8, 5]))
-                        }
-                        .allowsHitTesting(false)
-                    }
-                }
+            framed(screen(of: device, size: size), chrome: showsFrame ? chrome : nil)
                 .shadow(color: .black.opacity(0.25), radius: 14, y: 5)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .task(id: device.name) { chrome = DeviceChrome.load(deviceName: device.name) }
                 .onHover { inside in
                     hovering = inside
                     if isPicking { inside ? NSCursor.crosshair.push() : NSCursor.pop() }
                 }
         } else {
             placeholder.frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+    }
+
+    private func screen(of device: SimulatorDevice, size: CGSize) -> some View {
+        // With a frame, the screen's corners come from the device itself, so they meet the frame's inner edge.
+        let corner = showsFrame ? chrome.map { $0.cornerRadius / $0.screenSize.width } ?? device.screenCornerFraction
+            : device.screenCornerFraction
+        return SimulatorScreen(display: model.display, cornerFraction: corner,
+                               accessibilityName: "\(device.name) screen", onTap: model.recordTap)
+            .aspectRatio(size, contentMode: .fit)
+            .overlay {
+                if isPicking {
+                    GeometryReader { proxy in
+                        RoundedRectangle(cornerRadius: proxy.size.width * corner, style: .continuous)
+                            .strokeBorder(Color.accentColor, style: StrokeStyle(lineWidth: 3, dash: [8, 5]))
+                    }
+                    .allowsHitTesting(false)
+                }
+            }
+    }
+
+    /// The screen on top of the frame's artwork, scaled together. The frame never takes clicks.
+    @ViewBuilder
+    private func framed(_ screen: some View, chrome: DeviceChrome?) -> some View {
+        if let chrome, let image = NSImage(contentsOf: chrome.compositeURL) {
+            GeometryReader { proxy in
+                let scale = proxy.size.width / chrome.compositeSize.width
+                ZStack {
+                    Image(nsImage: image).resizable().allowsHitTesting(false)
+                    screen.padding(.horizontal, chrome.inset.width * scale).padding(.vertical, chrome.inset.height * scale)
+                }
+            }
+            .aspectRatio(chrome.compositeSize, contentMode: .fit)
+        } else {
+            screen
         }
     }
 

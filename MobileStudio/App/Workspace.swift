@@ -23,6 +23,10 @@ final class Workspace {
     var isChatVisible = UserDefaults.standard.object(forKey: Keys.chatVisible) as? Bool ?? true {
         didSet { UserDefaults.standard.set(isChatVisible, forKey: Keys.chatVisible) }
     }
+    /// The device's hardware frame around the simulator screen.
+    var showsDeviceFrame = UserDefaults.standard.object(forKey: Keys.deviceFrame) as? Bool ?? true {
+        didSet { UserDefaults.standard.set(showsDeviceFrame, forKey: Keys.deviceFrame) }
+    }
     /// What the canvas shows: the running device, or the map of the app's screens.
     var canvas = UserDefaults.standard.string(forKey: Keys.canvas).flatMap(Canvas.init) ?? .device {
         didSet { UserDefaults.standard.set(canvas.rawValue, forKey: Keys.canvas) }
@@ -67,6 +71,7 @@ final class Workspace {
     private enum Keys {
         static let chatVisible = "window.chatVisible.v1"
         static let canvas = "window.canvas.v1"
+        static let deviceFrame = "window.deviceFrame.v1"
     }
 
     init(studio: StudioModel) {
@@ -190,7 +195,7 @@ final class Workspace {
     var menuState: MenuState {
         MenuState(canRun: canRun, canStop: canStop, canHotReload: canHotReload, canPick: canPick,
                   isPicking: pick.isPicking, isChatVisible: isChatVisible, isLogVisible: isLogVisible,
-                  isShowingFlow: canvas == .flow,
+                  isShowingFlow: canvas == .flow, showsDeviceFrame: showsDeviceFrame,
                   canStartNewChat: !chat.messages.isEmpty && !chat.isSending,
                   canFix: visibleFailure != nil && fixBlocker == nil,
                   canCheckProject: project.path != nil && studio.projectVerifier != nil,
@@ -198,7 +203,7 @@ final class Workspace {
     }
 
     struct MenuState: Equatable {
-        var canRun, canStop, canHotReload, canPick, isPicking, isChatVisible, isLogVisible, isShowingFlow: Bool
+        var canRun, canStop, canHotReload, canPick, isPicking, isChatVisible, isLogVisible, isShowingFlow, showsDeviceFrame: Bool
         var canStartNewChat, canFix, canCheckProject, canCreateProject: Bool
     }
 

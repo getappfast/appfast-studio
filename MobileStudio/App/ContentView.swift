@@ -23,7 +23,8 @@ struct ContentView: View {
                     .frame(maxWidth: .infinity)
                     .background(Color(nsColor: .underPageBackgroundColor))
                 // The device stays underneath the map: removing it would stop its display stream.
-                SimulatorCanvas(model: workspace.simulator, isPicking: workspace.pick.isPicking)
+                SimulatorCanvas(model: workspace.simulator, isPicking: workspace.pick.isPicking,
+                                showsFrame: workspace.showsDeviceFrame)
                     .opacity(workspace.canvas == .flow ? 0 : 1)
                     .accessibilityHidden(workspace.canvas == .flow || workspace.project.readyFolder == nil)
                     .overlay {

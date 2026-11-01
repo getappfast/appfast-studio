@@ -57,6 +57,7 @@
 		AFEFE6DA8E8A106A95BDD940 /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53B651022902A63C0841C077 /* Extensions.swift */; };
 		B14665D0241E67EC7BC85F24 /* FlutterRunModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 639D4D8A19632523364D91B0 /* FlutterRunModel.swift */; };
 		B96D69F0F30ACE6ADDBA6254 /* RunFailure.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93480E8461B93756995EE712 /* RunFailure.swift */; };
+		B9B94E85659423A5EFCC71AB /* DeviceChromeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3EF75D06E98B4B22C69A861 /* DeviceChromeTests.swift */; };
 		BA207E58CC616073F36B0906 /* SimulatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3E94F545A9D3C4FB20FE9B3 /* SimulatorView.swift */; };
 		C1A774E549AE72C69E564D45 /* StarterTemplate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 622CCEDDE0A20A5417BD7133 /* StarterTemplate.swift */; };
 		C247D3C87F351058FE0BDCBE /* IOSurface.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 043B1B8B9F21AA69AB5E30DC /* IOSurface.framework */; };
@@ -83,6 +84,7 @@
 		E384350CB4BFF2B479CA04A4 /* ProcessRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CF293A1D6EA1DBE1484F1AE /* ProcessRunner.swift */; };
 		E5E6AD58802BBE42470370CD /* ProjectNames.swift in Sources */ = {isa = PBXBuildFile; fileRef = E214ACAAE40C3011FC668B13 /* ProjectNames.swift */; };
 		E7CA2EE69C76894BBD386E14 /* FlutterOutput.swift in Sources */ = {isa = PBXBuildFile; fileRef = F183B1551D688724E9F4B73C /* FlutterOutput.swift */; };
+		F34D6660305810C0EB281E28 /* DeviceChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73FBCB7608C2E6A48E5E8C13 /* DeviceChrome.swift */; };
 		FD96278AD7C20217835C1298 /* RedesignTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D4DC322C08FF23E9822B4ED /* RedesignTests.swift */; };
 		FE74742F748C93FFB142D4A9 /* NewProjectTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA38FD2679D98A9E7976E7B3 /* NewProjectTests.swift */; };
 /* End PBXBuildFile section */
@@ -144,6 +146,7 @@
 		6E2A05DDF9704E65DF13A99D /* MarkdownBlocks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownBlocks.swift; sourceTree = "<group>"; };
 		6FB8BC040B6D1F0A7060BD1E /* NewProjectSmokeTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewProjectSmokeTest.swift; sourceTree = "<group>"; };
 		73DD97B9A95A0F4611E9613F /* Workspace.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Workspace.swift; sourceTree = "<group>"; };
+		73FBCB7608C2E6A48E5E8C13 /* DeviceChrome.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceChrome.swift; sourceTree = "<group>"; };
 		8312E6EFADCD02F667A8CBDE /* NewProjectSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewProjectSheet.swift; sourceTree = "<group>"; };
 		836E335207FDB9F1BA85D373 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
 		837641C453C83B5FB23DBD28 /* SimulatorModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SimulatorModel.swift; sourceTree = "<group>"; };
@@ -166,6 +169,7 @@
 		B8BFF51074EE2AD390002E0C /* LogAndDiffViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogAndDiffViews.swift; sourceTree = "<group>"; };
 		BA38FD2679D98A9E7976E7B3 /* NewProjectTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewProjectTests.swift; sourceTree = "<group>"; };
 		C3E94F545A9D3C4FB20FE9B3 /* SimulatorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SimulatorView.swift; sourceTree = "<group>"; };
+		C3EF75D06E98B4B22C69A861 /* DeviceChromeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceChromeTests.swift; sourceTree = "<group>"; };
 		C63653408F338F048F7134B1 /* NewProjectRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewProjectRequest.swift; sourceTree = "<group>"; };
 		C8C6540E59C1B8EDA8D81C10 /* RunningAppFinder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunningAppFinder.swift; sourceTree = "<group>"; };
 		C99F1897F9F1747834466EAC /* ProjectVerifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectVerifier.swift; sourceTree = "<group>"; };
@@ -296,6 +300,7 @@
 				5B57B38CEAE21EB2ADB5B0FC /* AppFlowTests.swift */,
 				F6E172ED02B0EEBAEB12D76A /* ClaudeTests.swift */,
 				063160B764E8BEA408180098 /* CoreTests.swift */,
+				C3EF75D06E98B4B22C69A861 /* DeviceChromeTests.swift */,
 				2CBFC2D8B02BA0841E6E48B7 /* FlutterOutputTests.swift */,
 				14C8AF9DA1D80B016009385B /* LowCodeTests.swift */,
 				BA38FD2679D98A9E7976E7B3 /* NewProjectTests.swift */,
@@ -380,6 +385,7 @@
 		C99F5BA3E23D5BBB405198BA /* Simulator */ = {
 			isa = PBXGroup;
 			children = (
+				73FBCB7608C2E6A48E5E8C13 /* DeviceChrome.swift */,
 				90E92DB27276DFCC7FDB1B0F /* MSSimulatorDisplay.h */,
 				6733DBD5625108AFC9CC438B /* MSSimulatorDisplay.m */,
 				DEDDFB47D8F146F8EEAFB2C9 /* SimctlService.swift */,
@@ -499,6 +505,7 @@
 				CECB7DD92867508E3D725877 /* AppFlowTests.swift in Sources */,
 				DD7448482A42B7DDF69BE317 /* ClaudeTests.swift in Sources */,
 				7917AE5E78D1C8421E6608CD /* CoreTests.swift in Sources */,
+				B9B94E85659423A5EFCC71AB /* DeviceChromeTests.swift in Sources */,
 				59CBE0987639CCE89F448155 /* FlutterOutputTests.swift in Sources */,
 				3FA52E1C9AF1E1CEEF8EBEED /* LowCodeTests.swift in Sources */,
 				FE74742F748C93FFB142D4A9 /* NewProjectTests.swift in Sources */,
@@ -532,6 +539,7 @@
 				DF72A30A6524CADFEFB4EC8D /* ContentView.swift in Sources */,
 				10534CA09F73CA7899F393AA /* DartSDKModel.swift in Sources */,
 				5824A377E2846FA63755716E /* DartSDKService.swift in Sources */,
+				F34D6660305810C0EB281E28 /* DeviceChrome.swift in Sources */,
 				81D861A8D3AF5262758DCB71 /* DiagnosticLog.swift in Sources */,
 				AFEFE6DA8E8A106A95BDD940 /* Extensions.swift in Sources */,
 				8A7D4F74F116AA88F63F7461 /* FileSnapshot.swift in Sources */,
