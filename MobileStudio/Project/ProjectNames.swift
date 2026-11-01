@@ -63,9 +63,12 @@ enum FriendlyName {
 struct AppScreen: Identifiable, Equatable, Sendable {
     let name: String
     let className: String
-    /// Relative to the project folder.
+    /// Relative to the project folder. Empty for a planned screen.
     let file: String
+    /// Set for a screen that is in PLAN.md but not in the code yet; the text is what the plan says it is for.
+    var purpose: String?
     var id: String { className }
+    var isPlanned: Bool { purpose != nil }
 }
 
 /// A Dart file of the project, read once and shared by `ScreenFinder` and `FlowFinder`.

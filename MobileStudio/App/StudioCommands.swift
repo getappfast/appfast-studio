@@ -14,6 +14,9 @@ struct StudioCommands: Commands {
 
     var body: some Commands {
         CommandGroup(after: .newItem) {
+            Button("New Flutter Project…", action: workspace.newProject)
+                .keyboardShortcut("n")
+                .disabled(!state.canCreateProject)
             Button("Open Flutter Project…", action: workspace.chooseProject)
                 .keyboardShortcut("o")
             Button("New Chat") { workspace.chat.reset() }

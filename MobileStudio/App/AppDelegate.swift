@@ -46,6 +46,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 ///     MOBILE_STUDIO_SNAPSHOT_CHAT="message"     with RUN: send this chat message once the app runs
 ///     MOBILE_STUDIO_SNAPSHOT_UNDO_AFTER=20      then undo its edits this many seconds after the answer
 ///     MOBILE_STUDIO_SNAPSHOT_CHOOSE=1           or pick the recommended options of the answer's choice card
+///     MOBILE_STUDIO_SNAPSHOT_SHEET=0|1|2        also open the New Project sheet on that step and write -sheet.png
+///     MOBILE_STUDIO_SNAPSHOT_KICKOFF=1          start the planning chat and ask for the plan (with a stand-in CLI)
 ///     MOBILE_STUDIO_SNAPSHOT_NEW_PROJECT=/tmp/x  create a project in that folder, run flutter analyze + test, log, quit
 ///     MOBILE_STUDIO_CLAUDE_CLI=/path/to/stub    use this claude executable instead of the installed one
 ///
@@ -85,6 +87,26 @@ enum Snapshot {
                 }
             }
         }
+        if env["MOBILE_STUDIO_SNAPSHOT_KICKOFF"] == "1" {
+            // The planning chat end to end: start it, answer once, ask for the plan. Needs a stand-in claude CLI.
+            Task { @MainActor in
+                guard let workspace else { return }
+                for _ in 0..<60 where workspace.chatBlocker != nil { try? await Task.sleep(for: .seconds(1)) }
+                workspace.startKickoff()
+                for step in 0..<2 {
+                    try? await Task.sleep(for: .seconds(1))
+                    for _ in 0..<60 where workspace.chat.isSending { try? await Task.sleep(for: .seconds(1)) }
+                    guard step == 0, let reply = workspace.chat.messages.last else {
+                        if env["MOBILE_STUDIO_SNAPSHOT_BUILD_MILESTONE"] == "1" {
+                            try? await Task.sleep(for: .seconds(2))
+                            workspace.buildMilestone(0)
+                        }
+                        return
+                    }
+                    workspace.choose([ProductPlan.writeLabel], in: reply)
+                }
+            }
+        }
         if env["MOBILE_STUDIO_SNAPSHOT_RUN"] == "1" {
             Task { @MainActor in
                 try? await Task.sleep(for: .seconds(3))
@@ -102,6 +124,13 @@ enum Snapshot {
                     elapsed = time
                     capture(title: "main-\(Int(time))", to: base)
                 }
+            }
+            if env["MOBILE_STUDIO_SNAPSHOT_SHEET"] != nil {
+                workspace?.newProject()
+                try? await Task.sleep(for: .seconds(2))
+                captureSheet(to: base)
+                workspace?.closeNewProjectSheet()
+                try? await Task.sleep(for: .milliseconds(500))
             }
             if settings {
                 NotificationCenter.default.post(name: openSettingsNotification, object: nil)
@@ -221,6 +250,15 @@ enum Snapshot {
         if ProcessInfo.processInfo.environment["MOBILE_STUDIO_SNAPSHOT_TREE"] == "1" {
             try? tree(root, root: root, depth: 0).write(toFile: "\(base)-\(title).txt", atomically: true, encoding: .utf8)
         }
+    }
+
+    /// The sheet is its own window, so `capture` doesn't include it.
+    @MainActor
+    private static func captureSheet(to base: String) {
+        guard let root = NSApp.windows.first(where: { $0.isSheet && $0.isVisible })?.contentView?.superview,
+              let rep = root.bitmapImageRepForCachingDisplay(in: root.bounds) else { return }
+        root.cacheDisplay(in: root.bounds, to: rep)
+        try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: "\(base)-sheet.png"))
     }
 
     @MainActor

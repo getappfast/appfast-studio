@@ -32,6 +32,7 @@ enum FlutterCreateCommand {
         if let description = request.description.trimmingCharacters(in: .whitespacesAndNewlines).nonEmpty {
             arguments += ["--description", description]
         }
-        return arguments + ["--empty", request.packageName]
+        // The packages step downloads, so an offline create fails there with a clear message, not here.
+        return arguments + ["--no-pub", "--empty", request.packageName]
     }
 }

@@ -115,6 +115,40 @@ plan is `docs/plans/new-project.md`. To check the starter really builds (needs F
 build with `MOBILE_STUDIO_SNAPSHOT_NEW_PROJECT=/tmp/x`: it creates a project, runs `flutter analyze` and `flutter
 test`, and logs to `snapshot.log`.
 
+The sheet (`Views/NewProjectSheet.swift`) is opened by `Workspace.newProject()` (File ▸ New Flutter Project… ⌘N, the
+checklist's **New…**, or the empty canvas) and gated by `createProjectBlocker` (Flutter must be found; `Workspace.dart`
+owns the Dart SDK model). When the create finishes, `finishNewProject(path:)` saves a `NewProjectRecord` (the request
+and the kickoff state, per project folder), opens the folder and runs it once the open project has settled
+(`runAfterOpen`, consumed in `projectStateChanged`).
+
+The sheet's last step shows `ToolchainCheck` warnings (Xcode not selected, CocoaPods missing); they never block Create.
+An answer may carry several `choices` blocks (`ChoiceSet.extractAll`): the card shows every question and sends them back
+together (`ChoiceSet.reply(answering:)`), which is how the kickoff asks up to three per turn.
+
+Rules worth knowing: `flutter create` runs with `--no-pub`, so only the packages step needs the network. App IDs can't
+contain underscores (Apple). A create that fails or is stopped keeps its request, so reopening the sheet offers Retry or
+Start Over (`NewProjectModel.isResumable`). Auto-run after a create goes through `startPendingRun()`, which waits for the
+previous folder's run to stop and for `projectPathChanged` to have run, because SwiftUI doesn't order the two `onChange`
+events. `ProcessRunner` stops a cancelled child's whole process tree. The commit is unsigned and skips hooks; with no
+git name set it is skipped and the note is kept in the record and shown as a project issue.
+
+**Milestone tracker.** The plan is also saved as JSON (`ProductPlanStore`) so it outlives a new chat; the sidebar's
+**Plan** section (`PlanSection`) shows its milestones through `MilestoneProgress` (done / next / later). **Build** sends
+a build-mode turn tagged with the milestone (`ChatMessage.milestone`); when that answer changes files without an error
+the milestone is recorded as built in `NewProjectRecord.doneMilestones`, and undoing the answer unmarks it. Right-click
+a row to mark one built or not built by hand.
+
+**Kickoff.** A project with a record shows a card in the chat (`Workspace.isKickoffOffered`); nothing is spent until
+**Start Planning**. `ChatMode.kickoff` swaps `ChatModel`'s call for `kickoffCall`: Sonnet, $1, tools Read/Glob/Grep
+and no Bash (`ClaudeAgentCall.tools`; Bash is only offered when `allowedCommands` is non-empty), one question per
+turn as a `choices` block. The prompt and `Workspace.choose` share the labels in `ProductPlan` (`writeLabel`,
+`buildLabel`, …): picking *Write the plan* sends a plan turn (`ChatModel.Turn.plan`: Opus, $3, `--json-schema`
+from `ProductPlan.schema`), and the app, never Claude, writes `PLAN.md` with `PlanRenderer` before the after-snapshot,
+so it is an undoable change. *Build milestone 1* switches back to `.build`. `AppFlow.adding(_:)` draws the plan's
+unbuilt screens as dashed cards. To check the kickoff without spending anything, run a Debug build with a stand-in
+`MOBILE_STUDIO_CLAUDE_CLI` and `MOBILE_STUDIO_SNAPSHOT_KICKOFF=1` against a project made by
+`MOBILE_STUDIO_SNAPSHOT_NEW_PROJECT` (`MOBILE_STUDIO_SNAPSHOT_SHEET=0|1|2` snapshots the sheet).
+
 ## Running Claude safely
 
 Mobile Studio runs an agent with edit rights on the user's code, so these are hard rules:

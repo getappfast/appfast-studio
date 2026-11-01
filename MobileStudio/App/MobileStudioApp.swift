@@ -5,7 +5,6 @@ struct MobileStudioApp: App {
     @NSApplicationDelegateAdaptor private var appDelegate: AppDelegate
     @State private var studio: StudioModel
     @State private var workspace: Workspace
-    @State private var dart = DartSDKModel()
     @StateObject private var menuBridge: MenuBridge
 
     init() {
@@ -31,7 +30,7 @@ struct MobileStudioApp: App {
         .commands { StudioCommands(workspace: workspace, bridge: menuBridge) }
 
         Settings {
-            SettingsView(studio: studio, dart: dart)
+            SettingsView(studio: studio, dart: workspace.dart)
         }
     }
 }

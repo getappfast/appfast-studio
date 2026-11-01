@@ -99,8 +99,12 @@ enum AppID {
             return [.error(.appID, "An app ID needs at least two parts, like com.yourname.appname.")]
         }
         for segment in segments {
-            if segment.wholeMatch(of: /[a-zA-Z][a-zA-Z0-9_]*/) == nil {
-                return [.error(.appID, "Each part of the app ID starts with a letter and uses only letters, digits and underscores.")]
+            // The preview runs on iOS, and Apple bundle IDs allow letters, digits, hyphens and dots only.
+            if segment.contains("_") {
+                return [.error(.appID, "Apple app IDs can't contain underscores. Use letters and digits, like com.yourname.watertracker.")]
+            }
+            if segment.wholeMatch(of: /[a-zA-Z][a-zA-Z0-9]*/) == nil {
+                return [.error(.appID, "Each part of the app ID starts with a letter and uses only letters and digits.")]
             }
             if javaKeywords.contains(segment.lowercased()) {
                 return [.error(.appID, "\"\(segment)\" can't be part of an Android app ID. Try another word.")]

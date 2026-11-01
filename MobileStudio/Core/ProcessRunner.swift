@@ -11,7 +11,7 @@ struct ProcessOutput: Sendable {
     }
 }
 
-/// Runs a child process off the main thread with a timeout. Used for every claude CLI call.
+/// Runs a child process off the main thread with a timeout. Used for the claude CLI, git and Flutter's setup commands.
 struct ProcessRunner: Sendable {
     var timeout: TimeInterval
     /// Added on top of the app's environment, e.g. CLAUDE_CONFIG_DIR to select an account.
@@ -104,7 +104,24 @@ private final class ProcessHandle: @unchecked Sendable {
     func terminate() {
         lock.withLock {
             cancelled = true
-            if process?.isRunning == true { process?.terminate() }
+            guard let process, process.isRunning else { return }
+            // `flutter pub` runs `dart pub` as a child; ending only the shell would leave it holding the pipes open.
+            for child in Self.descendants(of: process.processIdentifier) { kill(child, SIGTERM) }
+            process.terminate()
         }
+    }
+
+    private static func descendants(of pid: Int32) -> [Int32] {
+        let lookup = Process()
+        lookup.executableURL = URL(fileURLWithPath: "/usr/bin/pgrep")
+        lookup.arguments = ["-P", String(pid)]
+        let pipe = Pipe()
+        lookup.standardOutput = pipe
+        lookup.standardError = FileHandle.nullDevice
+        guard (try? lookup.run()) != nil else { return [] }
+        let data = (try? pipe.fileHandleForReading.readToEnd()) ?? Data()
+        lookup.waitUntilExit()
+        let children = String(decoding: data, as: UTF8.self).split(whereSeparator: \.isNewline).compactMap { Int32($0) }
+        return children + children.flatMap { descendants(of: $0) }
     }
 }

@@ -45,11 +45,11 @@ struct PackageNameTests {
 struct AppIDTests {
     @Test func acceptsReverseDNS() {
         #expect(AppID.issues(in: "com.leo.watertracker").isEmpty)
-        #expect(AppID.issues(in: "dev.leo.water_tracker2").isEmpty)
+        #expect(AppID.issues(in: "dev.leo.watertracker2").isEmpty)
     }
 
     @Test func rejectsMalformedIDs() {
-        for id in ["watertracker", "com..app", "com.1app", "com.leo.water-tracker", ".com.app", "com.leo.", "com.new.app", "com.leo.Class"] {
+        for id in ["watertracker", "com..app", "com.1app", "com.leo.water-tracker", "com.leo.water_tracker", ".com.app", "com.leo.", "com.new.app", "com.leo.Class"] {
             #expect(AppID.issues(in: id).first?.severity == .error, "\(id)")
         }
     }
@@ -60,7 +60,7 @@ struct AppIDTests {
         #expect(issues.first?.severity == .warning)
     }
 
-    @Test func standardIDMatchesWhatFlutterGenerates() {
+    @Test func standardIDMatchesWhatFlutterGeneratesForAndroid() {
         #expect(AppID.standard(forPackage: "water_tracker") == "com.example.water_tracker")
     }
 }
@@ -139,7 +139,7 @@ struct FlutterCreateCommandTests {
     @Test func buildsTheArguments() {
         #expect(FlutterCreateCommand.arguments(for: request()) == [
             "create", "--project-name", "water_tracker", "--org", "com.example", "--platforms", "ios,android",
-            "--empty", "water_tracker",
+            "--no-pub", "--empty", "water_tracker",
         ])
     }
 
@@ -157,7 +157,8 @@ struct FlutterCreateCommandTests {
     }
 
     @Test func idEndingInThePackageNameUsesOrg() {
-        let req = request(appID: "com.leo.water_tracker")
+        var req = request(appID: "com.leo.water")
+        req.packageName = "water"
         #expect(FlutterCreateCommand.appIDPlan(for: req) == .org("com.leo"))
         #expect(FlutterCreateCommand.arguments(for: req)[4] == "com.leo")
     }

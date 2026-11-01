@@ -17,6 +17,17 @@ struct ChatPanel: View {
             Divider()
             transcript
             Divider()
+            if workspace.canWritePlan {
+                HStack {
+                    Text("Enough questions?").foregroundStyle(.secondary)
+                    Spacer()
+                    Button("Write the Plan", systemImage: "doc.text", action: workspace.writePlan)
+                        .controlSize(.small)
+                        .help("Claude writes PLAN.md from what you've said so far")
+                }
+                .font(.callout)
+                .padding(.horizontal, 16).padding(.vertical, 8)
+            }
             composer
         }
         .background(Color(nsColor: .windowBackgroundColor))
@@ -59,6 +70,7 @@ struct ChatPanel: View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 22) {
+                    if workspace.isKickoffOffered { KickoffCard(workspace: workspace) }
                     if chat.messages.isEmpty { emptyState }
                     ForEach(chat.messages) { message in
                         MessageRow(message: message, workspace: workspace).id(message.id)
@@ -92,6 +104,11 @@ struct ChatPanel: View {
                     SettingsLink { Text("Open Settings…") }
                 }
             } else {
+                if workspace.canOfferPlanning, !workspace.isKickoffOffered {
+                    Button("Plan This App with Claude", systemImage: "list.clipboard", action: workspace.startKickoff)
+                        .buttonStyle(.borderedProminent)
+                        .help("Claude asks a few questions, then writes PLAN.md")
+                }
                 Text("Claude works in your project folder, and you'll see the result here once the app reloads.")
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -300,16 +317,17 @@ private struct MessageRow: View {
                 .background(Color.accentColor.opacity(0.16), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
             }
         case .assistant:
-            let extracted = ChoiceSet.extract(from: message.text)
+            let extracted = ChoiceSet.extractAll(from: message.text)
             let parts = AnswerParts.split(extracted.text)
             VStack(alignment: .leading, spacing: 10) {
                 if message.pending { working }
                 if !extracted.text.isEmpty { MarkdownView(text: parts.outcome) }
+                if let plan = message.plan { PlanCard(plan: plan, folder: workspace.project.readyFolder) }
                 if !message.files.isEmpty { changes }
-                if let choices = extracted.choices, !message.pending {
-                    ChoiceCard(choices: choices, chosen: message.chosen, isActive: isLatest && message.chosen == nil,
+                if !extracted.choices.isEmpty, !message.pending {
+                    ChoiceCard(questions: extracted.choices, chosen: message.chosen, isActive: isLatest && message.chosen == nil,
                                canSend: workspace.chatBlocker == nil && !workspace.chat.isSending,
-                               onChoose: { workspace.choose($0, in: message) },
+                               onChoose: { workspace.choose(answers: $0, in: message) },
                                onOther: workspace.answerInOwnWords)
                 }
                 if let error = message.error {
@@ -396,29 +414,34 @@ private extension Array {
 /// The options at the end of an answer, to pick instead of typing a reply. Checkboxes when several can be done
 /// together, radio buttons when it's one or the other. The recommended option starts selected.
 private struct ChoiceCard: View {
-    let choices: ChoiceSet
+    let questions: [ChoiceSet]
     /// What was picked earlier; the card then shows it and can't be used again.
     let chosen: [String]?
     let isActive: Bool
     let canSend: Bool
-    let onChoose: ([String]) -> Void
+    let onChoose: ([(question: String?, labels: [String])]) -> Void
     let onOther: () -> Void
 
-    @State private var selection: Set<String> = []
+    /// The picks of each question, by its position.
+    @State private var selections: [Int: Set<String>] = [:]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(choices.question ?? "What would you like to do?").font(.headline)
-            VStack(alignment: .leading, spacing: 2) {
-                ForEach(choices.options, id: \.self) { option in row(option) }
+        VStack(alignment: .leading, spacing: 14) {
+            ForEach(Array(questions.enumerated()), id: \.offset) { index, choices in
+                VStack(alignment: .leading, spacing: 10) {
+                    Text(choices.question ?? "What would you like to do?").font(.headline)
+                    VStack(alignment: .leading, spacing: 2) {
+                        ForEach(choices.options, id: \.self) { option in row(option, in: index) }
+                    }
+                }
             }
             if isActive {
                 HStack {
                     Button("Something Else…", action: onOther).buttonStyle(.borderless)
                     Spacer()
-                    Button(sendTitle) { onChoose(ordered) }
+                    Button(sendTitle) { onChoose(answers) }
                         .buttonStyle(.borderedProminent)
-                        .disabled(selection.isEmpty || !canSend)
+                        .disabled(!isComplete || !canSend)
                 }
                 .controlSize(.regular)
             } else if let chosen {
@@ -431,34 +454,54 @@ private struct ChoiceCard: View {
         .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous)
             .strokeBorder(isActive ? Color.accentColor.opacity(0.5) : Color(nsColor: .separatorColor)))
         .onAppear {
-            if selection.isEmpty { selection = Set(choices.options.filter { $0.recommended == true }.map(\.label)) }
+            guard selections.isEmpty else { return }
+            for (index, choices) in questions.enumerated() {
+                selections[index] = Set(choices.options.filter { $0.recommended == true }.map(\.label))
+            }
+        }
+    }
+
+    private var picked: Int { selections.values.reduce(0) { $0 + $1.count } }
+
+    /// One question needs a pick; with several, a multiple-choice question may be left empty.
+    private var isComplete: Bool {
+        questions.indices.allSatisfy { index in
+            !(selections[index] ?? []).isEmpty || (questions.count > 1 && questions[index].allowsMultiple)
         }
     }
 
     private var sendTitle: String {
-        guard choices.allowsMultiple, selection.count > 1 else { return "Do This" }
-        return "Do These (\(selection.count))"
+        if questions.count > 1 { return "Send Answers" }
+        return questions[0].allowsMultiple && picked > 1 ? "Do These (\(picked))" : "Do This"
     }
 
     /// The picks in the order Claude listed them, which is usually the order to do them in.
-    private var ordered: [String] { choices.options.map(\.label).filter(selection.contains) }
-
-    private func isSelected(_ option: ChoiceSet.Option) -> Bool {
-        chosen.map { $0.contains(option.label) } ?? selection.contains(option.label)
+    private var answers: [(question: String?, labels: [String])] {
+        questions.enumerated().map { index, choices in
+            (choices.question, choices.options.map(\.label).filter { (selections[index] ?? []).contains($0) })
+        }
     }
 
-    private func row(_ option: ChoiceSet.Option) -> some View {
+    private func isSelected(_ option: ChoiceSet.Option, in index: Int) -> Bool {
+        chosen.map { $0.contains(option.label) } ?? (selections[index] ?? []).contains(option.label)
+    }
+
+    private func row(_ option: ChoiceSet.Option, in index: Int) -> some View {
         Button {
             guard isActive else { return }
-            if choices.allowsMultiple {
-                if selection.contains(option.label) { selection.remove(option.label) } else { selection.insert(option.label) }
+            if questions[index].allowsMultiple {
+                if selections[index, default: []].contains(option.label) {
+                    selections[index, default: []].remove(option.label)
+                } else {
+                    selections[index, default: []].insert(option.label)
+                }
             } else {
-                selection = [option.label]
+                selections[index] = [option.label]
             }
         } label: {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Image(systemName: symbol(for: option))
-                    .foregroundStyle(isSelected(option) ? Color.accentColor : .secondary)
+                Image(systemName: symbol(for: option, in: index))
+                    .foregroundStyle(isSelected(option, in: index) ? Color.accentColor : .secondary)
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 6) {
                         Text(option.label).foregroundStyle(.primary)
@@ -478,13 +521,13 @@ private struct ChoiceCard: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .opacity(isActive || isSelected(option) ? 1 : 0.55)
-        .accessibilityAddTraits(isSelected(option) ? .isSelected : [])
+        .opacity(isActive || isSelected(option, in: index) ? 1 : 0.55)
+        .accessibilityAddTraits(isSelected(option, in: index) ? .isSelected : [])
     }
 
-    private func symbol(for option: ChoiceSet.Option) -> String {
-        let on = isSelected(option)
-        return choices.allowsMultiple ? (on ? "checkmark.square.fill" : "square") : (on ? "largecircle.fill.circle" : "circle")
+    private func symbol(for option: ChoiceSet.Option, in index: Int) -> String {
+        let on = isSelected(option, in: index)
+        return questions[index].allowsMultiple ? (on ? "checkmark.square.fill" : "square") : (on ? "largecircle.fill.circle" : "circle")
     }
 }
 
@@ -548,5 +591,61 @@ private struct CodeBlock: View {
         }
         .background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(Color(nsColor: .separatorColor)))
+    }
+}
+
+/// Offered once, right after a new project opens. Nothing is spent until the user starts it.
+private struct KickoffCard: View {
+    let workspace: Workspace
+
+    private var name: String { workspace.newProjectRecord?.request.displayName ?? "your app" }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label("Plan \(name) with Claude", systemImage: "list.clipboard").font(.headline)
+            Text("A few questions, then a written plan: what the app does, what it needs first and what can wait. About $1–3.")
+                .foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            HStack {
+                Button("Start Planning", action: workspace.startKickoff)
+                    .buttonStyle(.borderedProminent)
+                    .disabled(workspace.chatBlocker != nil)
+                Button("Skip", action: workspace.skipKickoff)
+            }
+            if let blocker = workspace.chatBlocker {
+                Text(blocker).font(.caption).foregroundStyle(.secondary)
+            }
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.quaternary.opacity(0.6), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+    }
+}
+
+/// The written plan in short, with PLAN.md one click away.
+private struct PlanCard: View {
+    let plan: ProductPlan
+    let folder: String?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Label("Product plan", systemImage: "doc.text").font(.headline)
+            Text(plan.summary).fixedSize(horizontal: false, vertical: true)
+            Text(counts).font(.caption).foregroundStyle(.secondary)
+            if let folder {
+                Button("Open \(ProductPlan.fileName)") {
+                    NSWorkspace.shared.open(URL(fileURLWithPath: folder).appendingPathComponent(ProductPlan.fileName))
+                }
+                .controlSize(.small)
+            }
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.quaternary.opacity(0.6), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+
+    private var counts: String {
+        func n(_ count: Int, _ noun: String) -> String { "\(count) \(noun)" }
+        return [n(plan.mustHave.count, "must-have"), n(plan.screens.count, plan.screens.count == 1 ? "screen" : "screens"),
+                n(plan.milestones.count, plan.milestones.count == 1 ? "milestone" : "milestones")].joined(separator: " · ")
     }
 }

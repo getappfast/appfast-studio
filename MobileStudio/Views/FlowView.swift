@@ -16,7 +16,7 @@ struct FlowCanvas: View {
 
     @ViewBuilder
     private var content: some View {
-        if let flow = workspace.flow, flow.folder == workspace.project.readyFolder, !flow.screens.isEmpty {
+        if let flow = workspace.flowWithPlan, flow.folder == workspace.project.readyFolder, !flow.screens.isEmpty {
             FlowMap(workspace: workspace, flow: flow, leadingInset: leadingInset)
         } else {
             message.padding(.leading, leadingInset)
@@ -120,7 +120,7 @@ private struct FlowMap: View {
             }
         }
         .overlay(alignment: .bottomLeading) {
-            FlowLegend(hasLinks: !flow.links.isEmpty).padding(12).padding(.leading, leadingInset)
+            FlowLegend(hasLinks: !flow.links.isEmpty, hasPlanned: flow.screens.contains(where: \.isPlanned)).padding(12).padding(.leading, leadingInset)
         }
     }
 
@@ -132,7 +132,8 @@ private struct FlowMap: View {
         .onHover { inside in
             if inside { hovered = screen.className } else if hovered == screen.className { hovered = nil }
         }
-        .help("Ask Claude to change the \(screen.name) screen (\(screen.file))")
+        .help(screen.isPlanned ? "Planned, not built yet. Ask Claude to build the \(screen.name) screen."
+                               : "Ask Claude to change the \(screen.name) screen (\(screen.file))")
         .contextMenu { ScreenMenu(workspace: workspace, screen: screen) }
         .accessibilityLabel(accessibilityLabel(screen))
         .accessibilityHint("Starts a chat message about this screen.")
@@ -141,7 +142,7 @@ private struct FlowMap: View {
     private func accessibilityLabel(_ screen: AppScreen) -> String {
         let names = Dictionary(flow.screens.map { ($0.className, $0.name) }, uniquingKeysWith: { first, _ in first })
         let leads = flow.links.filter { $0.from == screen.className }.compactMap { names[$0.to] }
-        var label = "\(screen.name) screen"
+        var label = screen.isPlanned ? "\(screen.name) screen, planned and not built yet" : "\(screen.name) screen"
         if screen.className == flow.start { label += ", where the app starts" }
         if !leads.isEmpty { label += ". Leads to \(leads.formatted(.list(type: .and)))" }
         return label
@@ -171,7 +172,7 @@ private struct ScreenCard: View {
                 .font(.headline)
                 .multilineTextAlignment(.center)
                 .lineLimit(3)
-            Text((screen.file as NSString).lastPathComponent)
+            Text(screen.isPlanned ? "Planned" : (screen.file as NSString).lastPathComponent)
                 .font(.caption2).foregroundStyle(.secondary)
                 .lineLimit(1).truncationMode(.middle)
             Spacer(minLength: 0)
@@ -179,7 +180,8 @@ private struct ScreenCard: View {
         .padding(12)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(.background, in: shape)
-        .overlay(shape.strokeBorder(isHighlighted ? Color.accentColor : Color(nsColor: .separatorColor), lineWidth: isHighlighted ? 2 : 1))
+        .overlay(shape.strokeBorder(isHighlighted ? Color.accentColor : Color(nsColor: screen.isPlanned ? .tertiaryLabelColor : .separatorColor),
+                                    style: StrokeStyle(lineWidth: isHighlighted ? 2 : 1, dash: screen.isPlanned ? [6, 4] : [])))
         .contentShape(shape)
         .shadow(color: .black.opacity(0.12), radius: 6, y: 2)
     }
@@ -281,6 +283,7 @@ private struct FlowArrows: View {
 /// What the line styles mean, and what clicking does.
 private struct FlowLegend: View {
     let hasLinks: Bool
+    var hasPlanned = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -298,6 +301,12 @@ private struct FlowLegend: View {
                 }
             } else {
                 Text("No links between screens were found in the code.")
+            }
+            if hasPlanned {
+                HStack(spacing: 8) {
+                    RoundedRectangle(cornerRadius: 3).strokeBorder(.secondary, style: StrokeStyle(lineWidth: 1.5, dash: [4, 3])).frame(width: 28, height: 10)
+                    Text("Planned, not built yet")
+                }
             }
             Text("Click a screen to ask Claude about it.").foregroundStyle(.secondary)
         }

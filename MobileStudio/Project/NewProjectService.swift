@@ -115,7 +115,8 @@ struct NewProjectService: Sendable {
             return GitResult(committed: false, note: "Set your name in git to save the first version: git config --global user.name \"Your Name\" and git config --global user.email you@example.com")
         }
         let title = request.displayName.trimmingCharacters(in: .whitespacesAndNewlines)
-        _ = try await runGit(["commit", "-m", "Create \(title) with Mobile Studio"], in: folder)
+        // Unsigned and without hooks: a signing prompt or a slow hook would hang a step the user can't see into.
+        _ = try await runGit(["-c", "commit.gpgsign=false", "commit", "--no-verify", "-m", "Create \(title) with Mobile Studio"], in: folder)
         return GitResult(committed: true, note: nil)
     }
 

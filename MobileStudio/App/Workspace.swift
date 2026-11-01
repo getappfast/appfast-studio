@@ -14,6 +14,8 @@ final class Workspace {
     let fix = FixModel()
     let chat = ChatModel()
     let pick = PickModel()
+    let dart = DartSDKModel()
+    let creator = NewProjectModel()
 
     // MARK: Window
 
@@ -27,6 +29,8 @@ final class Workspace {
     }
     /// The build log drawer under the simulator.
     var isLogVisible = false
+    /// The New Project sheet.
+    var isNewProjectSheetVisible = false
     /// The changed file whose diff is shown in a sheet.
     var diffFile: FileSnapshot.Change?
     /// The failure the user closed the banner of. A newer failure brings the banner back.
@@ -37,6 +41,10 @@ final class Workspace {
     var chatDraft = ""
     /// Bumped to put the cursor in the chat box.
     private(set) var composerFocusRequest = 0
+    /// What was asked for in the New Project sheet, for a project made there. Drives the planning card.
+    private(set) var newProjectRecord: NewProjectRecord?
+    /// The written product plan, kept apart from the chat so the milestone tracker outlives a new chat.
+    private(set) var plan: ProductPlan?
     /// The app's screens and how they lead to each other, found in its source; refreshed when Claude changes files.
     private(set) var flow: AppFlow?
 
@@ -50,6 +58,10 @@ final class Workspace {
     @ObservationIgnored private var fixMessageID: UUID?
     /// Run Again was pressed while the app ran: run once it has stopped.
     @ObservationIgnored private var runAfterStop = false
+    /// A project was just created: run it once it is the open project.
+    @ObservationIgnored private var runAfterOpen: String?
+    /// The folder `projectPathChanged` last cleaned up after, so a pending run never starts before the old one is stopped.
+    @ObservationIgnored private var handledPath: String?
     @ObservationIgnored private var toastTask: Task<Void, Never>?
 
     private enum Keys {
@@ -70,8 +82,11 @@ final class Workspace {
     /// First appearance: find the CLI and accounts, then check the saved project.
     func start() async {
         chat.load(folder: project.readyFolder)
+        loadRecord()
         refreshFlow()
+        async let sdk: Void = dart.refresh()
         await studio.refresh()
+        await sdk
         if runsAutomaticChecks { project.autoVerify(studio.projectVerifier) }
         refreshExistingApp()
     }
@@ -82,6 +97,13 @@ final class Workspace {
     var screens: [AppScreen] {
         guard let flow, flow.folder == project.readyFolder else { return [] }
         return flow.screens
+    }
+
+    /// The flow with the latest plan's unbuilt screens added as dashed cards.
+    var flowWithPlan: AppFlow? {
+        guard let flow else { return nil }
+        guard let plan = chat.messages.last(where: { $0.plan != nil && $0.undone != true })?.plan else { return flow }
+        return flow.adding(plan)
     }
 
     var flutterProject: FlutterProject? {
@@ -117,6 +139,23 @@ final class Workspace {
         if chat.isSending { return "Wait for Claude to finish answering in the chat." }
         return nil
     }
+
+    /// Why a new project can't be started, nil when it can. Claude isn't needed until the planning chat.
+    var createProjectBlocker: String? {
+        switch dart.state {
+        case .checking: "Looking for Flutter…"
+        case .notInstalled, .failed: "Install Flutter first, then try again."
+        case .installed: nil
+        }
+    }
+
+    var canCreateProject: Bool { createProjectBlocker == nil && !creator.isWorking }
+
+    /// The kickoff card is showing: a new project whose planning chat was neither started nor skipped.
+    var isKickoffOffered: Bool { newProjectRecord?.kickoff == .offered && chat.mode == .build && chat.messages.isEmpty }
+
+    /// "Plan this app" is offered in the empty chat after Skip, and for a project that has no plan yet.
+    var canOfferPlanning: Bool { newProjectRecord != nil && newProjectRecord?.kickoff != .planned && chat.messages.isEmpty }
 
     /// Why a chat message can't be sent, nil when it can.
     var chatBlocker: String? {
@@ -154,12 +193,13 @@ final class Workspace {
                   isShowingFlow: canvas == .flow,
                   canStartNewChat: !chat.messages.isEmpty && !chat.isSending,
                   canFix: visibleFailure != nil && fixBlocker == nil,
-                  canCheckProject: project.path != nil && studio.projectVerifier != nil)
+                  canCheckProject: project.path != nil && studio.projectVerifier != nil,
+                  canCreateProject: canCreateProject && !isNewProjectSheetVisible)
     }
 
     struct MenuState: Equatable {
         var canRun, canStop, canHotReload, canPick, isPicking, isChatVisible, isLogVisible, isShowingFlow: Bool
-        var canStartNewChat, canFix, canCheckProject: Bool
+        var canStartNewChat, canFix, canCheckProject, canCreateProject: Bool
     }
 
     /// Everything wrong with the project that the user may need to act on, worst first.
@@ -169,6 +209,9 @@ final class Workspace {
         if let failure = visibleFailure { issues.append(.init(tone: .failure, title: "Run failed", detail: failure.message)) }
         if !flutter.platforms.contains("ios") {
             issues.append(.init(tone: .warning, title: "No ios folder", detail: "It can't run in the iOS Simulator."))
+        }
+        if let record = newProjectRecord, record.changed != true, let note = record.gitNote {
+            issues.append(.init(tone: .warning, title: "The first version wasn't saved", detail: note))
         }
         if !flutter.hasMainDart { issues.append(.init(tone: .warning, title: "lib/main.dart is missing", detail: nil)) }
         if case .done(let verdict) = project.verification {
@@ -209,6 +252,35 @@ final class Workspace {
 
     func chooseProject() {
         if project.choose(), runsAutomaticChecks { project.autoVerify(studio.projectVerifier) }
+    }
+
+    /// Opens the New Project sheet, starting from a clean slate unless a create is still running.
+    func newProject() {
+        guard canCreateProject || creator.isWorking else { return }
+        // A create that stopped partway is resumed, not started over: its folder is still there.
+        if !creator.isWorking, !creator.isResumable { creator.reset() }
+        isNewProjectSheetVisible = true
+    }
+
+    func closeNewProjectSheet() {
+        if creator.isWorking { creator.cancel() }
+        isNewProjectSheetVisible = false
+    }
+
+    /// The created folder becomes the open project, and runs as soon as the simulator allows.
+    func finishNewProject(path: String) {
+        if let request = creator.request {
+            var record = NewProjectRecord(request: request)
+            record.gitNote = creator.committed == false ? creator.note : nil
+            record.save(forFolder: path)
+            if creator.note != nil { show(Toast(tone: .warning, text: "Your first version wasn't saved in git. The project's issues say how to fix it.")) }
+        }
+        UserDefaults.standard.set(creator.request?.parentFolder, forKey: NewProjectDefaults.lastParentKey)
+        runAfterOpen = path
+        isNewProjectSheetVisible = false
+        project.open(path: path)
+        if runsAutomaticChecks { project.autoVerify(studio.projectVerifier) }
+        creator.reset()
     }
 
     func checkProject() {
@@ -268,7 +340,9 @@ final class Workspace {
 
     /// Starts a chat message about a screen, for people who'd rather name it than point at it.
     func mention(_ screen: AppScreen) {
-        chatDraft = "On the \(screen.name) screen, "
+        chatDraft = screen.isPlanned
+            ? "Build the \(screen.name) screen from PLAN.md (\(screen.purpose ?? ""))."
+            : "On the \(screen.name) screen, "
         isChatVisible = true
         composerFocusRequest += 1
     }
@@ -292,6 +366,13 @@ final class Workspace {
             do {
                 restored += try CheckpointStore.restore(id: id, folder: folder)
                 chat.markUndone(answer.id)
+                // With the plan undone, planning can be offered again.
+                if answer.plan != nil, let record = newProjectRecord {
+                    ProductPlanStore.delete(forFolder: folder)
+                    plan = nil
+                    update(record) { $0.kickoff = .started; $0.doneMilestones = nil }
+                }
+                if let index = answer.milestone { setMilestone(index, done: false) }
             } catch {
                 show(Toast(tone: .warning, text: error.localizedDescription))
                 return
@@ -303,11 +384,11 @@ final class Workspace {
     func dismissToast() { toast = nil }
 
     /// Sends a chat message with whatever is picked in the app, as the composer and the choice cards do.
-    func sendChat(_ text: String) {
+    func sendChat(_ text: String, turn: ChatModel.Turn = .normal, milestone: Int? = nil) {
         guard chatBlocker == nil, !chat.isSending, let folder = project.readyFolder, let claude = studio.claude,
               !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
         pick.cancel()
-        chat.send(text, references: pick.picks, folder: folder, claude: claude, profile: studio.profiles.active)
+        chat.send(text, references: pick.picks, turn: turn, milestone: milestone, folder: folder, claude: claude, profile: studio.profiles.active)
         pick.clear()
     }
 
@@ -315,7 +396,107 @@ final class Workspace {
     func choose(_ labels: [String], in message: ChatMessage) {
         guard !labels.isEmpty, chatBlocker == nil, !chat.isSending else { return }
         chat.recordChoice(labels, for: message.id)
+        if chat.mode == .kickoff, let step = kickoffStep(for: labels) {
+            step()
+            return
+        }
         sendChat(ChoiceSet.reply(choosing: labels))
+    }
+
+    /// The user answered every question of an answer: one question is a plain pick, several go back together.
+    func choose(answers: [(question: String?, labels: [String])], in message: ChatMessage) {
+        let labels = answers.flatMap(\.labels)
+        if answers.count == 1 { choose(labels, in: message); return }
+        guard !labels.isEmpty, chatBlocker == nil, !chat.isSending else { return }
+        chat.recordChoice(labels, for: message.id)
+        sendChat(ChoiceSet.reply(answering: answers))
+    }
+
+    /// The planning chat's own buttons do more than send their label.
+    private func kickoffStep(for labels: [String]) -> (() -> Void)? {
+        // Claude may phrase a label a little differently ("Write the plan now"), so match on how it starts.
+        func picked(_ label: String) -> Bool {
+            labels.contains { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased().hasPrefix(label.lowercased()) }
+        }
+        if picked(ProductPlan.writeLabel) { return { [self] in writePlan() } }
+        if picked(ProductPlan.buildLabel) {
+            return { [self] in buildMilestone(0) }
+        }
+        // Nothing to send: the plan stays and the chat waits.
+        if picked(ProductPlan.notNowLabel) { return {} }
+        return nil
+    }
+
+    // MARK: Planning a new app
+
+    /// Starts the planning chat: Claude asks a few questions, then writes PLAN.md.
+    func startKickoff() {
+        guard let record = newProjectRecord, chatBlocker == nil, !chat.isSending else { return }
+        update(record) { $0.kickoff = .started }
+        isChatVisible = true
+        chat.beginKickoff(context: Self.kickoffContext(for: record.request))
+        sendChat("Let's plan \(record.request.displayName). " + (record.request.description.nonEmpty ?? "I haven't described it yet."))
+    }
+
+    /// The planning chat has run long enough to write the plan, whatever Claude's last question offered.
+    var canWritePlan: Bool { chat.mode == .kickoff && chat.messages.count >= 2 && !chat.isSending && chatBlocker == nil }
+
+    /// Asks for the plan: one Opus turn, then PLAN.md.
+    func writePlan() {
+        sendChat(ChoiceSet.reply(choosing: [ProductPlan.writeLabel]), turn: .plan)
+    }
+
+    // MARK: Milestones
+
+    /// The plan the tracker follows, with what is built so far.
+    var milestoneProgress: MilestoneProgress? {
+        plan.map { MilestoneProgress(plan: $0, done: Set(newProjectRecord?.doneMilestones ?? [])) }
+    }
+
+    var buildMilestoneBlocker: String? { chatBlocker }
+
+    /// Asks Claude to build one milestone of the plan, in build mode. It counts as built when the answer changes files.
+    func buildMilestone(_ index: Int) {
+        guard let plan, plan.milestones.indices.contains(index), buildMilestoneBlocker == nil, !chat.isSending else { return }
+        isChatVisible = true
+        chat.switchToBuild()
+        sendChat("Build milestone \(index + 1) from \(ProductPlan.fileName): \(plan.milestones[index].title).", milestone: index)
+    }
+
+    /// For milestones built by hand or outside the app, or to build one again.
+    func setMilestone(_ index: Int, done: Bool) {
+        guard let record = newProjectRecord else { return }
+        update(record) { record in
+            var set = Set(record.doneMilestones ?? [])
+            if done { set.insert(index) } else { set.remove(index) }
+            record.doneMilestones = set.sorted()
+        }
+    }
+
+    func skipKickoff() {
+        guard let record = newProjectRecord else { return }
+        update(record) { $0.kickoff = .skipped }
+    }
+
+    private static func kickoffContext(for request: NewProjectRequest) -> String {
+        var lines = ["Name: \(request.displayName)"]
+        if let description = request.description.nonEmpty { lines.append("Description: \(description)") }
+        lines.append("Platforms: " + ProjectPlatform.allCases.filter { request.platforms.contains($0) }.map(\.title).joined(separator: ", "))
+        return lines.joined(separator: "\n")
+    }
+
+    private func update(_ record: NewProjectRecord, _ change: (inout NewProjectRecord) -> Void) {
+        guard let folder = project.readyFolder else { return }
+        var record = record
+        change(&record)
+        record.save(forFolder: folder)
+        newProjectRecord = record
+    }
+
+    private func loadRecord() {
+        newProjectRecord = project.readyFolder.flatMap(NewProjectRecord.load(forFolder:))
+        plan = project.readyFolder.flatMap(ProductPlanStore.load(forFolder:))
+            ?? chat.messages.last(where: { $0.plan != nil && $0.undone != true })?.plan
     }
 
     /// Starts typing a different answer to an answer's options.
@@ -335,18 +516,48 @@ final class Workspace {
         pick.clear()
         diffFile = nil
         chat.load(folder: project.readyFolder)
+        handledPath = project.path
+        startPendingRun()
     }
 
     /// The folder became, or stopped being, a usable Flutter project.
     func projectStateChanged() {
         chat.load(folder: project.readyFolder)
+        loadRecord()
         refreshExistingApp()
         refreshFlow()
+        startPendingRun()
+    }
+
+    /// Runs the project that was just created, once the previous folder's run has stopped. Called from every
+    /// event that can be the last to arrive, because their order isn't guaranteed.
+    private func startPendingRun() {
+        guard let path = runAfterOpen, path == project.readyFolder, handledPath == path, !run.phase.isActive else { return }
+        runAfterOpen = nil
+        runApp()
+    }
+
+    /// The create pipeline finished: open the project it made.
+    func creatorPhaseChanged() {
+        if case .done(let path) = creator.phase { finishNewProject(path: path) }
     }
 
     /// A chat answer finished: show its edits in the running app.
     func chatSendingChanged() {
         guard !chat.isSending, let reply = chat.messages.last, reply.role == .assistant else { return }
+        if let written = reply.plan, let record = newProjectRecord, let folder = project.readyFolder {
+            ProductPlanStore.save(written, forFolder: folder)
+            plan = written
+            update(record) { $0.kickoff = .planned; $0.doneMilestones = [] }
+        }
+        if let index = reply.milestone, reply.error == nil, reply.files.contains(where: { $0.path != ProductPlan.fileName }) {
+            setMilestone(index, done: true)
+            let next = milestoneProgress?.next.flatMap { plan?.milestones.indices.contains($0) == true ? plan?.milestones[$0].title : nil }
+            show(Toast(tone: .success, text: next.map { "Milestone \(index + 1) built. Next: \($0)" } ?? "Every milestone is built"))
+        }
+        if reply.files.contains(where: { $0.path != ProductPlan.fileName }), let record = newProjectRecord, record.changed != true {
+            update(record) { $0.changed = true }
+        }
         applyEdits(reply.files, done: "Updated")
     }
 
@@ -377,6 +588,7 @@ final class Workspace {
         // Select mode only exists while the app runs.
         if run.phase != .running { pick.cancel() }
         guard !run.phase.isActive else { return }
+        startPendingRun()
         if runAfterStop {
             runAfterStop = false
             runApp()
@@ -416,6 +628,11 @@ final class Workspace {
     /// and an offer to run again for packages and native settings, which only a new build picks up.
     private func applyEdits(_ files: [FileSnapshot.Change], done: String) {
         guard !files.isEmpty else { return }
+        // PLAN.md isn't part of the app, so it needs no reload.
+        guard files.contains(where: { $0.path != ProductPlan.fileName }) else {
+            if done == "Undone" { show(Toast(tone: .success, text: "Undone")) }
+            return
+        }
         if files.contains(where: { $0.path.hasPrefix("lib/") }) { refreshFlow() }
         guard run.phase == .running else {
             if done == "Undone" { show(Toast(tone: .success, text: "Undone")) }

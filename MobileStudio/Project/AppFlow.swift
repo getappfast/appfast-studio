@@ -69,6 +69,40 @@ struct AppFlow: Equatable, Sendable {
     }
 }
 
+extension AppFlow {
+    /// The flow with the plan's screens added as planned cards. A planned screen that matches a real one by name
+    /// ("Home" and `HomeScreen`) is the real one, and the plan's links to and from it are kept.
+    func adding(_ plan: ProductPlan) -> AppFlow {
+        // "Home screen" in the plan is the `HomeScreen` in the code.
+        func key(_ name: String) -> String {
+            var key = name.lowercased().filter { $0.isLetter || $0.isNumber }
+            for suffix in ["screen", "page", "view"] where key.hasSuffix(suffix) && key.count > suffix.count {
+                key = String(key.dropLast(suffix.count))
+                break
+            }
+            return key
+        }
+        var classByKey = Dictionary(screens.map { (key($0.name), $0.className) }, uniquingKeysWith: { first, _ in first })
+        var added: [AppScreen] = []
+        for planned in plan.screens where classByKey[key(planned.name)] == nil && !key(planned.name).isEmpty {
+            let className = "planned:" + key(planned.name)
+            classByKey[key(planned.name)] = className
+            added.append(AppScreen(name: planned.name, className: className, file: "", purpose: planned.purpose))
+        }
+        var links = self.links
+        var seen = Set(links.map { [$0.from, $0.to] })
+        for planned in plan.screens {
+            guard let from = classByKey[key(planned.name)] else { continue }
+            for target in planned.leadsTo {
+                guard let to = classByKey[key(target)], to != from, from.hasPrefix("planned:") || to.hasPrefix("planned:"),
+                      seen.insert([from, to]).inserted else { continue }
+                links.append(Link(from: from, to: to, kind: .opens))
+            }
+        }
+        return AppFlow(folder: folder, screens: screens + added, links: links, start: start)
+    }
+}
+
 /// Finds `AppFlow` in Dart source without running anything. It follows the common ways Flutter apps navigate:
 /// `Navigator.push(… => ProfilePage())`, named routes (`routes:`, `onGenerateRoute`), go_router (`GoRoute`,
 /// `context.go`), auto_route (`ProfileRoute()`), and screens shown inside others, like tabs. Navigation in a

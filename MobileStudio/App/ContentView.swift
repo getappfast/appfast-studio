@@ -25,9 +25,11 @@ struct ContentView: View {
                 // The device stays underneath the map: removing it would stop its display stream.
                 SimulatorCanvas(model: workspace.simulator, isPicking: workspace.pick.isPicking)
                     .opacity(workspace.canvas == .flow ? 0 : 1)
-                    .accessibilityHidden(workspace.canvas == .flow)
+                    .accessibilityHidden(workspace.canvas == .flow || workspace.project.readyFolder == nil)
                     .overlay {
-                        if workspace.canvas == .flow {
+                        if workspace.project.readyFolder == nil {
+                            NoProjectView(workspace: workspace)
+                        } else if workspace.canvas == .flow {
                             FlowCanvas(workspace: workspace, leadingInset: max(sidebarEdge - canvasEdge, 0))
                         }
                     }
@@ -49,6 +51,7 @@ struct ContentView: View {
         .navigationSubtitle(workspace.project.branch ?? "")
         .toolbar { WorkspaceToolbar(workspace: workspace) }
         .onChange(of: workspace.menuState, initial: true) { _, state in menuBridge.state = state }
+        .sheet(isPresented: $workspace.isNewProjectSheetVisible) { NewProjectSheet(workspace: workspace) }
         .sheet(item: $workspace.diffFile) { change in
             if let folder = workspace.project.readyFolder {
                 DiffSheet(folder: folder, change: change) { workspace.diffFile = nil }
@@ -107,8 +110,19 @@ private struct WorkspaceEvents: ViewModifier {
             .onChange(of: workspace.simulator.selected?.udid) { workspace.deviceChanged() }
             .onChange(of: workspace.simulator.selected?.isBooted) { workspace.deviceChanged() }
             .onChange(of: workspace.simulator.phase) { workspace.simulatorPhaseChanged() }
+            .modifier(ActivityEvents(workspace: workspace))
+    }
+}
+
+/// The second half of `WorkspaceEvents`, split so neither chain overwhelms the type checker.
+private struct ActivityEvents: ViewModifier {
+    let workspace: Workspace
+
+    func body(content: Content) -> some View {
+        content
             .onChange(of: workspace.run.phase) { workspace.runPhaseChanged() }
             .onChange(of: workspace.fix.phase) { workspace.fixPhaseChanged() }
+            .onChange(of: workspace.creator.phase) { workspace.creatorPhaseChanged() }
             .onChange(of: workspace.fix.activity) { workspace.fixActivityChanged() }
             .onChange(of: workspace.chat.isSending) { workspace.chatSendingChanged() }
             .onChange(of: workspace.pick.picks.count) { workspace.picksChanged() }

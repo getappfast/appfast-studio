@@ -30,6 +30,8 @@ struct ClaudeAgentCall: Equatable, Sendable {
     static let tools = ["Read", "Glob", "Grep", "Edit", "Write"]
 
     var prompt: String
+    /// What Claude may use besides shell commands. Planning calls pass read-only tools.
+    var tools = ClaudeAgentCall.tools
     var model = "sonnet"
     var session: Session = .none
     var systemPrompt: String?
@@ -57,10 +59,11 @@ struct ClaudeAgentCall: Equatable, Sendable {
         arguments += [
             // %g keeps "5" and "0.5" free of trailing zeros and of the user's decimal comma.
             "--max-budget-usd", String(format: "%g", maxBudgetUSD),
-            "--tools", (Self.tools + ["Bash"]).joined(separator: ","),
+            // Bash is only offered when some command is allowed, so a read-only call has no shell at all.
+            "--tools", (tools + (allowedCommands.isEmpty ? [] : ["Bash"])).joined(separator: ","),
         ]
         // Variadic, so it has to come last.
-        arguments += ["--allowedTools"] + Self.tools + allowedCommands.map { "Bash(\($0))" }
+        arguments += ["--allowedTools"] + tools + allowedCommands.map { "Bash(\($0))" }
         return arguments
     }
 }

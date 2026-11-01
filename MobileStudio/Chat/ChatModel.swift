@@ -25,6 +25,10 @@ struct ChatMessage: Identifiable, Equatable, Codable {
     var undone: Bool?
     /// What the user picked from this answer's choices, once they have.
     var chosen: [String]?
+    /// The product plan this answer wrote to PLAN.md.
+    var plan: ProductPlan?
+    /// The plan milestone (by index) this answer was asked to build.
+    var milestone: Int?
     let date: Date
 
     init(role: Role, text: String, pending: Bool = false, references: [String]? = nil) {
@@ -37,14 +41,30 @@ struct ChatMessage: Identifiable, Equatable, Codable {
     }
 }
 
+/// What a chat is for. Kickoff talks an app idea through without touching code; Build changes the project.
+enum ChatMode: String, Codable, Equatable, Sendable {
+    case build, kickoff
+
+    /// An unknown value (from a newer version of the app) reads as build, so a saved chat still loads.
+    init(from decoder: Decoder) throws {
+        self = ChatMode(rawValue: try decoder.singleValueContainer().decode(String.self)) ?? .build
+    }
+}
+
 /// A chat with Claude Code running in the project folder, as the selected account.
 @MainActor
 @Observable
 final class ChatModel {
     private(set) var messages: [ChatMessage] = []
     private(set) var isSending = false
+    private(set) var mode: ChatMode = .build
+
+    /// Which kind of turn a message starts. A plan turn asks for the product plan as structured output.
+    enum Turn: Sendable { case normal, plan }
 
     @ObservationIgnored private var folder: String?
+    /// What the user said about the app in the New Project sheet, for the kickoff system prompt.
+    @ObservationIgnored private var kickoffContext: String?
     @ObservationIgnored private var sessionID: String?
     /// Sessions live in one account's config folder, so a conversation can only continue with that account.
     @ObservationIgnored private var sessionProfile: UUID?
@@ -64,7 +84,11 @@ final class ChatModel {
         messages = []
         sessionID = nil
         sessionProfile = nil
+        mode = .build
+        kickoffContext = nil
         guard let folder, let stored = Self.read(folder: folder) else { return }
+        mode = stored.mode ?? .build
+        kickoffContext = stored.kickoffContext
         messages = stored.messages.map { message in
             var message = message
             if message.pending { message.pending = false; message.error = "Interrupted when the app closed." }
@@ -79,10 +103,27 @@ final class ChatModel {
         messages = []
         sessionID = nil
         sessionProfile = nil
+        mode = .build
+        kickoffContext = nil
         if let folder {
             try? FileManager.default.removeItem(at: Self.url(for: folder))
             CheckpointStore.discardAll(folder: folder)
         }
+    }
+
+    /// Turns the chat into the planning conversation for a new app.
+    func beginKickoff(context: String) {
+        guard !isSending else { return }
+        mode = .kickoff
+        kickoffContext = context
+        save()
+    }
+
+    /// Back to changing the project, once the plan is done.
+    func switchToBuild() {
+        guard !isSending else { return }
+        mode = .build
+        save()
     }
 
     func stop() {
@@ -183,7 +224,7 @@ final class ChatModel {
 
     // MARK: Sending
 
-    func send(_ text: String, references: [PickedWidget] = [], folder: String, claude: ClaudeAccess, profile: Profile) {
+    func send(_ text: String, references: [PickedWidget] = [], turn: Turn = .normal, milestone: Int? = nil, folder: String, claude: ClaudeAccess, profile: Profile) {
         let text = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty, !isSending else { return }
         self.folder = folder
@@ -206,17 +247,22 @@ final class ChatModel {
             request.referenceImages = references.map { pick in pick.thumbnail.flatMap(Self.saveThumbnail) }
         }
         messages.append(request)
-        let reply = ChatMessage(role: .assistant, text: "", pending: true)
+        var reply = ChatMessage(role: .assistant, text: "", pending: true)
+        reply.milestone = milestone
         messages.append(reply)
         if let note { messages[messages.count - 1].activity.append(note) }
         save()
 
         let prompt = Self.prompt(text, references: references)
-        let call = Self.call(for: prompt, session: resuming == nil ? .start(id: session) : .resume(id: session))
-        task = Task { await perform(call, folder: folder, claude: claude, resuming: resuming != nil, replyID: reply.id) }
+        let callSession: ClaudeAgentCall.Session = resuming == nil ? .start(id: session) : .resume(id: session)
+        let call = switch mode {
+        case .build: Self.call(for: prompt, session: callSession)
+        case .kickoff: Self.kickoffCall(for: prompt, session: callSession, context: kickoffContext, turn: turn)
+        }
+        task = Task { await perform(call, turn: turn, folder: folder, claude: claude, resuming: resuming != nil, replyID: reply.id) }
     }
 
-    private func perform(_ call: ClaudeAgentCall, folder: String, claude: ClaudeAccess, resuming: Bool, replyID: UUID) async {
+    private func perform(_ call: ClaudeAgentCall, turn: Turn, folder: String, claude: ClaudeAccess, resuming: Bool, replyID: UUID) async {
         let before = await FileSnapshot.taken(of: folder, keepingContents: true)
         let process = await claude.agentProcess(call, folder: folder, timeout: 30 * 60)
         self.process = process
@@ -224,6 +270,7 @@ final class ChatModel {
 
         var failure: String?
         var cost: Double?
+        var plan: ProductPlan?
         do {
             let finished = try await process.run { [weak self] line in
                 Task { @MainActor in self?.receive(line, folder: folder, replyID: replyID) }
@@ -233,6 +280,18 @@ final class ChatModel {
                 cost = result.cost
                 if result.isError {
                     failure = result.errors.nonEmpty ?? result.text.nonEmpty ?? "Claude stopped (\(result.subtype ?? "error"))."
+                } else if turn == .plan {
+                    // The app writes PLAN.md itself, before the after-snapshot, so it is undoable like any change.
+                    if let found = result.structured(as: ProductPlan.self) {
+                        do {
+                            try PlanRenderer.write(found, appName: Self.appName(in: folder), to: folder)
+                            plan = found
+                        } catch {
+                            failure = "Couldn't save PLAN.md: \(error.localizedDescription)"
+                        }
+                    } else {
+                        failure = "Claude didn't return a plan. Try again."
+                    }
                 } else if let index = index(of: replyID), messages[index].text.isEmpty, !result.text.isEmpty {
                     messages[index].text = result.text
                 }
@@ -254,6 +313,10 @@ final class ChatModel {
             messages[index].pending = false
             messages[index].cost = cost
             messages[index].files = changes
+            if let plan {
+                messages[index].plan = plan
+                messages[index].text = Self.planAnswer(plan)
+            }
             if undoable { messages[index].checkpointID = replyID }
             if stopRequested { messages[index].error = "Stopped." } else { messages[index].error = failure }
         }
@@ -295,7 +358,8 @@ final class ChatModel {
         changes and seeing them in an iOS Simulator next to this chat. Many of them don't read code. The current \
         directory is their project. Make the change they ask for directly. Do not commit or touch git history. \
         Never run `flutter run`: the app runs it, and it reloads the app on its own after you change files, so never \
-        say you couldn't see the result. After changing code, check it with `dart analyze` when that is cheap.
+        say you couldn't see the result. After changing code, check it with `dart analyze` when that is cheap. \
+        If ARCHITECTURE.md or PLAN.md exist, read them before changing code and follow them.
 
         Answer in two parts. First, one to three short plain sentences on what changed in the app, as the user will \
         see it ("The three water buttons now share the row and shrink on small phones."), without class names, \
@@ -310,6 +374,59 @@ final class ChatModel {
         "recommended", and offer between two and six options. The app shows them as buttons and sends back \
         what the user picks.
         """
+
+    private static func kickoffSystemPrompt(context: String?) -> String {
+        """
+        You are the product partner inside Mobile Studio, helping someone who may not read code plan a new Flutter \
+        app before it is built. The current directory is their new project: read `pubspec.yaml` and \
+        `ARCHITECTURE.md` once at the start. You cannot change files in this conversation, and you should not try.
+
+        \(context.map { "What they told the app about the idea:\n\($0)\n" } ?? "")
+        Each turn, answer in two parts like the rest of the app: a short plain-words reply (the first turn: one \
+        paragraph with your take on the app), then a line with only `---` and brief notes if you have any. Then ask \
+        one to three short questions, each its own fenced block with the language `choices` holding JSON, all at the \
+        very end of your answer (put the questions that matter most first): \
+        {"question": "Does it need accounts?", "multiple": false, "options": [{"label": "No, it stays on the phone", \
+        "detail": "One short sentence.", "recommended": true}]}. Use "multiple": true for lists of features. Offer \
+        two to six options, in plain words, and mark at most one "recommended". They can always type their own answer.
+
+        Cover these in about two to four turns: who it is for and the one job it does; the \
+        screens and main flow; where data lives (on the phone or in the cloud, offline); accounts; notifications; look \
+        and feel (colour, tone, light and dark); money; platforms; accessibility and languages. Skip what the \
+        description already answers. When you have enough, say so, and make your only question exactly: {"question": "I have what I need. Write the \
+        plan?", "multiple": false, "options": [{"label": "\(ProductPlan.writeLabel)", "recommended": true}, \
+        {"label": "\(ProductPlan.moreQuestionsLabel)"}]}. If they ask to change the plan, ask what to change, then \
+        offer \(ProductPlan.writeLabel) again.
+        """
+    }
+
+    /// Kickoff turns can only read: no shell, no editing. A plan turn also asks for the plan as structured output.
+    private static func kickoffCall(for prompt: String, session: ClaudeAgentCall.Session, context: String?, turn: Turn) -> ClaudeAgentCall {
+        switch turn {
+        case .normal:
+            ClaudeAgentCall(prompt: prompt, tools: ["Read", "Glob", "Grep"], session: session,
+                            systemPrompt: kickoffSystemPrompt(context: context), maxBudgetUSD: 1, allowedCommands: [])
+        case .plan:
+            ClaudeAgentCall(
+                prompt: prompt + "\n\nNow write the product plan from everything we discussed. Must have is what the first "
+                    + "version needs; can have is for later. Milestones are in build order, each small enough to build and "
+                    + "see in one go. Use the screen names the plan's screens list uses.",
+                tools: ["Read", "Glob", "Grep"], model: "opus", session: session,
+                systemPrompt: kickoffSystemPrompt(context: context), jsonSchema: ProductPlan.schema,
+                maxBudgetUSD: 3, allowedCommands: [])
+        }
+    }
+
+    /// The chat text for a written plan: a short summary and what to do next.
+    private static func planAnswer(_ plan: ProductPlan) -> String {
+        let choices = (try? JSONEncoder().encode(ProductPlan.nextSteps)).map { String(decoding: $0, as: UTF8.self) } ?? "{}"
+        return "**The plan is written to \(ProductPlan.fileName).** \(plan.summary)\n\n```choices\n\(choices)\n```"
+    }
+
+    /// The app's display name from the New Project record, or the folder's name.
+    private static func appName(in folder: String) -> String {
+        NewProjectRecord.load(forFolder: folder)?.request.displayName.nonEmpty ?? (folder as NSString).lastPathComponent
+    }
 
     /// Edits stay inside the project folder; shell access is limited to Flutter, Dart, CocoaPods and read-only git.
     private static func call(for prompt: String, session: ClaudeAgentCall.Session) -> ClaudeAgentCall {
@@ -345,11 +462,15 @@ final class ChatModel {
         let sessionID: String?
         let profileID: UUID?
         let messages: [ChatMessage]
+        // Absent in chats saved before kickoff existed.
+        var mode: ChatMode?
+        var kickoffContext: String?
     }
 
     private func save() {
         guard let folder else { return }
-        let stored = Stored(folder: folder, sessionID: sessionID, profileID: sessionProfile, messages: messages)
+        let stored = Stored(folder: folder, sessionID: sessionID, profileID: sessionProfile, messages: messages,
+                            mode: mode, kickoffContext: kickoffContext)
         let url = Self.url(for: folder)
         try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         if let data = try? JSONEncoder().encode(stored) { try? data.write(to: url, options: .atomic) }

@@ -19,6 +19,7 @@ struct ProjectSidebar: View {
                 Section("Project") { invalidProject(path: path, reason: reason) }
             case .ready(let flutter):
                 Section("Project") { ProjectHeader(workspace: workspace, flutter: flutter) }
+                PlanSection(workspace: workspace)
                 ScreensSection(workspace: workspace)
                 HistorySection(workspace: workspace)
             }
@@ -58,6 +59,9 @@ private struct ProjectHeader: View {
                 Text(flutter.name).font(.headline).lineLimit(1)
                 Spacer(minLength: 4)
                 actions
+            }
+            if let record = workspace.newProjectRecord, record.changed != true {
+                StatusBadge(tone: .neutral, title: "New project").font(.callout)
             }
             Button { showingHealth.toggle() } label: { health }
                 .buttonStyle(.plain)
@@ -173,6 +177,84 @@ private struct ProjectHealthView: View {
     }
 }
 
+// MARK: - Plan
+
+/// The plan's milestones in build order: what is built, what comes next, and a button to build it.
+private struct PlanSection: View {
+    let workspace: Workspace
+
+    var body: some View {
+        if let progress = workspace.milestoneProgress, !progress.plan.milestones.isEmpty {
+            Section {
+                ForEach(Array(progress.plan.milestones.enumerated()), id: \.offset) { index, milestone in
+                    MilestoneRow(workspace: workspace, index: index, milestone: milestone, state: progress.state(of: index))
+                }
+                Button("Open PLAN.md", systemImage: "doc.text") {
+                    if let folder = workspace.project.readyFolder {
+                        NSWorkspace.shared.open(URL(fileURLWithPath: folder).appendingPathComponent(ProductPlan.fileName))
+                    }
+                }
+                .buttonStyle(.link)
+                .controlSize(.small)
+            } header: {
+                HStack {
+                    Text("Plan")
+                    Spacer()
+                    Text(progress.summary).font(.caption).foregroundStyle(.secondary)
+                }
+            }
+        }
+    }
+}
+
+private struct MilestoneRow: View {
+    let workspace: Workspace
+    let index: Int
+    let milestone: ProductPlan.Milestone
+    let state: MilestoneProgress.State
+
+    private var blocker: String? { workspace.buildMilestoneBlocker }
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            // A symbol as well as a colour: built, next up, or later.
+            Image(systemName: symbol).foregroundStyle(state == .done ? Color.green : state == .next ? Color.accentColor : .secondary)
+                .imageScale(.small)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(milestone.title).lineLimit(2)
+                if !milestone.doneWhen.isEmpty {
+                    Text(milestone.doneWhen).font(.caption).foregroundStyle(.secondary).lineLimit(2)
+                }
+            }
+            Spacer(minLength: 4)
+            if state == .next {
+                Button("Build") { workspace.buildMilestone(index) }
+                    .controlSize(.small)
+                    .disabled(blocker != nil || workspace.chat.isSending)
+                    .help(blocker ?? "Claude builds this milestone, and you watch it appear")
+            }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityValue(state == .done ? "Built" : state == .next ? "Next" : "Later")
+        .contextMenu {
+            Button("Build This Milestone") { workspace.buildMilestone(index) }.disabled(blocker != nil || workspace.chat.isSending)
+            if state == .done {
+                Button("Mark as Not Built") { workspace.setMilestone(index, done: false) }
+            } else {
+                Button("Mark as Built") { workspace.setMilestone(index, done: true) }
+            }
+        }
+    }
+
+    private var symbol: String {
+        switch state {
+        case .done: "checkmark.circle.fill"
+        case .next: "arrow.right.circle"
+        case .later: "circle"
+        }
+    }
+}
+
 // MARK: - Screens
 
 private struct ScreensSection: View {
@@ -206,11 +288,23 @@ private struct HistorySection: View {
         workspace.chat.messages.filter { $0.role == .assistant && !$0.files.isEmpty }.reversed()
     }
 
+    /// The first commit made by New Project is where the history starts.
+    private var created: NewProjectRecord? {
+        workspace.newProjectRecord.flatMap { $0.request.usesGit && $0.gitNote == nil ? $0 : nil }
+    }
+
     var body: some View {
-        if !entries.isEmpty {
+        if !entries.isEmpty || created != nil {
             Section("History") {
                 ForEach(entries) { entry in
                     HistoryRow(workspace: workspace, entry: entry, isLatest: entry.id == workspace.chat.undoable.first?.id)
+                }
+                if let created {
+                    VStack(alignment: .leading, spacing: 1) {
+                        Label("Created the app", systemImage: "sparkles")
+                        Text(created.created.formatted(.relative(presentation: .named))).font(.caption).foregroundStyle(.secondary)
+                    }
+                    .help("The first version, saved in git when the project was made")
                 }
             }
         }
@@ -297,7 +391,11 @@ struct SetupChecklist: View {
         }
         step(workspace.project.readyFolder != nil ? .success : .neutral, "Flutter project",
              workspace.project.readyFolder == nil ? "The folder with pubspec.yaml." : workspace.flutterProject?.name ?? "") {
-            if workspace.project.readyFolder == nil { Button("Choose…", action: workspace.chooseProject) }
+            if workspace.project.readyFolder == nil {
+                Button("New…", action: workspace.newProject).disabled(!workspace.canCreateProject)
+                    .help(workspace.createProjectBlocker ?? "Make a new Flutter app")
+                Button("Choose…", action: workspace.chooseProject)
+            }
         }
     }
 

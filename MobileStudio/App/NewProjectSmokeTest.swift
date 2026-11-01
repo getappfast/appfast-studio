@@ -21,6 +21,8 @@ enum NewProjectSmokeTest {
 
             switch model.phase {
             case .done(let path):
+                // As `Workspace.finishNewProject` would, so the project can be opened for the kickoff check.
+                NewProjectRecord(request: request).save(forFolder: path)
                 log.append("NEW PROJECT created at \(path); note: \(model.note ?? "none")")
                 for tool in ["analyze", "test"] {
                     let shell = ProcessInfo.processInfo.environment["SHELL"] ?? "/bin/zsh"

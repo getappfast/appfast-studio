@@ -32,6 +32,35 @@ struct ChoiceSet: Codable, Equatable, Sendable {
         return (remaining, choices)
     }
 
+    /// Every `choices` block in an answer, in order, and the text without them. A block still being written, or one
+    /// that isn't valid JSON, is dropped, so half-written JSON never shows.
+    static func extractAll(from text: String) -> (text: String, choices: [ChoiceSet]) {
+        var pieces: [String] = []
+        var found: [ChoiceSet] = []
+        var cursor = text.startIndex
+        while let open = text.range(of: "```choices", range: cursor..<text.endIndex) {
+            pieces.append(String(text[cursor..<open.lowerBound]))
+            let rest = text[open.upperBound...]
+            guard let close = rest.range(of: "```") else { cursor = text.endIndex; break }
+            if let data = String(rest[..<close.lowerBound]).data(using: .utf8),
+               let choices = try? JSONDecoder().decode(ChoiceSet.self, from: data), !choices.options.isEmpty {
+                found.append(choices)
+            }
+            cursor = close.upperBound
+        }
+        pieces.append(String(text[cursor...]))
+        let remaining = pieces.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }.joined(separator: "\n\n")
+        return (remaining, found)
+    }
+
+    /// The message sent back when the user answered several questions at once.
+    static func reply(answering answers: [(question: String?, labels: [String])]) -> String {
+        "Here are my answers:\n" + answers.map { answer in
+            let labels = answer.labels.isEmpty ? "none of these" : answer.labels.joined(separator: ", ")
+            return "- \(answer.question ?? "Question"): \(labels)"
+        }.joined(separator: "\n")
+    }
+
     /// The message sent back when the user picks.
     static func reply(choosing labels: [String]) -> String {
         guard labels.count > 1 else { return labels.first.map { "Go ahead: \($0)." } ?? "" }

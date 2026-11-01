@@ -13,6 +13,8 @@ enum CreatePhase: Equatable {
 final class NewProjectModel {
     private(set) var phase: CreatePhase = .idle
     private(set) var request: NewProjectRequest?
+    /// Whether the first version was saved in git. Nil until the git step has run.
+    private(set) var committed: Bool?
     /// Steps that finished, for the progress checklist.
     private(set) var completed: Set<CreateStep> = []
     /// Something worth telling the user after a successful create, such as git needing a name.
@@ -25,6 +27,12 @@ final class NewProjectModel {
     init(service: NewProjectService = NewProjectService()) {
         self.service = service
         self.log = service.log
+    }
+
+    /// A create stopped partway and its request is kept, so the sheet can offer Retry or Start Over.
+    var isResumable: Bool {
+        if case .failed = phase { return request != nil }
+        return false
     }
 
     var isWorking: Bool {
@@ -40,6 +48,7 @@ final class NewProjectModel {
         self.request = request
         completed = []
         note = nil
+        committed = nil
         run(from: .flutterCreate)
     }
 
@@ -53,7 +62,7 @@ final class NewProjectModel {
     func cancel() {
         task?.cancel()
         task = nil
-        if isWorking { phase = .idle }
+        if case .working(let step) = phase { phase = .failed(step: step, message: "Stopped before it finished.") }
     }
 
     func reset() {
@@ -61,6 +70,7 @@ final class NewProjectModel {
         request = nil
         completed = []
         note = nil
+        committed = nil
         phase = .idle
     }
 
@@ -78,7 +88,10 @@ final class NewProjectModel {
                     // A cancel ends the child process with a non-zero status; don't report that as a failure.
                     guard !Task.isCancelled else { return }
                     self.completed.insert(step)
-                    if let git, !git.committed { self.note = git.note }
+                    if let git {
+                        self.committed = git.committed
+                        if !git.committed { self.note = git.note }
+                    }
                 } catch {
                     guard !Task.isCancelled else { return }
                     self.phase = .failed(step: step, message: error.localizedDescription)

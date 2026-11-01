@@ -99,6 +99,9 @@ final class ProjectModel {
         return true
     }
 
+    /// Makes a folder chosen by code (a project just created) the current one.
+    func open(path: String) { set(path: path) }
+
     /// Verifies the folder once per launch and after each new choice, as soon as Claude can be run.
     /// Safe to call repeatedly: it does nothing until a verification is due.
     func autoVerify(_ verifier: ProjectVerifier?) {
