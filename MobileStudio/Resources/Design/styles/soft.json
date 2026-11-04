@@ -1,0 +1,124 @@
+{
+  "id": "soft",
+  "name": "Soft",
+  "feel": "Friendly and gentle, with pastel containers.",
+  "fonts": [
+    "Nunito",
+    "Plus Jakarta Sans",
+    "Quicksand"
+  ],
+  "guidance": "Rounded everything, pastel containers, gentle shadows, no hard borders. Group content in filled cards; use tonal buttons and friendly copy.",
+  "tokens": {
+    "style": "soft",
+    "name": "Lavender",
+    "mood": "Gentle lavender and rose, warm and friendly.",
+    "light": {
+      "primary": "#7A5AA6",
+      "onPrimary": "#FFFFFF",
+      "primaryContainer": "#EDE3FF",
+      "onPrimaryContainer": "#2E1A4D",
+      "secondary": "#9C5A6E",
+      "onSecondary": "#FFFFFF",
+      "secondaryContainer": "#FFE1E8",
+      "onSecondaryContainer": "#3E1522",
+      "surface": "#FFFBFE",
+      "onSurface": "#1D1B20",
+      "surfaceContainer": "#F6F0F8",
+      "onSurfaceVariant": "#625B6A",
+      "outline": "#DCD2E2",
+      "error": "#B3261E",
+      "onError": "#FFFFFF"
+    },
+    "dark": {
+      "primary": "#D3BCFD",
+      "onPrimary": "#3A2459",
+      "primaryContainer": "#523A78",
+      "onPrimaryContainer": "#EDE3FF",
+      "secondary": "#F2B3C4",
+      "onSecondary": "#5A2335",
+      "secondaryContainer": "#74394B",
+      "onSecondaryContainer": "#FFD9E2",
+      "surface": "#151218",
+      "onSurface": "#E7E0E8",
+      "surfaceContainer": "#221E25",
+      "onSurfaceVariant": "#CAC3CF",
+      "outline": "#4A4550",
+      "error": "#F2B8B5",
+      "onError": "#601410"
+    },
+    "fonts": {
+      "display": "Nunito",
+      "body": "Nunito"
+    },
+    "radius": {
+      "small": 12,
+      "medium": 20,
+      "large": 28
+    },
+    "elevation": "subtle",
+    "borders": "none",
+    "density": "comfortable",
+    "typeScale": {
+      "displayLarge": {
+        "size": 57,
+        "weight": 700
+      },
+      "displayMedium": {
+        "size": 45,
+        "weight": 700
+      },
+      "displaySmall": {
+        "size": 36,
+        "weight": 700
+      },
+      "headlineLarge": {
+        "size": 32,
+        "weight": 700
+      },
+      "headlineMedium": {
+        "size": 28,
+        "weight": 700
+      },
+      "headlineSmall": {
+        "size": 24,
+        "weight": 700
+      },
+      "titleLarge": {
+        "size": 22,
+        "weight": 600
+      },
+      "titleMedium": {
+        "size": 16,
+        "weight": 600
+      },
+      "titleSmall": {
+        "size": 14,
+        "weight": 500
+      },
+      "bodyLarge": {
+        "size": 16,
+        "weight": 400
+      },
+      "bodyMedium": {
+        "size": 14,
+        "weight": 400
+      },
+      "bodySmall": {
+        "size": 12,
+        "weight": 400
+      },
+      "labelLarge": {
+        "size": 14,
+        "weight": 500
+      },
+      "labelMedium": {
+        "size": 12,
+        "weight": 500
+      },
+      "labelSmall": {
+        "size": 11,
+        "weight": 500
+      }
+    }
+  }
+}

@@ -1,4 +1,5 @@
 import AppKit
+import WebKit
 
 /// Process-wide lifecycle that doesn't belong to any one model.
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -36,6 +37,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 ///     MOBILE_STUDIO_SNAPSHOT_DELAY=8            seconds to wait first (default 6)
 ///     MOBILE_STUDIO_APPEARANCE=dark|light|contrast|contrast-dark   force an appearance
 ///     MOBILE_STUDIO_SNAPSHOT_KEYS=cmd+r,cmd+shift+y   press these shortcuts after 4 s (logged to snapshot.log)
+///     MOBILE_STUDIO_SNAPSHOT_MAP=in,fit,pan:-300:200   zoom and pan the app flow map after 4 s (the menu bar doesn't refresh here)
 ///     MOBILE_STUDIO_SNAPSHOT_SETTINGS=1         also open and capture Settings
 ///     MOBILE_STUDIO_SNAPSHOT_LOG=1              open the build log drawer
 ///     MOBILE_STUDIO_SNAPSHOT_TREE=1             also write the view hierarchy, for layout bugs
@@ -48,7 +50,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 ///     MOBILE_STUDIO_SNAPSHOT_CHOOSE=1           or pick the recommended options of the answer's choice card
 ///     MOBILE_STUDIO_SNAPSHOT_SHEET=0|1|2        also open the New Project sheet on that step and write -sheet.png
 ///     MOBILE_STUDIO_SNAPSHOT_KICKOFF=1          start the planning chat and ask for the plan (with a stand-in CLI)
+///     MOBILE_STUDIO_SNAPSHOT_APPROVAL="message" send this chat message; a stand-in CLI that asks permission leaves the card open
 ///     MOBILE_STUDIO_SNAPSHOT_NEW_PROJECT=/tmp/x  create a project in that folder, run flutter analyze + test, log, quit
+///     MOBILE_STUDIO_SNAPSHOT_DESIGN="open,redesign:Today,ask:Show me two calmer headers,shot"
+///                                               open the Design window and run these steps, writing -design-N.png at each
+///                                               "shot" and after each step; steps wait for Claude: open, look, screens,
+///                                               dark, light, style:<id>, palette:<n>, pairing:<n>, use-look, redesign:<screen>,
+///                                               capture:<screen>, select:<screen id>, ask:<text>, choose:<version>,
+///                                               compare:<version>, approve, apply, wait:<seconds>, shot,
+///                                               run (Run Again), sim:/screenshot|/tap?x=&y=|/paste?text= (writes -device-N.png)
+///     MOBILE_STUDIO_SNAPSHOT_APPROVE=allow      during those steps, allow approval cards once (default: decline)
 ///     MOBILE_STUDIO_CLAUDE_CLI=/path/to/stub    use this claude executable instead of the installed one
 ///
 /// Snapshot runs skip Claude's automatic project check, so they cost nothing.
@@ -87,6 +98,25 @@ enum Snapshot {
                 }
             }
         }
+        if let steps = env["MOBILE_STUDIO_SNAPSHOT_MAP"] {
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(Double(env["MOBILE_STUDIO_SNAPSHOT_KEYS_DELAY"] ?? "") ?? 4))
+                guard let map = workspace?.flowMap else { return }
+                for step in steps.split(separator: ",") {
+                    let parts = step.split(separator: ":").map(String.init)
+                    switch parts.first {
+                    case "in": map.zoomIn()
+                    case "out": map.zoomOut()
+                    case "actual": map.actualSize()
+                    case "fit": map.fit()
+                    case "pan" where parts.count == 3: map.pan(by: CGSize(width: Double(parts[1]) ?? 0, height: Double(parts[2]) ?? 0))
+                    default: break
+                    }
+                    try? await Task.sleep(for: .milliseconds(500))
+                }
+                log.append("SNAPSHOT map \(steps): \(map.percent)% fitted=\(map.isFitted)")
+            }
+        }
         if env["MOBILE_STUDIO_SNAPSHOT_KICKOFF"] == "1" {
             // The planning chat end to end: start it, answer once, ask for the plan. Needs a stand-in claude CLI.
             Task { @MainActor in
@@ -105,6 +135,16 @@ enum Snapshot {
                     }
                     workspace.choose([ProductPlan.writeLabel], in: reply)
                 }
+            }
+        }
+        if let steps = env["MOBILE_STUDIO_SNAPSHOT_DESIGN"] {
+            Task { @MainActor in await runDesignSteps(steps, base: base) }
+        }
+        if let message = env["MOBILE_STUDIO_SNAPSHOT_APPROVAL"] {
+            Task { @MainActor in
+                guard let workspace else { return }
+                for _ in 0..<60 where workspace.chatBlocker != nil { try? await Task.sleep(for: .seconds(1)) }
+                workspace.sendChat(message)
             }
         }
         if env["MOBILE_STUDIO_SNAPSHOT_RUN"] == "1" {
@@ -141,11 +181,116 @@ enum Snapshot {
         }
     }
 
+    /// Drives the Design window through `MOBILE_STUDIO_SNAPSHOT_DESIGN`'s steps, capturing it as it goes.
+    @MainActor
+    private static func runDesignSteps(_ steps: String, base: String) async {
+        guard let workspace else { return }
+        let env = ProcessInfo.processInfo.environment
+        for _ in 0..<60 where workspace.project.readyFolder == nil || workspace.studio.claude == nil {
+            try? await Task.sleep(for: .seconds(1))
+        }
+        // The flow of screens is read in the background; redesign needs it.
+        for _ in 0..<30 where workspace.screens.isEmpty { try? await Task.sleep(for: .seconds(1)) }
+        var shot = 0
+        func snap() async {
+            shot += 1
+            await captureWithWebViews(title: "design-\(shot)", to: base, window: "main")
+        }
+        func screen(named name: String) -> AppScreen? {
+            workspace.screens.first { AppFlow.screenKey($0.name) == AppFlow.screenKey(name) }
+        }
+        for step in steps.split(separator: ",").map({ String($0).trimmingCharacters(in: .whitespaces) }) {
+            let parts = step.split(separator: ":", maxSplits: 1).map(String.init)
+            let argument = parts.count > 1 ? parts[1] : ""
+            let design = workspace.design
+            log.append("SNAPSHOT design step \(step)")
+            switch parts[0] {
+            case "open": workspace.openDesign()
+            case "look": design.stage = .look
+            case "screens": design.stage = .screens
+            case "dark": design.isDark = true
+            case "light": design.isDark = false
+            case "zoom": design.zoom = Double(argument) ?? design.zoom
+            case "style": workspace.chooseStyle(argument)
+            case "palette": if let index = Int(argument), design.suggestions.palettes.indices.contains(index) { design.paletteID = design.suggestions.palettes[index].id }
+            case "pairing": if let index = Int(argument), design.suggestions.pairings.indices.contains(index) { design.pairingID = design.suggestions.pairings[index].id }
+            case "use-look": workspace.useLook()
+            case "redesign": if let screen = screen(named: argument) { workspace.redesign(screen) }
+            case "capture": if let screen = screen(named: argument) { workspace.redesign(screen, capture: true) }
+            case "select": design.selection = [argument]
+            case "ask": workspace.sendDesignMessage(argument)
+            case "choose": if let id = design.selection.first { workspace.chooseVersion(argument, for: id) }
+            case "show": if let id = design.selection.first { design.shown[id] = argument }
+            case "compare": design.comparing = argument
+            case "approve": workspace.approveDesign()
+            case "apply": if let id = design.selection.first { workspace.applyDesign(to: id) }
+            case "wait": try? await Task.sleep(for: .seconds(Double(argument) ?? 2))
+            case "run":
+                // Run Again, as the toolbar would: stop an app an earlier run left, then build and run.
+                if workspace.run.existing != nil || workspace.run.phase.isActive {
+                    workspace.stopExistingApp()
+                    workspace.stopApp()
+                    try? await Task.sleep(for: .seconds(4))
+                }
+                for _ in 0..<60 where !workspace.canRun { try? await Task.sleep(for: .seconds(1)) }
+                workspace.runApp()
+                for _ in 0..<900 where workspace.run.phase != .running {
+                    if case .failed = workspace.run.phase { break }
+                    try? await Task.sleep(for: .seconds(1))
+                }
+                log.append("SNAPSHOT design run: \(workspace.run.phase) \(workspace.run.failure?.message ?? "")")
+                try? await Task.sleep(for: .seconds(6))
+            case "sim":
+                // Drives the device like ms-sim: sim:/screenshot, sim:/tap?x=200&y=900, sim:/paste?text=Walk.
+                if let command = SimulatorCommand(path: argument) {
+                    let answer = await workspace.simulator.perform(command)
+                    log.append("SNAPSHOT design sim \(argument): \(answer)")
+                    if command == .screenshot, let path = answer.split(separator: "\n").first {
+                        shot += 1
+                        try? FileManager.default.copyItem(atPath: String(path), toPath: "\(base)-device-\(shot).png")
+                    }
+                }
+            case "render":
+                // Full-size pictures of the style samples, through the same renderer as the previews.
+                let renderer = DesignRenderer()
+                for style in DesignStyle.bundled where argument.isEmpty || argument == style.id {
+                    await renderer.render(DesignURL.styleURL(style.id), folder: nil, dark: design.isDark,
+                                          to: URL(fileURLWithPath: "\(base)-style-\(style.id).png"))
+                }
+            case "shot": break
+            default: log.append("SNAPSHOT design: unknown step \(step)")
+            }
+            try? await Task.sleep(for: .seconds(2))
+            // Wait for whichever chat is working, and the queue of screens to draw.
+            for _ in 0..<900 where workspace.designChat.isSending || workspace.chat.isSending || !workspace.drawQueue.isEmpty {
+                // Nobody can click an approval card here: answer it as MOBILE_STUDIO_SNAPSHOT_APPROVE says, and log it.
+                if let pending = workspace.approvals.current {
+                    let allow = env["MOBILE_STUDIO_SNAPSHOT_APPROVE"] == "allow"
+                    log.append("SNAPSHOT design approval \(allow ? "allowed" : "declined"): \(pending.request.action.summary)")
+                    workspace.approvals.answer(allow ? .allowOnce : .decline)
+                }
+                try? await Task.sleep(for: .seconds(1))
+            }
+            try? await Task.sleep(for: .seconds(3))
+            let reply = workspace.designChat.messages.last
+            log.append("SNAPSHOT design after \(step): sending=\(workspace.designChat.isSending) error=\(reply?.error ?? "-") files=\(reply?.files.map(\.path) ?? []) "
+                       + "screens=\(design.library.screens.map { "\($0.id):\($0.files.sorted())" }) tokens=\(design.tokens?.name ?? "-") issues=\(design.tokenIssues) "
+                       + "lint=\(design.lint.mapValues { $0.map(\.message) })")
+            await snap()
+        }
+        log.append("SNAPSHOT design done")
+        // Claude's turns take as long as they take, so the run ends here rather than at the delay.
+        capture(title: "main", to: base)
+        NSApp.terminate(nil)
+    }
+
     /// Sends a shortcut such as "cmd+shift+y" through the menu bar, as a key press would.
     @MainActor
     private static func press(_ shortcut: String) {
         var parts = shortcut.lowercased().split(separator: "+").map(String.init)
-        let key = parts.removeLast()
+        // "+" separates the parts, so the keys that are it or "-" go by name: "cmd+plus".
+        let name = parts.removeLast()
+        let key = ["plus": "+", "minus": "-"][name] ?? name
         var flags: NSEvent.ModifierFlags = []
         if parts.contains("cmd") { flags.insert(.command) }
         if parts.contains("shift") { flags.insert(.shift) }
@@ -169,7 +314,7 @@ enum Snapshot {
     private static var state: String {
         guard let w = workspace else { return "no workspace" }
         return "active=\(NSApp.isActive) key=\(NSApp.keyWindow?.identifier?.rawValue ?? "none") chat=\(w.isChatVisible) log=\(w.isLogVisible) canRun=\(w.canRun) blocker=\(w.runBlocker ?? "-") "
-            + "existing=\(w.run.existing != nil) phase=\(w.run.phase)"
+            + "existing=\(w.run.existing != nil) phase=\(w.run.phase) map=\(w.flowMap.percent)% fitted=\(w.flowMap.isFitted) placed=\(w.flowMap.isPlaced) canResize=\(w.menuState.canResizeMap)"
     }
 
     /// Every menu item with a shortcut, and whether it is enabled right now.
@@ -190,14 +335,15 @@ enum Snapshot {
     }
 
     @MainActor
-    private static func capture(title: String, to base: String, settings: Bool = false) {
+    @discardableResult
+    private static func capture(title: String, to base: String, settings: Bool = false, window name: String = "main") -> NSBitmapImageRep? {
         let windows = NSApp.windows.filter { $0.isVisible && $0.frame.width > 300 }
         let isSettings = { (window: NSWindow) in window.identifier?.rawValue.localizedCaseInsensitiveContains("settings") == true }
         let window = settings ? windows.first(where: isSettings)
-                              : windows.first { !isSettings($0) && $0.identifier?.rawValue.contains("main") == true } ?? windows.first
+                              : windows.first { !isSettings($0) && $0.identifier?.rawValue.contains(name) == true } ?? windows.first
         // The theme frame includes the title bar and toolbar, not just the content.
         guard let root = window?.contentView?.superview,
-              let rep = root.bitmapImageRepForCachingDisplay(in: root.bounds) else { return }
+              let rep = root.bitmapImageRepForCachingDisplay(in: root.bounds) else { return nil }
         root.cacheDisplay(in: root.bounds, to: rep)
         // cacheDisplay leaves what sits on a visual-effect view (sidebar, inspector) blank, so draw each
         // of those views on its own and paste it in place, over the window background.
@@ -250,6 +396,58 @@ enum Snapshot {
         if ProcessInfo.processInfo.environment["MOBILE_STUDIO_SNAPSHOT_TREE"] == "1" {
             try? tree(root, root: root, depth: 0).write(toFile: "\(base)-\(title).txt", atomically: true, encoding: .utf8)
         }
+        return rep
+    }
+
+    /// `capture`, plus what each web view shows: those draw in WebKit's own process, which cacheDisplay can't see,
+    /// so the mockups are pasted in from their own snapshots.
+    @MainActor
+    private static func captureWithWebViews(title: String, to base: String, window name: String) async {
+        let path = "\(base)-\(title).png"
+        guard let rep = capture(title: title, to: base, window: name),
+              let window = NSApp.windows.first(where: { $0.isVisible && $0.identifier?.rawValue.contains(name) == true }),
+              let root = window.contentView?.superview, let content = window.contentView else { return }
+        // The window's one hosting view fills it, so `capture` skipped it as too wide to be a panel: draw it here, over
+        // the window background, keeping the title bar `capture` drew.
+        if let contentRep = content.bitmapImageRepForCachingDisplay(in: content.bounds) {
+            content.cacheDisplay(in: content.bounds, to: contentRep)
+            NSGraphicsContext.saveGraphicsState()
+            NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: rep)
+            root.effectiveAppearance.performAsCurrentDrawingAppearance {
+                let frame = content.convert(content.bounds, to: root)
+                NSBezierPath(rect: window.contentLayoutRect).setClip()
+                NSColor.windowBackgroundColor.setFill()
+                frame.fill()
+                contentRep.draw(in: frame, from: .zero, operation: .sourceOver, fraction: 1, respectFlipped: true, hints: nil)
+                // cacheDisplay skips what scroll views show, so paste each one's contents back on top.
+                for clip in descendants(of: content) where clip is NSClipView && !clip.isHidden && clip.bounds.width > 50 {
+                    guard let clipRep = clip.bitmapImageRepForCachingDisplay(in: clip.bounds) else { continue }
+                    clip.cacheDisplay(in: clip.bounds, to: clipRep)
+                    clipRep.draw(in: clip.convert(clip.bounds, to: root), from: .zero, operation: .sourceOver,
+                                 fraction: 1, respectFlipped: true, hints: nil)
+                }
+            }
+            NSGraphicsContext.restoreGraphicsState()
+        }
+        let webViews = descendants(of: root).compactMap { $0 as? WKWebView }.filter { !$0.isHidden && $0.window != nil }
+        var pictures: [(NSImage, CGRect, CGRect)] = []
+        for webView in webViews {
+            let visible = webView.visibleRect
+            guard visible.width > 1, visible.height > 1, let picture = try? await webView.takeSnapshot(configuration: nil) else { continue }
+            // Only the part a scroll view shows: the paste doesn't go through its clipping.
+            pictures.append((picture, webView.convert(webView.bounds, to: root), webView.convert(visible, to: root)))
+        }
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: rep)
+        NSBezierPath(rect: window.contentLayoutRect).setClip()
+        for (picture, frame, visible) in pictures {
+            NSGraphicsContext.saveGraphicsState()
+            NSBezierPath(rect: visible).addClip()
+            picture.draw(in: frame, from: .zero, operation: .sourceOver, fraction: 1, respectFlipped: true, hints: nil)
+            NSGraphicsContext.restoreGraphicsState()
+        }
+        NSGraphicsContext.restoreGraphicsState()
+        try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: path))
     }
 
     /// The sheet is its own window, so `capture` doesn't include it.

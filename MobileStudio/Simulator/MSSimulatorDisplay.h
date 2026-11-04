@@ -1,6 +1,8 @@
 #import <Foundation/Foundation.h>
 #import <IOSurface/IOSurfaceObjC.h>
 
+@class NSEvent;
+
 NS_ASSUME_NONNULL_BEGIN
 
 extern NSErrorDomain const MSSimulatorErrorDomain;
@@ -27,6 +29,9 @@ NS_SWIFT_SENDABLE
 /// Pixel size of the most recent frame. Read on the main queue.
 @property (atomic, readonly) CGSize pixelSize;
 
+/// The newest frame, readable from any thread. Nil until the first frame arrives.
+@property (atomic, readonly, nullable) IOSurface *latestFrame;
+
 /// Number of frames delivered to `frameHandler` so far.
 @property (atomic, readonly) uint64_t framesDelivered;
 
@@ -46,6 +51,14 @@ NS_SWIFT_SENDABLE
 /// (1,1) the bottom-right. A tap is Began then Ended; a swipe is Began, any number of Moved, Ended.
 /// Does nothing if input is unavailable.
 - (void)sendTouch:(MSTouchPhase)phase atPoint:(CGPoint)point NS_SWIFT_NAME(sendTouch(_:at:));
+
+/// Forwards a key press from the Mac keyboard (key down, key up or a modifier change), so typing on the Mac
+/// types into the focused field. Does nothing if input is unavailable.
+- (void)sendKeyEvent:(NSEvent *)event;
+
+/// Presses and releases one hardware key, given as a USB HID usage (page 7), with Shift held when asked.
+/// Typing needs a text field to be focused in the app. Does nothing if input is unavailable.
+- (void)pressKey:(int)usage shift:(BOOL)shift;
 
 /// Presses and releases the hardware Home button.
 - (void)pressHome;

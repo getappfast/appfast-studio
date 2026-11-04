@@ -19,6 +19,8 @@ struct ChatMessage: Identifiable, Equatable, Codable {
     var references: [String]?
     /// Pictures of those elements, as file names in the thumbnails folder, in the same order.
     var referenceImages: [String?]?
+    /// Reference pictures the user attached in the Design window, as file paths.
+    var attachments: [String]?
     /// The saved state from before this answer's edits, when they can be undone.
     var checkpointID: UUID?
     /// The edits were undone.
@@ -29,6 +31,8 @@ struct ChatMessage: Identifiable, Equatable, Codable {
     var plan: ProductPlan?
     /// The plan milestone (by index) this answer was asked to build.
     var milestone: Int?
+    /// The design version this answer was asked to build into the app, as "screen/version".
+    var designApply: String?
     let date: Date
 
     init(role: Role, text: String, pending: Bool = false, references: [String]? = nil) {
@@ -41,9 +45,10 @@ struct ChatMessage: Identifiable, Equatable, Codable {
     }
 }
 
-/// What a chat is for. Kickoff talks an app idea through without touching code; Build changes the project.
+/// What a chat is for. Kickoff talks an app idea through without touching code; Build changes the project;
+/// Design only makes mockups in design/.
 enum ChatMode: String, Codable, Equatable, Sendable {
-    case build, kickoff
+    case build, kickoff, design
 
     /// An unknown value (from a newer version of the app) reads as build, so a saved chat still loads.
     init(from decoder: Decoder) throws {
@@ -61,6 +66,29 @@ final class ChatModel {
 
     /// Which kind of turn a message starts. A plan turn asks for the product plan as structured output.
     enum Turn: Sendable { case normal, plan }
+
+    /// Runs once a turn's process has ended, before the after-snapshot, so files the app writes then (a design's
+    /// screen.json) are part of the turn's checkpoint and undone with it.
+    typealias Finishing = @MainActor (_ reply: ChatMessage, _ failed: Bool) -> Void
+
+    /// What a design-chat message runs: the app's instructions for the turn, added to the user's words.
+    struct DesignCall: Sendable {
+        let turn: DesignTurn
+        let instructions: String
+        let readableFolders: [String]
+    }
+
+    /// Which saved conversation this is, besides its folder: the design window keeps its own.
+    private let storage: String?
+
+    init(storage: String? = nil, mode: ChatMode = .build) {
+        self.storage = storage
+        self.mode = mode
+        defaultMode = mode
+    }
+
+    /// What a fresh conversation starts in.
+    private let defaultMode: ChatMode
 
     @ObservationIgnored private var folder: String?
     /// What the user said about the app in the New Project sheet, for the kickoff system prompt.
@@ -84,10 +112,10 @@ final class ChatModel {
         messages = []
         sessionID = nil
         sessionProfile = nil
-        mode = .build
+        mode = defaultMode
         kickoffContext = nil
-        guard let folder, let stored = Self.read(folder: folder) else { return }
-        mode = stored.mode ?? .build
+        guard let folder, let stored = Self.read(folder: folder, storage: storage) else { return }
+        mode = stored.mode ?? defaultMode
         kickoffContext = stored.kickoffContext
         messages = stored.messages.map { message in
             var message = message
@@ -100,14 +128,16 @@ final class ChatModel {
 
     func reset() {
         guard !isSending else { return }
+        let checkpoints = messages.compactMap(\.checkpointID)
         messages = []
         sessionID = nil
         sessionProfile = nil
-        mode = .build
+        mode = defaultMode
         kickoffContext = nil
         if let folder {
-            try? FileManager.default.removeItem(at: Self.url(for: folder))
-            CheckpointStore.discardAll(folder: folder)
+            try? FileManager.default.removeItem(at: Self.url(for: folder, storage: storage))
+            // Only this conversation's: the other chat of the folder keeps its own Undo.
+            CheckpointStore.discard(ids: checkpoints, folder: folder)
         }
     }
 
@@ -222,9 +252,24 @@ final class ChatModel {
         return parts.joined(separator: "\n\n")
     }
 
+    /// Records a change the app made itself (Use this design) as a request and answer, so it shows and can be undone
+    /// like one of Claude's.
+    func appendLocal(request: String, reply: String, files: [FileSnapshot.Change], checkpointID: UUID?) {
+        guard !isSending else { return }
+        messages.append(ChatMessage(role: .user, text: request))
+        var answer = ChatMessage(role: .assistant, text: reply)
+        answer.files = files
+        answer.checkpointID = checkpointID
+        messages.append(answer)
+        save()
+    }
+
     // MARK: Sending
 
-    func send(_ text: String, references: [PickedWidget] = [], turn: Turn = .normal, milestone: Int? = nil, folder: String, claude: ClaudeAccess, profile: Profile) {
+    /// `approve` answers Claude when it wants something outside its allow-list; it is what shows the user a question.
+    func send(_ text: String, references: [PickedWidget] = [], turn: Turn = .normal, milestone: Int? = nil, designApply: String? = nil,
+              design: DesignCall? = nil, attachments: [String] = [], readableFolders: [String] = [], folder: String,
+              claude: ClaudeAccess, profile: Profile, approve: @escaping AgentPermissionHandler, finishing: Finishing? = nil) {
         let text = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty, !isSending else { return }
         self.folder = folder
@@ -246,23 +291,31 @@ final class ChatModel {
         if references.contains(where: { $0.thumbnail != nil }) {
             request.referenceImages = references.map { pick in pick.thumbnail.flatMap(Self.saveThumbnail) }
         }
+        request.attachments = attachments.isEmpty ? nil : attachments
         messages.append(request)
         var reply = ChatMessage(role: .assistant, text: "", pending: true)
         reply.milestone = milestone
+        reply.designApply = designApply
         messages.append(reply)
         if let note { messages[messages.count - 1].activity.append(note) }
         save()
 
-        let prompt = Self.prompt(text, references: references)
+        var prompt = Self.prompt(text, references: references)
+        if let design, !design.instructions.isEmpty { prompt += "\n\n" + design.instructions }
         let callSession: ClaudeAgentCall.Session = resuming == nil ? .start(id: session) : .resume(id: session)
         let call = switch mode {
-        case .build: Self.call(for: prompt, session: callSession)
+        case .build: Self.call(for: prompt, session: callSession, readableFolders: readableFolders)
         case .kickoff: Self.kickoffCall(for: prompt, session: callSession, context: kickoffContext, turn: turn)
+        case .design: Self.designCall(for: prompt, session: callSession, design: design, readableFolders: readableFolders)
         }
-        task = Task { await perform(call, turn: turn, folder: folder, claude: claude, resuming: resuming != nil, replyID: reply.id) }
+        task = Task {
+            await perform(call, turn: turn, folder: folder, claude: claude, resuming: resuming != nil, replyID: reply.id,
+                          approve: approve, finishing: finishing)
+        }
     }
 
-    private func perform(_ call: ClaudeAgentCall, turn: Turn, folder: String, claude: ClaudeAccess, resuming: Bool, replyID: UUID) async {
+    private func perform(_ call: ClaudeAgentCall, turn: Turn, folder: String, claude: ClaudeAccess, resuming: Bool, replyID: UUID,
+                         approve: @escaping AgentPermissionHandler, finishing: Finishing?) async {
         let before = await FileSnapshot.taken(of: folder, keepingContents: true)
         let process = await claude.agentProcess(call, folder: folder, timeout: 30 * 60)
         self.process = process
@@ -272,9 +325,13 @@ final class ChatModel {
         var cost: Double?
         var plan: ProductPlan?
         do {
-            let finished = try await process.run { [weak self] line in
+            let finished = try await process.run(onLine: { [weak self] line in
                 Task { @MainActor in self?.receive(line, folder: folder, replyID: replyID) }
-            }
+            }, onPermission: { [weak self] request in
+                let decision = await approve(request)
+                await self?.noteDecision(decision, for: request, replyID: replyID)
+                return decision
+            })
             Self.log.append("EXIT \(finished.status)\n" + finished.lines.joined(separator: "\n") + "\n--- stderr ---\n" + finished.stderr)
             if let result = ClaudeEvents.result(in: finished.lines) {
                 cost = result.cost
@@ -305,6 +362,7 @@ final class ChatModel {
         }
         self.process = nil
 
+        if let finishing, let index = index(of: replyID) { finishing(messages[index], failure != nil || stopRequested) }
         let after = await FileSnapshot.taken(of: folder)
         let changes = after.changes(since: before)
         let undoable = !changes.isEmpty
@@ -338,6 +396,13 @@ final class ChatModel {
         }
     }
 
+    /// What was allowed or declined goes in the answer's steps, so the technical details show it.
+    private func noteDecision(_ decision: AgentPermissionRequest.Decision, for request: AgentPermissionRequest, replyID: UUID) {
+        guard let index = index(of: replyID) else { return }
+        messages[index].activity.append(request.note(for: decision))
+        Self.log.append("APPROVAL \(request.note(for: decision))")
+    }
+
     private func index(of id: UUID) -> Int? { messages.firstIndex { $0.id == id } }
 
     /// The message, plus where in the code each tapped UI element lives.
@@ -357,9 +422,23 @@ final class ChatModel {
         You are the coding agent inside Mobile Studio, a desktop app where people build a Flutter app by asking for \
         changes and seeing them in an iOS Simulator next to this chat. Many of them don't read code. The current \
         directory is their project. Make the change they ask for directly. Do not commit or touch git history. \
+        Change files only with the Edit and Write tools, never with a shell script (python, sed, cat > file): those \
+        need the user's OK, while edits are accepted and can be undone. \
         Never run `flutter run`: the app runs it, and it reloads the app on its own after you change files, so never \
         say you couldn't see the result. After changing code, check it with `dart analyze` when that is cheap. \
+        For a command beyond the usual Flutter and Dart ones, such as `dart run build_runner build`, just run it: the \
+        app asks the user first. If they say no, don't find another way around it; say what they would need to run. \
         If ARCHITECTURE.md or PLAN.md exist, read them before changing code and follow them.
+
+        You can see and use the running app. `ms-sim screenshot` saves a picture of the simulator and prints its \
+        path: read that file to look at it. `ms-sim tap X Y` and `ms-sim swipe X1 Y1 X2 Y2` touch the screen at \
+        pixel positions of the latest screenshot, and `ms-sim home` presses Home. To scroll, swipe (drag up to see what's below). To fill a form, tap the \
+        field and try `ms-sim type "text"`, then screenshot: on newer Xcode simulators the keyboard may be ignored. If \
+        the text didn't appear, run `ms-sim paste "text"`, `ms-sim hold X Y` on the field, and tap Paste in the menu \
+        that appears. Check with a screenshot either way, as iOS may autocorrect. After a change to what the user \
+        sees, wait a few seconds for the hot reload, then take a screenshot and check the result yourself. Tap \
+        through the screen you changed (and any screen it leads to) when behaviour matters. If ms-sim says the \
+        simulator isn't running, say so rather than guessing. Don't take screenshots for changes that can't be seen.
 
         Answer in two parts. First, one to three short plain sentences on what changed in the app, as the user will \
         see it ("The three water buttons now share the row and shrink on small phones."), without class names, \
@@ -428,18 +507,38 @@ final class ChatModel {
         NewProjectRecord.load(forFolder: folder)?.request.displayName.nonEmpty ?? (folder as NSString).lastPathComponent
     }
 
+    /// Mockups only: edits limited to design/ (or less, for a turn that only rewrites suggestions), no shell.
+    private static func designCall(for prompt: String, session: ClaudeAgentCall.Session, design: DesignCall?,
+                                   readableFolders: [String]) -> ClaudeAgentCall {
+        let turn = design?.turn
+        return ClaudeAgentCall(
+            prompt: prompt,
+            model: turn?.model ?? "sonnet",
+            session: session,
+            systemPrompt: DesignPrompts.systemPrompt,
+            maxBudgetUSD: turn?.maxBudgetUSD ?? 2,
+            allowedCommands: [],
+            readableFolders: (design?.readableFolders ?? []) + readableFolders,
+            asksForApproval: true,
+            editablePattern: turn?.editablePattern ?? "\(DesignPaths.folder)/**"
+        )
+    }
+
     /// Edits stay inside the project folder; shell access is limited to Flutter, Dart, CocoaPods and read-only git.
-    private static func call(for prompt: String, session: ClaudeAgentCall.Session) -> ClaudeAgentCall {
+    private static func call(for prompt: String, session: ClaudeAgentCall.Session, readableFolders: [String] = []) -> ClaudeAgentCall {
         ClaudeAgentCall(
             prompt: prompt,
             session: session,
             systemPrompt: systemPrompt,
             maxBudgetUSD: 5,
             allowedCommands: [
+                "ms-sim *",
                 "flutter pub *", "flutter analyze *", "flutter test *", "flutter build *",
                 "dart format *", "dart analyze *", "dart fix *", "pod *",
                 "git status *", "git diff *", "git log *", "git branch *",
-            ]
+            ],
+            readableFolders: [AgentBridge.screenshotDirectory.path] + readableFolders,
+            asksForApproval: true
         )
     }
 
@@ -471,19 +570,19 @@ final class ChatModel {
         guard let folder else { return }
         let stored = Stored(folder: folder, sessionID: sessionID, profileID: sessionProfile, messages: messages,
                             mode: mode, kickoffContext: kickoffContext)
-        let url = Self.url(for: folder)
+        let url = Self.url(for: folder, storage: storage)
         try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         if let data = try? JSONEncoder().encode(stored) { try? data.write(to: url, options: .atomic) }
     }
 
-    private static func read(folder: String) -> Stored? {
-        guard let data = try? Data(contentsOf: url(for: folder)) else { return nil }
+    private static func read(folder: String, storage: String?) -> Stored? {
+        guard let data = try? Data(contentsOf: url(for: folder, storage: storage)) else { return nil }
         return try? JSONDecoder().decode(Stored.self, from: data)
     }
 
-    private static func url(for folder: String) -> URL {
+    private static func url(for folder: String, storage: String?) -> URL {
         let name = SHA256.hash(data: Data(folder.utf8)).prefix(8).map { String(format: "%02x", $0) }.joined()
         return FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("Mobile Studio/Chats/\(name).json")
+            .appendingPathComponent("Mobile Studio/Chats/\(name)\(storage.map { "-\($0)" } ?? "").json")
     }
 }

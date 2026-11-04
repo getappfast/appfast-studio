@@ -42,11 +42,16 @@ struct FlowCanvas: View {
 }
 
 /// Where each card goes. Columns are centred on the tallest one; the unlinked screens get a column of their own
-/// at the end, under a heading.
+/// at the end, under a heading. A map that would come out taller than wide is wrapped: each long column is split
+/// into lanes side by side, until the whole map is as near 4:3 as it gets, so fitting it doesn't leave a thin strip.
 struct FlowGeometry {
     static let card = CGSize(width: 128, height: 232)
     static let spacing = CGSize(width: 104, height: 28)
     static let margin = CGSize(width: 48, height: 72)
+    /// Between the lanes of one wrapped column: less than between columns, so they still read as one step.
+    static let laneSpacing: CGFloat = 56
+    /// The shape a tall map is wrapped to.
+    static let aspect: CGFloat = 4.0 / 3.0
 
     let frames: [String: CGRect]
     /// The top centre of the unlinked column, for its heading.
@@ -54,29 +59,77 @@ struct FlowGeometry {
     let size: CGSize
 
     init(_ layout: AppFlow.Layout) {
-        let card = Self.card, spacing = Self.spacing, margin = Self.margin
         var columns = layout.columns
-        if !layout.unlinked.isEmpty { columns.append(layout.unlinked) }
+        let hasUnlinked = !layout.unlinked.isEmpty
+        if hasUnlinked { columns.append(layout.unlinked) }
+        let tallest = columns.map(\.count).max() ?? 0
+        var best = Self.place(columns, hasUnlinked: hasUnlinked, rows: max(tallest, 1))
+        if tallest > 1, best.size.width < best.size.height {
+            // Fewer rows means more lanes. Trying the tallest first keeps the fewest lanes when two are equally close.
+            for rows in stride(from: tallest - 1, through: 1, by: -1) {
+                let candidate = Self.place(columns, hasUnlinked: hasUnlinked, rows: rows)
+                if Self.distance(from: candidate.size) < Self.distance(from: best.size) { best = candidate }
+            }
+        }
+        self = best
+    }
+
+    private init(frames: [String: CGRect], unlinkedTop: CGPoint?, size: CGSize) {
+        self.frames = frames
+        self.unlinkedTop = unlinkedTop
+        self.size = size
+    }
+
+    /// How far a size's shape is from the target, as a ratio, so too wide and too tall count the same.
+    private static func distance(from size: CGSize) -> CGFloat {
+        abs(log(size.width / size.height / aspect))
+    }
+
+    /// `column` split into lanes of at most `rows` cards, as evenly as it goes (7 in 3 rows is 3, 2, 2).
+    static func lanes(_ column: [String], rows: Int) -> [[String]] {
+        let count = (column.count + rows - 1) / max(rows, 1)
+        guard count > 1 else { return [column] }
+        var lanes: [[String]] = []
+        var start = 0
+        for index in 0..<count {
+            let size = column.count / count + (index < column.count % count ? 1 : 0)
+            lanes.append(Array(column[start..<start + size]))
+            start += size
+        }
+        return lanes
+    }
+
+    /// The map with no column taller than `rows` cards.
+    private static func place(_ columns: [[String]], hasUnlinked: Bool, rows: Int) -> FlowGeometry {
+        let card = Self.card, spacing = Self.spacing, margin = Self.margin
         func height(_ count: Int) -> CGFloat { CGFloat(count) * card.height + CGFloat(max(count - 1, 0)) * spacing.height }
-        let tallest = height(columns.map(\.count).max() ?? 0)
+        let tallest = height(min(rows, columns.map(\.count).max() ?? 0))
 
         var frames: [String: CGRect] = [:]
         var unlinkedTop: CGPoint?
         var x = margin.width
+        // The space after the last lane, taken off the end.
+        var gap = spacing.width
         for (index, column) in columns.enumerated() {
-            let isUnlinked = !layout.unlinked.isEmpty && index == columns.count - 1
+            let isUnlinked = hasUnlinked && index == columns.count - 1
             // A wider gap before the unlinked screens, so they don't read as the next step.
             if isUnlinked, index > 0 { x += spacing.width * 0.5 }
-            let top = margin.height + (tallest - height(column.count)) / 2
-            for (row, name) in column.enumerated() {
-                frames[name] = CGRect(x: x, y: top + CGFloat(row) * (card.height + spacing.height), width: card.width, height: card.height)
+            let start = x
+            let split = Self.lanes(column, rows: rows)
+            for (laneIndex, lane) in split.enumerated() {
+                let top = margin.height + (tallest - height(lane.count)) / 2
+                for (row, name) in lane.enumerated() {
+                    frames[name] = CGRect(x: x, y: top + CGFloat(row) * (card.height + spacing.height), width: card.width, height: card.height)
+                }
+                // The first lane is the fullest, so it's the highest.
+                if isUnlinked, laneIndex == 0 { unlinkedTop = CGPoint(x: 0, y: top) }
+                gap = laneIndex < split.count - 1 ? laneSpacing : spacing.width
+                x += card.width + gap
             }
-            if isUnlinked { unlinkedTop = CGPoint(x: x + card.width / 2, y: top) }
-            x += card.width + spacing.width
+            if isUnlinked, let top = unlinkedTop { unlinkedTop = CGPoint(x: (start + x - gap) / 2, y: top.y) }
         }
-        self.frames = frames
-        self.unlinkedTop = unlinkedTop
-        size = CGSize(width: x - spacing.width + margin.width, height: tallest + margin.height * 2)
+        return FlowGeometry(frames: frames, unlinkedTop: unlinkedTop,
+                            size: CGSize(width: x - gap + margin.width, height: tallest + margin.height * 2))
     }
 }
 
@@ -85,48 +138,58 @@ private struct FlowMap: View {
     let flow: AppFlow
     let leadingInset: CGFloat
     @State private var hovered: String?
+    @State private var canvasSize = CGSize.zero
+
+    private var model: FlowMapModel { workspace.flowMap }
 
     var body: some View {
         let geometry = FlowGeometry(flow.layout)
-        GeometryReader { proxy in
-            // Shrunk to fit the canvas, down to half size; a bigger map scrolls.
-            let visible = CGSize(width: max(proxy.size.width - leadingInset, 1), height: proxy.size.height)
-            let scale = min(1, max(0.5, min(visible.width / geometry.size.width, visible.height / geometry.size.height)))
-            ScrollView([.horizontal, .vertical]) {
-                ZStack(alignment: .topLeading) {
-                    FlowArrows(links: flow.links, frames: geometry.frames, highlighted: hovered)
-                    if let top = geometry.unlinkedTop {
-                        Text("No links found")
-                            .font(.callout).foregroundStyle(.secondary)
-                            .fixedSize()
-                            .position(x: top.x, y: top.y - 22)
-                    }
-                    ForEach(flow.screens) { screen in
-                        if let frame = geometry.frames[screen.className] {
-                            card(screen)
-                                .frame(width: frame.width, height: frame.height)
-                                .position(x: frame.midX, y: frame.midY)
-                        }
-                    }
-                }
-                .frame(width: geometry.size.width, height: geometry.size.height)
-                .scaleEffect(scale, anchor: .topLeading)
-                .frame(width: geometry.size.width * scale, height: geometry.size.height * scale, alignment: .topLeading)
-                // Centred when the map is smaller than the canvas.
-                .frame(minWidth: visible.width, minHeight: visible.height)
-                // Padding rather than contentMargins: a scroll view centres content narrower than itself, margins
-                // and all, which pushed the map right by half the inset.
-                .padding(.leading, leadingInset)
-            }
+        // The map is seen to the right of the floating sidebar, which covers the left of the canvas.
+        let layout = FlowMapModel.Layout(folder: flow.folder, content: geometry.size,
+                                         view: CGSize(width: max(canvasSize.width - leadingInset, 0), height: canvasSize.height),
+                                         start: flow.start.flatMap { geometry.frames[$0] })
+        ZStack(alignment: .topLeading) {
+            FlowGrid(model: model, leadingInset: leadingInset)
+            FlowPanLayer(model: model)
+            FlowSurface(model: model, leadingInset: leadingInset) { map(geometry) }
         }
+        // The map is bigger than the canvas, so it must not draw over the chat or the toolbar.
+        .clipped()
+        .background { FlowInput(model: model).padding(.leading, leadingInset) }
+        .onGeometryChange(for: CGSize.self, of: { $0.size }) { canvasSize = $0 }
+        .onChange(of: layout, initial: true) { _, layout in model.update(layout) }
+        .onDisappear { model.detach() }
         .overlay(alignment: .bottomLeading) {
             FlowLegend(hasLinks: !flow.links.isEmpty, hasPlanned: flow.screens.contains(where: \.isPlanned)).padding(12).padding(.leading, leadingInset)
         }
+        .overlay(alignment: .bottomTrailing) { FlowZoomControls(model: model).padding(12) }
+    }
+
+    /// The cards and arrows at their real size; `FlowSurface` scales and places them.
+    private func map(_ geometry: FlowGeometry) -> some View {
+        ZStack(alignment: .topLeading) {
+            FlowArrows(links: flow.links, frames: geometry.frames, highlighted: hovered)
+            if let top = geometry.unlinkedTop {
+                Text("No links found")
+                    .font(.callout).foregroundStyle(.secondary)
+                    .fixedSize()
+                    .position(x: top.x, y: top.y - 22)
+            }
+            ForEach(flow.screens) { screen in
+                if let frame = geometry.frames[screen.className] {
+                    card(screen)
+                        .frame(width: frame.width, height: frame.height)
+                        .position(x: frame.midX, y: frame.midY)
+                }
+            }
+        }
+        .frame(width: geometry.size.width, height: geometry.size.height)
     }
 
     private func card(_ screen: AppScreen) -> some View {
         Button { workspace.mention(screen) } label: {
-            ScreenCard(screen: screen, isStart: screen.className == flow.start, isHighlighted: hovered == screen.className)
+            ScreenCard(screen: screen, isStart: screen.className == flow.start, isHighlighted: hovered == screen.className,
+                       preview: workspace.design.preview(forScreenNamed: screen.name))
         }
         .buttonStyle(.plain)
         .onHover { inside in
@@ -149,14 +212,64 @@ private struct FlowMap: View {
     }
 }
 
+/// Draws the map at the model's zoom and position. It's the only view that reads the viewport (besides the grid
+/// and the controls), so a pan or pinch redraws these and not the cards' own state.
+private struct FlowSurface<Content: View>: View {
+    let model: FlowMapModel
+    let leadingInset: CGFloat
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        // An overlay, so a map bigger than the canvas doesn't make the canvas bigger.
+        Color.clear.overlay(alignment: .topLeading) {
+            content
+                .scaleEffect(model.viewport.scale, anchor: .topLeading)
+                .offset(x: leadingInset + model.viewport.origin.x, y: model.viewport.origin.y)
+                .opacity(model.isPlaced ? 1 : 0)
+        }
+    }
+}
+
 /// A screen on the map, shaped like a phone so a picture of the screen can take its place later.
 private struct ScreenCard: View {
     let screen: AppScreen
     let isStart: Bool
     let isHighlighted: Bool
+    /// A picture of the screen's chosen mockup, from the Design window.
+    var preview: URL?
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: 20, style: .continuous)
+        if let preview, let image = NSImage(contentsOf: preview) {
+            Image(nsImage: image)
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                .clipShape(shape)
+                .overlay(alignment: .bottom) {
+                    Text(screen.name).font(.caption.weight(.semibold)).lineLimit(1)
+                        .padding(.horizontal, 8).padding(.vertical, 3)
+                        .background(.regularMaterial, in: Capsule())
+                        .padding(8)
+                }
+                .overlay(alignment: .top) {
+                    if isStart {
+                        Label("Start", systemImage: "flag.fill").font(.caption.weight(.semibold))
+                            .padding(.horizontal, 8).padding(.vertical, 3)
+                            .background(.regularMaterial, in: Capsule())
+                            .padding(8)
+                    }
+                }
+                .overlay(shape.strokeBorder(isHighlighted ? Color.accentColor : Color(nsColor: screen.isPlanned ? .tertiaryLabelColor : .separatorColor),
+                                            style: StrokeStyle(lineWidth: isHighlighted ? 2 : 1, dash: screen.isPlanned ? [6, 4] : [])))
+                .contentShape(shape)
+                .shadow(color: .black.opacity(0.12), radius: 6, y: 2)
+        } else {
+            placeholder(shape)
+        }
+    }
+
+    private func placeholder(_ shape: RoundedRectangle) -> some View {
         VStack(spacing: 6) {
             if isStart {
                 Label("Start", systemImage: "flag.fill")
@@ -309,6 +422,7 @@ private struct FlowLegend: View {
                 }
             }
             Text("Click a screen to ask Claude about it.").foregroundStyle(.secondary)
+            Text("Scroll or drag to move, pinch or ⌘-scroll to zoom.").foregroundStyle(.secondary)
         }
         .font(.caption)
         .padding(10)

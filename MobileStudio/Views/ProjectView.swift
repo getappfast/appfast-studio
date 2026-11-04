@@ -1,13 +1,32 @@
 import SwiftUI
 
-/// The sidebar: setup until everything is in place, then the project, its screens, and the history of what
-/// Claude changed, each step undoable. Project health lives in a popover off the header.
+/// The sidebar, in two tabs. Project: setup until everything is in place, then the project, its screens, and the
+/// history of what Claude changed, each step undoable; project health lives in a popover off the header. Design:
+/// Claude's design chat, while the canvas shows the mockups.
 struct ProjectSidebar: View {
     let workspace: Workspace
 
     private var project: ProjectModel { workspace.project }
 
     var body: some View {
+        VStack(spacing: 0) {
+            Picker("Sidebar", selection: Binding(get: { workspace.sidebarTab }, set: { workspace.showSidebarTab($0) })) {
+                Text("Project").tag(Workspace.SidebarTab.project)
+                Text("Design").tag(Workspace.SidebarTab.design)
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            if workspace.sidebarTab == .design {
+                DesignChatPanel(workspace: workspace)
+            } else {
+                projectList
+            }
+        }
+    }
+
+    private var projectList: some View {
         List {
             if !SetupChecklist.isComplete(workspace) {
                 Section("Get Started") { SetupChecklist(workspace: workspace) }
@@ -117,6 +136,7 @@ private struct ProjectHealthView: View {
     let flutter: FlutterProject
 
     private var project: ProjectModel { workspace.project }
+    private var approved: [String] { workspace.approvals.approvedCommands(in: flutter.path) }
 
     var body: some View {
         Form {
@@ -162,6 +182,21 @@ private struct ProjectHealthView: View {
                     }
                     Spacer()
                     Button("Log") { project.revealLog() }.buttonStyle(.link)
+                }
+            }
+            if !approved.isEmpty {
+                Section("Commands Claude May Always Run") {
+                    ForEach(approved, id: \.self) { command in
+                        HStack {
+                            MonospacedValue(command)
+                            Spacer()
+                            Button { workspace.approvals.forget(command, in: flutter.path) } label: {
+                                Label("Ask Again", systemImage: "xmark.circle").labelStyle(.iconOnly)
+                            }
+                            .buttonStyle(.borderless)
+                            .help("Ask before Claude runs this command again")
+                        }
+                    }
                 }
             }
             Section("Details") {

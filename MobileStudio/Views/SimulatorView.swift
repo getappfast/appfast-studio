@@ -47,7 +47,7 @@ struct SimulatorScreen: NSViewRepresentable {
             wantsLayer = true
             setAccessibilityElement(true)
             setAccessibilityRole(.image)
-            setAccessibilityHelp("Click to tap, drag to swipe.")
+            setAccessibilityHelp("Click to tap, drag to swipe, and type on your keyboard.")
         }
 
         required init?(coder: NSCoder) { fatalError("not used") }
@@ -61,7 +61,22 @@ struct SimulatorScreen: NSViewRepresentable {
 
         override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 
+        // MARK: Keyboard -> device
+
+        /// A click gives the screen the keyboard, so typing on the Mac types into the focused field.
+        override var acceptsFirstResponder: Bool { true }
+
+        override func keyDown(with event: NSEvent) { forward(event) }
+        override func keyUp(with event: NSEvent) { forward(event) }
+        override func flagsChanged(with event: NSEvent) { forward(event) }
+
+        private func forward(_ event: NSEvent) {
+            guard let display, display.inputAvailable else { return }
+            display.sendKeyEvent(event)
+        }
+
         override func mouseDown(with event: NSEvent) {
+            window?.makeFirstResponder(self)
             sendTouch(.began, event)
             onTap(thumbnail(around: convert(event.locationInWindow, from: nil)))
         }

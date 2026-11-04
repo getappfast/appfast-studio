@@ -35,6 +35,9 @@ struct StudioCommands: Commands {
             Button("Hot Reload", action: workspace.hotReload)
                 .keyboardShortcut("r", modifiers: [.command, .shift])
                 .disabled(!state.canHotReload)
+            Button("Hot Restart", action: workspace.hotRestart)
+                .keyboardShortcut("r", modifiers: [.command, .shift, .option])
+                .disabled(!state.canHotReload)
             Button(state.isPicking ? "Stop Picking" : "Pick Element", action: workspace.togglePick)
                 .keyboardShortcut("e", modifiers: [.command, .shift])
                 .disabled(!state.canPick)
@@ -48,13 +51,30 @@ struct StudioCommands: Commands {
         CommandGroup(after: .sidebar) {
             Button("Show Device") { workspace.canvas = .device }
                 .keyboardShortcut("1")
-                .disabled(!state.isShowingFlow)
+                .disabled(state.canvas == .device)
             Button("Show App Flow") { workspace.canvas = .flow }
                 .keyboardShortcut("2")
-                .disabled(state.isShowingFlow)
+                .disabled(state.canvas == .flow)
             Button(state.showsDeviceFrame ? "Hide Device Frame" : "Show Device Frame") { workspace.showsDeviceFrame.toggle() }
-                .disabled(state.isShowingFlow)
+                .disabled(state.canvas != .device)
             Divider()
+            // The app flow map's zoom. ⌘= also zooms in (`FlowInput`), as in other Mac apps.
+            Button("Zoom In", action: workspace.zoomMapIn)
+                .keyboardShortcut("+")
+                .disabled(!state.canZoomMapIn)
+            Button("Zoom Out", action: workspace.zoomMapOut)
+                .keyboardShortcut("-")
+                .disabled(!state.canZoomMapOut)
+            Button("Actual Size", action: workspace.zoomMapToActualSize)
+                .keyboardShortcut("0")
+                .disabled(!state.canResizeMap)
+            Button("Zoom to Fit", action: workspace.zoomMapToFit)
+                .keyboardShortcut("9")
+                .disabled(!state.canResizeMap)
+            Divider()
+            Button("Show Design", action: workspace.openDesign)
+                .keyboardShortcut("d", modifiers: [.command, .option])
+                .disabled(!state.canOpenDesign || state.canvas == .design)
             Button(state.isChatVisible ? "Hide Chat" : "Show Chat") { workspace.isChatVisible.toggle() }
                 .keyboardShortcut("0", modifiers: [.command, .option])
             Button(state.isLogVisible ? "Hide Build Log" : "Show Build Log") { workspace.isLogVisible.toggle() }

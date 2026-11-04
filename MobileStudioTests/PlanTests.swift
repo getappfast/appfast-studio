@@ -60,11 +60,12 @@ struct ProductPlanTests {
         #expect(text.contains("Log a glass"))
     }
 
-    @Test func nextStepsOfferBuildFirstAndSurviveExtraction() throws {
+    @Test func nextStepsOfferDesignFirstAndSurviveExtraction() throws {
         let json = String(decoding: try JSONEncoder().encode(ProductPlan.nextSteps), as: UTF8.self)
         let extracted = ChoiceSet.extract(from: "Plan written.\n\n```choices\n\(json)\n```")
         #expect(extracted.text == "Plan written.")
-        #expect(extracted.choices?.options.map(\.label) == [ProductPlan.buildLabel, ProductPlan.changeLabel, ProductPlan.notNowLabel])
+        #expect(extracted.choices?.options.map(\.label)
+                == [ProductPlan.designLabel, ProductPlan.buildLabel, ProductPlan.changeLabel, ProductPlan.notNowLabel])
         #expect(extracted.choices?.options.first?.recommended == true)
     }
 }

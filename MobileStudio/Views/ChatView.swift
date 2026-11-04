@@ -73,7 +73,10 @@ struct ChatPanel: View {
                     if workspace.isKickoffOffered { KickoffCard(workspace: workspace) }
                     if chat.messages.isEmpty { emptyState }
                     ForEach(chat.messages) { message in
-                        MessageRow(message: message, workspace: workspace).id(message.id)
+                        MessageRow(message: message, actions: rowActions).id(message.id)
+                    }
+                    if let pending = workspace.approvals.current {
+                        ApprovalCard(pending: pending, others: workspace.approvals.queue.count - 1, onAnswer: workspace.approvals.answer)
                     }
                     Color.clear.frame(height: 1).id("bottom")
                 }
@@ -83,7 +86,15 @@ struct ChatPanel: View {
             .onChange(of: chat.messages.count) { scrollToBottom(proxy) }
             .onChange(of: chat.messages.last?.text) { scrollToBottom(proxy) }
             .onChange(of: chat.messages.last?.activity.count) { scrollToBottom(proxy) }
+            .onChange(of: workspace.approvals.current?.id) { scrollToBottom(proxy) }
         }
+    }
+
+    private var rowActions: ChatRowActions {
+        ChatRowActions(chat: chat, folder: workspace.project.readyFolder,
+                       canSend: workspace.chatBlocker == nil && !chat.isSending, isBusy: chat.isSending || workspace.fix.isBusy,
+                       undo: workspace.undo, choose: { workspace.choose(answers: $0, in: $1) },
+                       other: workspace.answerInOwnWords, showDiff: workspace.showDiff)
     }
 
     private func scrollToBottom(_ proxy: ScrollViewProxy) {
@@ -287,9 +298,22 @@ private struct AccountMenu: View {
     }
 }
 
-private struct MessageRow: View {
+/// What a transcript row can do. The main chat and the Design window's chat share `MessageRow` through it.
+struct ChatRowActions {
+    let chat: ChatModel
+    let folder: String?
+    let canSend: Bool
+    /// Undo waits while either is busy.
+    let isBusy: Bool
+    let undo: (ChatMessage) -> Void
+    let choose: ([(question: String?, labels: [String])], ChatMessage) -> Void
+    let other: () -> Void
+    let showDiff: (FileSnapshot.Change) -> Void
+}
+
+struct MessageRow: View {
     let message: ChatMessage
-    let workspace: Workspace
+    let actions: ChatRowActions
 
     var body: some View {
         switch message.role {
@@ -298,6 +322,17 @@ private struct MessageRow: View {
                 Spacer(minLength: 40)
                 VStack(alignment: .trailing, spacing: 6) {
                     Text(message.text).textSelection(.enabled)
+                    if let paths = message.attachments, !paths.isEmpty {
+                        HStack(spacing: 6) {
+                            ForEach(paths, id: \.self) { path in
+                                if let image = NSImage(contentsOfFile: path) {
+                                    Image(nsImage: image).resizable().aspectRatio(contentMode: .fill)
+                                        .frame(width: 56, height: 56).clipShape(RoundedRectangle(cornerRadius: 6))
+                                        .accessibilityLabel("Reference screenshot")
+                                }
+                            }
+                        }
+                    }
                     ForEach(Array((message.references ?? []).enumerated()), id: \.offset) { index, reference in
                         HStack(spacing: 6) {
                             if let name = message.referenceImages?[safe: index] ?? nil,
@@ -322,13 +357,13 @@ private struct MessageRow: View {
             VStack(alignment: .leading, spacing: 10) {
                 if message.pending { working }
                 if !extracted.text.isEmpty { MarkdownView(text: parts.outcome) }
-                if let plan = message.plan { PlanCard(plan: plan, folder: workspace.project.readyFolder) }
+                if let plan = message.plan { PlanCard(plan: plan, folder: actions.folder) }
                 if !message.files.isEmpty { changes }
                 if !extracted.choices.isEmpty, !message.pending {
                     ChoiceCard(questions: extracted.choices, chosen: message.chosen, isActive: isLatest && message.chosen == nil,
-                               canSend: workspace.chatBlocker == nil && !workspace.chat.isSending,
-                               onChoose: { workspace.choose(answers: $0, in: message) },
-                               onOther: workspace.answerInOwnWords)
+                               canSend: actions.canSend,
+                               onChoose: { actions.choose($0, message) },
+                               onOther: actions.other)
                 }
                 if let error = message.error {
                     Label(error, systemImage: "exclamationmark.triangle.fill").foregroundStyle(.orange)
@@ -340,7 +375,7 @@ private struct MessageRow: View {
     }
 
     /// Only the newest answer's options can still be picked; older ones are history.
-    private var isLatest: Bool { workspace.chat.messages.last?.id == message.id }
+    private var isLatest: Bool { actions.chat.messages.last?.id == message.id }
 
     /// Shown while Claude works: the latest thing it did.
     private var working: some View {
@@ -358,16 +393,16 @@ private struct MessageRow: View {
                     .font(.caption.weight(.semibold)).foregroundStyle(.secondary)
                 Spacer()
                 if message.checkpointID != nil, message.undone != true {
-                    Button { workspace.undo(message) } label: { Label("Undo", systemImage: "arrow.uturn.backward") }
+                    Button { actions.undo(message) } label: { Label("Undo", systemImage: "arrow.uturn.backward") }
                         .controlSize(.small)
-                        .disabled(workspace.chat.isSending || workspace.fix.isBusy)
-                        .help(message.id == workspace.chat.undoable.first?.id
+                        .disabled(actions.isBusy)
+                        .help(message.id == actions.chat.undoable.first?.id
                               ? "Put the files back as they were before this answer"
                               : "Undo this answer and every one after it")
                 }
             }
             ForEach(message.files.prefix(12)) { change in
-                Button { workspace.showDiff(of: change) } label: {
+                Button { actions.showDiff(change) } label: {
                     FileChangeRow(change: change, compact: true)
                         .frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
                 }

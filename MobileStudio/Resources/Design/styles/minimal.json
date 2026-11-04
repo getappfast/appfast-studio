@@ -1,0 +1,124 @@
+{
+  "id": "minimal",
+  "name": "Minimal",
+  "feel": "Calm, lots of white space, one accent colour.",
+  "fonts": [
+    "Inter",
+    "DM Sans",
+    "Manrope"
+  ],
+  "guidance": "Few elements, generous white space, one accent colour used sparingly, flat surfaces separated by hairlines rather than shadows. Prefer text buttons and outlined cards; no decoration.",
+  "tokens": {
+    "style": "minimal",
+    "name": "Clear water",
+    "mood": "Quiet neutrals with one deep teal accent.",
+    "light": {
+      "primary": "#1F6F5C",
+      "onPrimary": "#FFFFFF",
+      "primaryContainer": "#D4EFE7",
+      "onPrimaryContainer": "#00382C",
+      "secondary": "#4A635C",
+      "onSecondary": "#FFFFFF",
+      "secondaryContainer": "#E3ECE9",
+      "onSecondaryContainer": "#1F302B",
+      "surface": "#FFFFFF",
+      "onSurface": "#1A1C1B",
+      "surfaceContainer": "#F4F6F5",
+      "onSurfaceVariant": "#5B6461",
+      "outline": "#C9D0CD",
+      "error": "#BA1A1A",
+      "onError": "#FFFFFF"
+    },
+    "dark": {
+      "primary": "#8AD6BF",
+      "onPrimary": "#00382C",
+      "primaryContainer": "#0E5244",
+      "onPrimaryContainer": "#D4EFE7",
+      "secondary": "#B1CCC4",
+      "onSecondary": "#1C352F",
+      "secondaryContainer": "#33473F",
+      "onSecondaryContainer": "#CDE8DF",
+      "surface": "#111413",
+      "onSurface": "#E1E3E2",
+      "surfaceContainer": "#1C201F",
+      "onSurfaceVariant": "#A8B0AD",
+      "outline": "#3F4845",
+      "error": "#FFB4AB",
+      "onError": "#690005"
+    },
+    "fonts": {
+      "display": "Inter",
+      "body": "Inter"
+    },
+    "radius": {
+      "small": 4,
+      "medium": 8,
+      "large": 12
+    },
+    "elevation": "flat",
+    "borders": "hairline",
+    "density": "airy",
+    "typeScale": {
+      "displayLarge": {
+        "size": 57,
+        "weight": 500
+      },
+      "displayMedium": {
+        "size": 45,
+        "weight": 500
+      },
+      "displaySmall": {
+        "size": 36,
+        "weight": 500
+      },
+      "headlineLarge": {
+        "size": 32,
+        "weight": 500
+      },
+      "headlineMedium": {
+        "size": 28,
+        "weight": 500
+      },
+      "headlineSmall": {
+        "size": 24,
+        "weight": 500
+      },
+      "titleLarge": {
+        "size": 22,
+        "weight": 500
+      },
+      "titleMedium": {
+        "size": 16,
+        "weight": 500
+      },
+      "titleSmall": {
+        "size": 14,
+        "weight": 500
+      },
+      "bodyLarge": {
+        "size": 16,
+        "weight": 400
+      },
+      "bodyMedium": {
+        "size": 14,
+        "weight": 400
+      },
+      "bodySmall": {
+        "size": 12,
+        "weight": 400
+      },
+      "labelLarge": {
+        "size": 14,
+        "weight": 500
+      },
+      "labelMedium": {
+        "size": 12,
+        "weight": 500
+      },
+      "labelSmall": {
+        "size": 11,
+        "weight": 500
+      }
+    }
+  }
+}

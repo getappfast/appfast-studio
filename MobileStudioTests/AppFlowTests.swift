@@ -145,6 +145,61 @@ struct FlowFinderTests {
         #expect(geometry.unlinkedTop != nil)
     }
 
+    private func names(_ prefix: String, _ count: Int) -> [String] { (1...count).map { "\(prefix)\($0)" } }
+
+    private func geometry(columns: [[String]], unlinked: [String] = []) -> FlowGeometry {
+        FlowGeometry(AppFlow.Layout(columns: columns, unlinked: unlinked))
+    }
+
+    @Test func wrapsATallColumnIntoLanesNearFourByThree() {
+        let columns = [["Start"], names("A", 17), names("B", 3)]
+        let geometry = geometry(columns: columns, unlinked: names("U", 9))
+        let aspect = geometry.size.width / geometry.size.height
+        #expect(abs(log(aspect / (4.0 / 3.0))) < 0.25)
+        #expect(geometry.frames.count == 1 + 17 + 3 + 9)
+        // Nothing overlaps, and everything is inside the map.
+        let frames = Array(geometry.frames.values)
+        for (index, frame) in frames.enumerated() {
+            #expect(CGRect(origin: .zero, size: geometry.size).contains(frame))
+            #expect(!frames[(index + 1)...].contains { $0.intersects(frame) })
+        }
+    }
+
+    @Test func wrappedLanesKeepTheirOrderAndStaySideBySide() {
+        let geometry = geometry(columns: [["Start"], names("A", 12)])
+        let cards = names("A", 12).compactMap { geometry.frames[$0] }
+        // Reading order is lane by lane, top to bottom, left to right.
+        let ordered = cards.sorted { ($0.minX, $0.minY) < ($1.minX, $1.minY) }
+        #expect(ordered == cards)
+        #expect(Set(cards.map(\.minX)).count > 1)
+        #expect(cards.map(\.minX).min()! > geometry.frames["Start"]!.maxX)
+    }
+
+    @Test func leavesAMapThatIsAlreadyWideAlone() {
+        let geometry = geometry(columns: [["A"], ["B"], ["C"], ["D"]])
+        let card = FlowGeometry.card, spacing = FlowGeometry.spacing, margin = FlowGeometry.margin
+        #expect(Set(geometry.frames.values.map(\.minX)).count == 4)
+        #expect(Set(geometry.frames.values.map(\.minY)).count == 1)
+        #expect(geometry.size == CGSize(width: margin.width * 2 + card.width * 4 + spacing.width * 3, height: margin.height * 2 + card.height))
+    }
+
+    @Test func lanesAreEvenAndInOrder() {
+        let column = ["a", "b", "c", "d", "e", "f", "g"]
+        #expect(FlowGeometry.lanes(column, rows: 3) == [["a", "b", "c"], ["d", "e"], ["f", "g"]])
+        #expect(FlowGeometry.lanes(column, rows: 7) == [column])
+        #expect(FlowGeometry.lanes(column, rows: 20) == [column])
+        #expect(FlowGeometry.lanes(column, rows: 1).count == 7)
+    }
+
+    @Test func theUnlinkedHeadingSitsOverAllItsLanes() {
+        let geometry = geometry(columns: [["Start"], names("A", 14)], unlinked: names("U", 14))
+        let lanes = names("U", 14).compactMap { geometry.frames[$0] }
+        let top = try! #require(geometry.unlinkedTop)
+        #expect(Set(lanes.map(\.minX)).count > 1)
+        #expect(abs(top.x - (lanes.map(\.minX).min()! + lanes.map(\.maxX).max()!) / 2) < 0.001)
+        #expect(top.y == lanes.map(\.minY).min())
+    }
+
     @Test func matchesRoutePathsWithParameters() {
         #expect(RouteTable.path("/user/$id", matches: "/user/:id"))
         #expect(RouteTable.path("/home/details?tab=1", matches: "details"))

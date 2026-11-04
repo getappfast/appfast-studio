@@ -11,7 +11,10 @@ struct ClaudeAccess: Sendable, Equatable {
     func agentProcess(_ call: ClaudeAgentCall, folder: String, timeout: TimeInterval) async -> ClaudeStreamProcess {
         var environment = environment
         if let path = await ShellEnvironment.terminalPATH() { environment["PATH"] = path }
-        return ClaudeStreamProcess(cliPath: cliPath, arguments: call.arguments, folder: folder,
+        // Where `ms-sim` lives, so the allow-listed command resolves.
+        let bin = AgentBridge.binDirectory.path
+        environment["PATH"] = bin + ":" + (environment["PATH"] ?? ProcessInfo.processInfo.environment["PATH"] ?? "/usr/bin:/bin")
+        return ClaudeStreamProcess(cliPath: cliPath, arguments: call.arguments, input: call.inputMessage, folder: folder,
                                    environment: environment, timeout: timeout)
     }
 }
@@ -39,9 +42,24 @@ struct ClaudeAgentCall: Equatable, Sendable {
     var maxBudgetUSD: Double
     /// Bash patterns Claude may run without asking, e.g. "flutter pub *".
     var allowedCommands: [String]
+    /// Folders outside the project Claude may also read, e.g. the simulator screenshots.
+    var readableFolders: [String] = []
+    /// Hold a request for something outside the allow-list until the app answers, instead of refusing it. The CLI
+    /// then takes the prompt as a message on stdin, because that is where it reads the answers.
+    var asksForApproval = false
+    /// Limits edits to the files this pattern matches, e.g. "design/**". The CLI then accepts only those edits by
+    /// itself and holds any other as a permission request, which the app refuses. Nil accepts every edit in the project.
+    var editablePattern: String?
+
+    /// The prompt as the first line to write to stdin, for a call that asks for approval.
+    var inputMessage: String? {
+        guard asksForApproval else { return nil }
+        let message: [String: Any] = ["type": "user", "message": ["role": "user", "content": prompt]]
+        return (try? JSONSerialization.data(withJSONObject: message)).map { String(decoding: $0, as: UTF8.self) }
+    }
 
     var arguments: [String] {
-        var arguments = ["-p", prompt]
+        var arguments = asksForApproval ? ["-p"] : ["-p", prompt]
         switch session {
         case .none: arguments += ["--no-session-persistence"]
         case .start(let id): arguments += ["--session-id", id]
@@ -51,7 +69,7 @@ struct ClaudeAgentCall: Equatable, Sendable {
             "--model", model,
             // Machine-wide plugins, skills, MCP servers and hooks stay off: they only add cost and risk here.
             "--safe-mode",
-            "--permission-mode", "acceptEdits",
+            "--permission-mode", editablePattern == nil ? "acceptEdits" : "default",
         ]
         if let systemPrompt { arguments += ["--append-system-prompt", systemPrompt] }
         arguments += ["--output-format", "stream-json", "--verbose"]
@@ -62,8 +80,19 @@ struct ClaudeAgentCall: Equatable, Sendable {
             // Bash is only offered when some command is allowed, so a read-only call has no shell at all.
             "--tools", (tools + (allowedCommands.isEmpty ? [] : ["Bash"])).joined(separator: ","),
         ]
+        if !readableFolders.isEmpty { arguments += ["--add-dir"] + readableFolders }
+        if asksForApproval { arguments += ["--input-format", "stream-json", "--permission-prompt-tool", "stdio"] }
         // Variadic, so it has to come last.
-        arguments += ["--allowedTools"] + tools + allowedCommands.map { "Bash(\($0))" }
+        arguments += ["--allowedTools"] + allowedTools + allowedCommands.map { "Bash(\($0))" }
         return arguments
+    }
+
+    /// The tools allowed without asking. With `editablePattern`, one Edit rule covers every editing tool, but only for
+    /// the files it matches.
+    private var allowedTools: [String] {
+        guard let editablePattern else { return tools }
+        let editing: Set<String> = ["Edit", "Write", "MultiEdit", "NotebookEdit"]
+        let others = tools.filter { !editing.contains($0) }
+        return tools.contains(where: editing.contains) ? others + ["Edit(\(editablePattern))"] : others
     }
 }

@@ -49,7 +49,9 @@ enum ClaudeEvents {
                 case "Read": items.append(.activity("Reading \(relative(input["file_path"] as? String))"))
                 case "Edit", "Write": items.append(.activity("Editing \(relative(input["file_path"] as? String))"))
                 case "Glob", "Grep": items.append(.activity("Searching for \(input["pattern"] as? String ?? "files")"))
-                case "Bash": items.append(.activity("Running \((input["command"] as? String ?? "a command").prefix(100))"))
+                case "Bash":
+                    let command = input["command"] as? String ?? "a command"
+                    items.append(.activity(SimulatorCommand.activity(forShell: command) ?? "Running \(command.prefix(100))"))
                 default: break
                 }
             default: break

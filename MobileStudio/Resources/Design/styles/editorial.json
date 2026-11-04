@@ -1,0 +1,125 @@
+{
+  "id": "editorial",
+  "name": "Editorial",
+  "feel": "Refined and magazine-like, with serif headlines.",
+  "fonts": [
+    "Fraunces",
+    "Playfair Display",
+    "Inter",
+    "Source Sans 3"
+  ],
+  "guidance": "Serif headlines, generous margins, thin rules between sections, muted paper-like colours. Let typography carry the screen; keep components few and quiet.",
+  "tokens": {
+    "style": "editorial",
+    "name": "Paper and brick",
+    "mood": "Warm paper tones with a brick red accent.",
+    "light": {
+      "primary": "#8C2F1B",
+      "onPrimary": "#FFFFFF",
+      "primaryContainer": "#F6E3D9",
+      "onPrimaryContainer": "#3A0F05",
+      "secondary": "#5C574F",
+      "onSecondary": "#FFFFFF",
+      "secondaryContainer": "#ECE6DC",
+      "onSecondaryContainer": "#2A2620",
+      "surface": "#FBF8F3",
+      "onSurface": "#1E1B16",
+      "surfaceContainer": "#F2EDE5",
+      "onSurfaceVariant": "#6A645B",
+      "outline": "#D6CFC4",
+      "error": "#B3261E",
+      "onError": "#FFFFFF"
+    },
+    "dark": {
+      "primary": "#FFB59F",
+      "onPrimary": "#5A1A0A",
+      "primaryContainer": "#6E2614",
+      "onPrimaryContainer": "#FFDBCF",
+      "secondary": "#CFC6B8",
+      "onSecondary": "#34302A",
+      "secondaryContainer": "#4A453D",
+      "onSecondaryContainer": "#ECE1D2",
+      "surface": "#16130F",
+      "onSurface": "#EAE1D6",
+      "surfaceContainer": "#221E19",
+      "onSurfaceVariant": "#BDB4A8",
+      "outline": "#4D473F",
+      "error": "#F2B8B5",
+      "onError": "#601410"
+    },
+    "fonts": {
+      "display": "Fraunces",
+      "body": "Inter"
+    },
+    "radius": {
+      "small": 2,
+      "medium": 4,
+      "large": 8
+    },
+    "elevation": "flat",
+    "borders": "hairline",
+    "density": "airy",
+    "typeScale": {
+      "displayLarge": {
+        "size": 57,
+        "weight": 600
+      },
+      "displayMedium": {
+        "size": 45,
+        "weight": 600
+      },
+      "displaySmall": {
+        "size": 36,
+        "weight": 600
+      },
+      "headlineLarge": {
+        "size": 32,
+        "weight": 600
+      },
+      "headlineMedium": {
+        "size": 28,
+        "weight": 600
+      },
+      "headlineSmall": {
+        "size": 24,
+        "weight": 600
+      },
+      "titleLarge": {
+        "size": 22,
+        "weight": 400
+      },
+      "titleMedium": {
+        "size": 16,
+        "weight": 500
+      },
+      "titleSmall": {
+        "size": 14,
+        "weight": 500
+      },
+      "bodyLarge": {
+        "size": 16,
+        "weight": 400
+      },
+      "bodyMedium": {
+        "size": 14,
+        "weight": 400
+      },
+      "bodySmall": {
+        "size": 12,
+        "weight": 400
+      },
+      "labelLarge": {
+        "size": 14,
+        "weight": 500
+      },
+      "labelMedium": {
+        "size": 12,
+        "weight": 500
+      },
+      "labelSmall": {
+        "size": 11,
+        "weight": 500
+      }
+    }
+  }
+}

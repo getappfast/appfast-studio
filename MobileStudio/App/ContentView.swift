@@ -25,13 +25,16 @@ struct ContentView: View {
                 // The device stays underneath the map: removing it would stop its display stream.
                 SimulatorCanvas(model: workspace.simulator, isPicking: workspace.pick.isPicking,
                                 showsFrame: workspace.showsDeviceFrame)
-                    .opacity(workspace.canvas == .flow ? 0 : 1)
-                    .accessibilityHidden(workspace.canvas == .flow || workspace.project.readyFolder == nil)
+                    .contextMenu { DeviceRedesignMenu(workspace: workspace) }
+                    .opacity(workspace.canvas == .device ? 1 : 0)
+                    .accessibilityHidden(workspace.canvas != .device || workspace.project.readyFolder == nil)
                     .overlay {
                         if workspace.project.readyFolder == nil {
                             NoProjectView(workspace: workspace)
                         } else if workspace.canvas == .flow {
                             FlowCanvas(workspace: workspace, leadingInset: max(sidebarEdge - canvasEdge, 0))
+                        } else if workspace.canvas == .design {
+                            DesignView(workspace: workspace)
                         }
                     }
                     .onGeometryChange(for: CGFloat.self, of: { $0.frame(in: .global).minX }) { canvasEdge = $0 }
@@ -71,7 +74,8 @@ struct ContentView: View {
                     for _ in 0..<300 where workspace.run.phase != .running { try? await Task.sleep(for: .seconds(1)) }
                     workspace.chatDraft = message
                     if let folder = workspace.project.readyFolder, let claude = workspace.studio.claude {
-                        workspace.chat.send(message, folder: folder, claude: claude, profile: workspace.studio.profiles.active)
+                        workspace.chat.send(message, folder: folder, claude: claude, profile: workspace.studio.profiles.active,
+                                            approve: workspace.approvalHandler(folder: folder))
                         workspace.chatDraft = ""
                     }
                     if env["MOBILE_STUDIO_SNAPSHOT_CHOOSE"] == "1" {
@@ -126,8 +130,26 @@ private struct ActivityEvents: ViewModifier {
             .onChange(of: workspace.creator.phase) { workspace.creatorPhaseChanged() }
             .onChange(of: workspace.fix.activity) { workspace.fixActivityChanged() }
             .onChange(of: workspace.chat.isSending) { workspace.chatSendingChanged() }
+            .onChange(of: workspace.designChat.isSending) { workspace.designSendingChanged() }
             .onChange(of: workspace.pick.picks.count) { workspace.picksChanged() }
             .onChange(of: workspace.studio.canRunClaude) { _, ready in workspace.claudeAvailabilityChanged(ready) }
+    }
+}
+
+/// Right-click on the device: redesign the screen it shows. Which screen it is comes from the user, which is
+/// always right and costs nothing.
+private struct DeviceRedesignMenu: View {
+    let workspace: Workspace
+
+    var body: some View {
+        let screens = workspace.screens
+        Menu("Redesign This Screen") {
+            ForEach(screens) { screen in
+                Button(screen.name) { workspace.redesign(screen, capture: true) }
+            }
+        }
+        .disabled(screens.isEmpty || !workspace.canCapture)
+        Button("Show Design", action: workspace.openDesign)
     }
 }
 

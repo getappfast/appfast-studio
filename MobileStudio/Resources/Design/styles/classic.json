@@ -1,0 +1,123 @@
+{
+  "id": "classic",
+  "name": "Classic",
+  "feel": "Familiar Material 3, nothing surprising.",
+  "fonts": [
+    "Roboto",
+    "system"
+  ],
+  "guidance": "Standard Material 3: app bars, cards, list tiles and filled buttons used the way Google's own apps use them.",
+  "tokens": {
+    "style": "classic",
+    "name": "Material",
+    "mood": "Material 3's baseline purple.",
+    "light": {
+      "primary": "#6750A4",
+      "onPrimary": "#FFFFFF",
+      "primaryContainer": "#EADDFF",
+      "onPrimaryContainer": "#21005D",
+      "secondary": "#625B71",
+      "onSecondary": "#FFFFFF",
+      "secondaryContainer": "#E8DEF8",
+      "onSecondaryContainer": "#1D192B",
+      "surface": "#FEF7FF",
+      "onSurface": "#1D1B20",
+      "surfaceContainer": "#F3EDF7",
+      "onSurfaceVariant": "#49454F",
+      "outline": "#79747E",
+      "error": "#B3261E",
+      "onError": "#FFFFFF"
+    },
+    "dark": {
+      "primary": "#D0BCFF",
+      "onPrimary": "#381E72",
+      "primaryContainer": "#4F378B",
+      "onPrimaryContainer": "#EADDFF",
+      "secondary": "#CCC2DC",
+      "onSecondary": "#332D41",
+      "secondaryContainer": "#4A4458",
+      "onSecondaryContainer": "#E8DEF8",
+      "surface": "#141218",
+      "onSurface": "#E6E0E9",
+      "surfaceContainer": "#211F26",
+      "onSurfaceVariant": "#CAC4D0",
+      "outline": "#938F99",
+      "error": "#F2B8B5",
+      "onError": "#601410"
+    },
+    "fonts": {
+      "display": "system",
+      "body": "system"
+    },
+    "radius": {
+      "small": 8,
+      "medium": 12,
+      "large": 20
+    },
+    "elevation": "subtle",
+    "borders": "none",
+    "density": "comfortable",
+    "typeScale": {
+      "displayLarge": {
+        "size": 57,
+        "weight": 400
+      },
+      "displayMedium": {
+        "size": 45,
+        "weight": 400
+      },
+      "displaySmall": {
+        "size": 36,
+        "weight": 400
+      },
+      "headlineLarge": {
+        "size": 32,
+        "weight": 400
+      },
+      "headlineMedium": {
+        "size": 28,
+        "weight": 400
+      },
+      "headlineSmall": {
+        "size": 24,
+        "weight": 400
+      },
+      "titleLarge": {
+        "size": 22,
+        "weight": 400
+      },
+      "titleMedium": {
+        "size": 16,
+        "weight": 500
+      },
+      "titleSmall": {
+        "size": 14,
+        "weight": 500
+      },
+      "bodyLarge": {
+        "size": 16,
+        "weight": 400
+      },
+      "bodyMedium": {
+        "size": 14,
+        "weight": 400
+      },
+      "bodySmall": {
+        "size": 12,
+        "weight": 400
+      },
+      "labelLarge": {
+        "size": 14,
+        "weight": 500
+      },
+      "labelMedium": {
+        "size": 12,
+        "weight": 500
+      },
+      "labelSmall": {
+        "size": 11,
+        "weight": 500
+      }
+    }
+  }
+}

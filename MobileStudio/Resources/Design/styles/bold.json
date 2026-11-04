@@ -1,0 +1,124 @@
+{
+  "id": "bold",
+  "name": "Bold",
+  "feel": "Confident, high contrast, big type.",
+  "fonts": [
+    "Space Grotesk",
+    "Archivo",
+    "Outfit"
+  ],
+  "guidance": "High contrast, big confident headlines, strong borders, compact spacing. Use filled buttons, large numbers and blocks of the accent colour.",
+  "tokens": {
+    "style": "bold",
+    "name": "Electric",
+    "mood": "Ink black, electric blue and a flash of yellow.",
+    "light": {
+      "primary": "#2B2BE6",
+      "onPrimary": "#FFFFFF",
+      "primaryContainer": "#FFE14D",
+      "onPrimaryContainer": "#1A1600",
+      "secondary": "#111111",
+      "onSecondary": "#FFFFFF",
+      "secondaryContainer": "#F0F0F0",
+      "onSecondaryContainer": "#111111",
+      "surface": "#FFFFFF",
+      "onSurface": "#0A0A0A",
+      "surfaceContainer": "#F2F2F2",
+      "onSurfaceVariant": "#4A4A4A",
+      "outline": "#0A0A0A",
+      "error": "#D1001F",
+      "onError": "#FFFFFF"
+    },
+    "dark": {
+      "primary": "#8C8CFF",
+      "onPrimary": "#000066",
+      "primaryContainer": "#FFE14D",
+      "onPrimaryContainer": "#1A1600",
+      "secondary": "#F5F5F5",
+      "onSecondary": "#0A0A0A",
+      "secondaryContainer": "#2A2A2A",
+      "onSecondaryContainer": "#F5F5F5",
+      "surface": "#000000",
+      "onSurface": "#FFFFFF",
+      "surfaceContainer": "#141414",
+      "onSurfaceVariant": "#B5B5B5",
+      "outline": "#FFFFFF",
+      "error": "#FF6B7D",
+      "onError": "#3D0008"
+    },
+    "fonts": {
+      "display": "Archivo",
+      "body": "Archivo"
+    },
+    "radius": {
+      "small": 4,
+      "medium": 10,
+      "large": 14
+    },
+    "elevation": "flat",
+    "borders": "bold",
+    "density": "compact",
+    "typeScale": {
+      "displayLarge": {
+        "size": 60,
+        "weight": 700
+      },
+      "displayMedium": {
+        "size": 45,
+        "weight": 700
+      },
+      "displaySmall": {
+        "size": 36,
+        "weight": 700
+      },
+      "headlineLarge": {
+        "size": 32,
+        "weight": 700
+      },
+      "headlineMedium": {
+        "size": 28,
+        "weight": 700
+      },
+      "headlineSmall": {
+        "size": 24,
+        "weight": 700
+      },
+      "titleLarge": {
+        "size": 22,
+        "weight": 700
+      },
+      "titleMedium": {
+        "size": 16,
+        "weight": 500
+      },
+      "titleSmall": {
+        "size": 14,
+        "weight": 500
+      },
+      "bodyLarge": {
+        "size": 16,
+        "weight": 400
+      },
+      "bodyMedium": {
+        "size": 14,
+        "weight": 400
+      },
+      "bodySmall": {
+        "size": 12,
+        "weight": 400
+      },
+      "labelLarge": {
+        "size": 14,
+        "weight": 600
+      },
+      "labelMedium": {
+        "size": 12,
+        "weight": 500
+      },
+      "labelSmall": {
+        "size": 11,
+        "weight": 500
+      }
+    }
+  }
+}

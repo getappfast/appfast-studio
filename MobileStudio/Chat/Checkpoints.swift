@@ -91,6 +91,11 @@ enum CheckpointStore {
         try? FileManager.default.removeItem(at: ProjectStorage.directory("Checkpoints", for: folder))
     }
 
+    /// Forgets some checkpoints, such as one conversation's, and keeps the rest of the folder's.
+    static func discard(ids: [UUID], folder: String) {
+        for id in ids { try? FileManager.default.removeItem(at: url(id, folder)) }
+    }
+
     private static func url(_ id: UUID, _ folder: String) -> URL {
         ProjectStorage.directory("Checkpoints", for: folder).appendingPathComponent(id.uuidString)
     }

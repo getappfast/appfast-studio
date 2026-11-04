@@ -44,13 +44,15 @@ struct ProductPlan: Codable, Equatable, Sendable {
     static let writeLabel = "Write the plan"
     static let moreQuestionsLabel = "A few more questions"
     static let buildLabel = "Build milestone 1"
+    static let designLabel = "Design the screens"
     static let changeLabel = "Change the plan"
     static let notNowLabel = "Not now"
 
     /// What the chat offers once the plan is written.
     static var nextSteps: ChoiceSet {
         ChoiceSet(question: "What next?", multiple: false, options: [
-            .init(label: buildLabel, detail: "Claude builds the first milestone, and you watch it appear.", recommended: true),
+            .init(label: designLabel, detail: "Pick a style and colours, and see every screen before anything is built.", recommended: true),
+            .init(label: buildLabel, detail: "Skip the design and build the first milestone now."),
             .init(label: changeLabel, detail: "Say what to adjust, then write the plan again."),
             .init(label: notNowLabel, detail: "Keep PLAN.md and come back later."),
         ])

@@ -7,9 +7,17 @@ struct WorkspaceToolbar: ToolbarContent {
 
     var body: some ToolbarContent {
         ToolbarItemGroup(placement: .navigation) {
-            Button(action: workspace.runApp) { Label("Run", systemImage: "play.fill") }
-                .disabled(!workspace.canRun)
-                .help(workspace.runBlocker.map { "Run (⌘R): \($0)" } ?? "Run (⌘R)")
+            // While the app runs, Run has nothing to do, so its place goes to the two ways of refreshing it.
+            if workspace.canHotReload {
+                Button(action: workspace.hotRestart) { Label("Hot Restart", systemImage: "arrow.clockwise") }
+                    .help("Hot Restart: start the app over, keeping it running (⌥⇧⌘R)")
+                Button(action: workspace.hotReload) { Label("Hot Reload", systemImage: "bolt.fill") }
+                    .help("Hot Reload: apply code changes and keep the app's state (⇧⌘R)")
+            } else {
+                Button(action: workspace.runApp) { Label("Run", systemImage: "play.fill") }
+                    .disabled(!workspace.canRun)
+                    .help(workspace.runBlocker.map { "Run (⌘R): \($0)" } ?? "Run (⌘R)")
+            }
             Button(action: workspace.stopApp) { Label("Stop", systemImage: "stop.fill") }
                 .disabled(!workspace.canStop)
                 .help("Stop (⌘.)")
@@ -29,17 +37,18 @@ struct WorkspaceToolbar: ToolbarContent {
             .background(.quaternary.opacity(0.6), in: RoundedRectangle(cornerRadius: 7, style: .continuous))
         }
 
-        // Hot Reload isn't here: Claude's edits reload on their own, and it stays in the Product menu (⇧⌘R).
         ToolbarItemGroup(placement: .primaryAction) {
             Picker("Canvas", selection: Bindable(workspace).canvas) {
                 Label("Device", systemImage: "iphone").tag(Workspace.Canvas.device)
                     .help("Show the running app (⌘1)")
                 Label("App Flow", systemImage: "point.3.connected.trianglepath.dotted").tag(Workspace.Canvas.flow)
                     .help("Show how the app's screens connect (⌘2)")
+                Label("Design", systemImage: "paintpalette").tag(Workspace.Canvas.design)
+                    .help("Show the app's screens as mockups (⌥⌘D)")
             }
             .pickerStyle(.segmented)
             .labelStyle(.iconOnly)
-            .help("Show the device or a map of the app's screens")
+            .help("Show the device, a map of the app's screens, or their mockups")
             // The one tool in the toolbar with words: pointing at something is how low-code users say "this one".
             Toggle(isOn: Binding(get: { workspace.pick.isPicking }, set: { _ in workspace.togglePick() })) {
                 Label("Point at…", systemImage: "scope").labelStyle(.titleAndIcon)

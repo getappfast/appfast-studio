@@ -13,9 +13,19 @@ final class Workspace {
     let run = FlutterRunModel()
     let fix = FixModel()
     let chat = ChatModel()
+    /// What Claude asks the user's OK for, and the commands they said it may always run.
+    let approvals = ApprovalModel()
     let pick = PickModel()
     let dart = DartSDKModel()
     let creator = NewProjectModel()
+    /// Where the app-flow map is and how big it's drawn.
+    let flowMap = FlowMapModel()
+    /// Lets the chat's agent look at and tap the simulator.
+    let agentBridge = AgentBridge()
+    /// The Design window's chat: mockups only, with its own conversation and Undo.
+    let designChat = ChatModel(storage: "design", mode: .design)
+    /// What's in the project's design/ folder, and the Design window's selection and picks.
+    let design = DesignModel()
 
     // MARK: Window
 
@@ -45,6 +55,16 @@ final class Workspace {
     var chatDraft = ""
     /// Bumped to put the cursor in the chat box.
     private(set) var composerFocusRequest = 0
+    /// What's typed in the design chat box.
+    var designDraft = ""
+    /// Reference pictures attached to the Design window's next message, as saved copies on disk.
+    var designAttachments: [String] = []
+    /// The changed file whose diff the Design window shows.
+    var designDiffFile: FileSnapshot.Change?
+    /// Screens still to draw after Use this look, a few per turn.
+    @ObservationIgnored var drawQueue: [[DesignTurn.Target]] = []
+    /// The reference pictures the queued screens are drawn with, the ones the request that queued them attached.
+    @ObservationIgnored var drawReferences: [String] = []
     /// What was asked for in the New Project sheet, for a project made there. Drives the planning card.
     private(set) var newProjectRecord: NewProjectRecord?
     /// The written product plan, kept apart from the chat so the milestone tracker outlives a new chat.
@@ -76,6 +96,8 @@ final class Workspace {
 
     init(studio: StudioModel) {
         self.studio = studio
+        agentBridge.handler = { [simulator] command in await simulator.perform(command) }
+        agentBridge.start()
         // An app left running by an earlier run can be picked up again, so look whenever the user comes back.
         activeObserver = NotificationCenter.default.addObserver(
             forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main
@@ -87,6 +109,8 @@ final class Workspace {
     /// First appearance: find the CLI and accounts, then check the saved project.
     func start() async {
         chat.load(folder: project.readyFolder)
+        designChat.load(folder: project.readyFolder)
+        design.load(folder: project.readyFolder)
         loadRecord()
         refreshFlow()
         async let sdk: Void = dart.refresh()
@@ -167,12 +191,15 @@ final class Workspace {
         if project.readyFolder == nil { return "Choose a Flutter project to start a chat." }
         if studio.claude == nil { return "Install the claude CLI and sign in to chat." }
         if fix.isBusy { return "Claude is fixing the project. You can chat again when it's done." }
+        // Both chats compare the whole folder before and after, so one would claim the other's changes.
+        if designChat.isSending { return "Claude is designing. You can chat again when it's done." }
         return nil
     }
 
     /// One line for the toolbar's activity area, like Xcode's.
     var activity: Activity {
         let device = run.deviceName ?? simulator.selected?.name ?? "the simulator"
+        if approvals.current != nil { return Activity(tone: .warning, text: "Waiting for your OK", busy: false) }
         if fix.phase == .fixing { return Activity(tone: .neutral, text: "Claude is fixing the project…", busy: true) }
         if fix.phase == .validating { return Activity(tone: .neutral, text: "Checking the fix on \(device)…", busy: true) }
         switch run.phase {
@@ -195,17 +222,29 @@ final class Workspace {
     var menuState: MenuState {
         MenuState(canRun: canRun, canStop: canStop, canHotReload: canHotReload, canPick: canPick,
                   isPicking: pick.isPicking, isChatVisible: isChatVisible, isLogVisible: isLogVisible,
-                  isShowingFlow: canvas == .flow, showsDeviceFrame: showsDeviceFrame,
+                  showsDeviceFrame: showsDeviceFrame, canvas: canvas,
                   canStartNewChat: !chat.messages.isEmpty && !chat.isSending,
                   canFix: visibleFailure != nil && fixBlocker == nil,
                   canCheckProject: project.path != nil && studio.projectVerifier != nil,
-                  canCreateProject: canCreateProject && !isNewProjectSheetVisible)
+                  canCreateProject: canCreateProject && !isNewProjectSheetVisible,
+                  canZoomMapIn: canvas == .flow && flowMap.canZoomIn, canZoomMapOut: canvas == .flow && flowMap.canZoomOut,
+                  canResizeMap: canvas == .flow && flowMap.isPlaced, canOpenDesign: project.readyFolder != nil)
     }
 
     struct MenuState: Equatable {
-        var canRun, canStop, canHotReload, canPick, isPicking, isChatVisible, isLogVisible, isShowingFlow, showsDeviceFrame: Bool
+        var canRun, canStop, canHotReload, canPick, isPicking, isChatVisible, isLogVisible, showsDeviceFrame: Bool
+        var canvas: Canvas
         var canStartNewChat, canFix, canCheckProject, canCreateProject: Bool
+        var canZoomMapIn, canZoomMapOut, canResizeMap: Bool
+        var canOpenDesign: Bool
     }
+
+    // MARK: App flow map
+
+    func zoomMapIn() { flowMap.zoomIn() }
+    func zoomMapOut() { flowMap.zoomOut() }
+    func zoomMapToActualSize() { flowMap.actualSize() }
+    func zoomMapToFit() { flowMap.fit() }
 
     /// Everything wrong with the project that the user may need to act on, worst first.
     var issues: [ProjectIssue] {
@@ -236,7 +275,21 @@ final class Workspace {
     }
 
     enum Canvas: String {
-        case device, flow
+        case device, flow, design
+    }
+
+    /// The sidebar's tabs. Design follows the design canvas, so the sidebar and the canvas can't disagree.
+    enum SidebarTab: Equatable {
+        case project, design
+    }
+
+    var sidebarTab: SidebarTab { canvas == .design ? .design : .project }
+
+    func showSidebarTab(_ tab: SidebarTab) {
+        switch tab {
+        case .design: openDesign()
+        case .project: if canvas == .design { canvas = .device }
+        }
     }
 
     struct Toast: Equatable {
@@ -310,6 +363,8 @@ final class Workspace {
 
     func hotReload() { run.hotReload() }
 
+    func hotRestart() { run.hotRestart() }
+
     func togglePick() {
         guard canPick else { return }
         pick.toggle(run: run, folder: project.readyFolder)
@@ -336,7 +391,7 @@ final class Workspace {
         guard let failure = visibleFailure, fixBlocker == nil, let claude = studio.claude else { return }
         isChatVisible = true
         fixMessageID = chat.beginFix(failure)
-        fix.fix(failure, using: claude, run: run)
+        fix.fix(failure, using: claude, run: run, approve: approvalHandler(folder: failure.folder))
     }
 
     func cancelFix() { fix.cancel() }
@@ -378,6 +433,7 @@ final class Workspace {
                     update(record) { $0.kickoff = .started; $0.doneMilestones = nil }
                 }
                 if let index = answer.milestone { setMilestone(index, done: false) }
+                if let tag = answer.designApply { designApplyUndone(tag) }
             } catch {
                 show(Toast(tone: .warning, text: error.localizedDescription))
                 return
@@ -393,8 +449,25 @@ final class Workspace {
         guard chatBlocker == nil, !chat.isSending, let folder = project.readyFolder, let claude = studio.claude,
               !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
         pick.cancel()
-        chat.send(text, references: pick.picks, turn: turn, milestone: milestone, folder: folder, claude: claude, profile: studio.profiles.active)
+        chat.send(text, references: pick.picks, turn: turn, milestone: milestone, folder: folder, claude: claude,
+                  profile: studio.profiles.active, approve: approvalHandler(folder: folder))
         pick.clear()
+    }
+
+    /// What Claude gets back when it asks for something outside its allow-list in this folder's run.
+    func approvalHandler(folder: String) -> AgentPermissionHandler {
+        { [weak self] request in
+            await self?.ask(request, folder: folder) ?? .deny("Mobile Studio is closing.")
+        }
+    }
+
+    /// The question appears in the chat, which comes forward, and the Dock bounces if the app is in the background.
+    private func ask(_ request: AgentPermissionRequest, folder: String) async -> AgentPermissionRequest.Decision {
+        if approvals.needsUser(request, folder: folder) {
+            isChatVisible = true
+            NSApp.requestUserAttention(.informationalRequest)
+        }
+        return await approvals.decide(request, folder: folder)
     }
 
     /// The user picked from the options at the end of an answer: remember it and send it as the next message.
@@ -424,6 +497,7 @@ final class Workspace {
             labels.contains { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased().hasPrefix(label.lowercased()) }
         }
         if picked(ProductPlan.writeLabel) { return { [self] in writePlan() } }
+        if picked(ProductPlan.designLabel) { return { [self] in openDesign() } }
         if picked(ProductPlan.buildLabel) {
             return { [self] in buildMilestone(0) }
         }
@@ -465,7 +539,12 @@ final class Workspace {
         guard let plan, plan.milestones.indices.contains(index), buildMilestoneBlocker == nil, !chat.isSending else { return }
         isChatVisible = true
         chat.switchToBuild()
-        sendChat("Build milestone \(index + 1) from \(ProductPlan.fileName): \(plan.milestones[index].title).", milestone: index)
+        var text = "Build milestone \(index + 1) from \(ProductPlan.fileName): \(plan.milestones[index].title)."
+        let references = DesignHandoff.references(for: index, plan: plan, library: design.library) { [design] screen, version in
+            design.previewURL(screen: screen.id, version: version)?.path
+        }
+        if let note = DesignHandoff.milestoneNote(references) { text += "\n\n" + note }
+        sendChat(text, milestone: index)
     }
 
     /// For milestones built by hand or outside the app, or to build one again.
@@ -490,7 +569,7 @@ final class Workspace {
         return lines.joined(separator: "\n")
     }
 
-    private func update(_ record: NewProjectRecord, _ change: (inout NewProjectRecord) -> Void) {
+    func update(_ record: NewProjectRecord, _ change: (inout NewProjectRecord) -> Void) {
         guard let folder = project.readyFolder else { return }
         var record = record
         change(&record)
@@ -520,7 +599,12 @@ final class Workspace {
         pick.cancel()
         pick.clear()
         diffFile = nil
+        designDiffFile = nil
+        drawQueue = []
+        designAttachments = []
         chat.load(folder: project.readyFolder)
+        designChat.load(folder: project.readyFolder)
+        design.load(folder: project.readyFolder)
         handledPath = project.path
         startPendingRun()
     }
@@ -528,6 +612,8 @@ final class Workspace {
     /// The folder became, or stopped being, a usable Flutter project.
     func projectStateChanged() {
         chat.load(folder: project.readyFolder)
+        designChat.load(folder: project.readyFolder)
+        design.load(folder: project.readyFolder)
         loadRecord()
         refreshExistingApp()
         refreshFlow()
@@ -559,6 +645,9 @@ final class Workspace {
             setMilestone(index, done: true)
             let next = milestoneProgress?.next.flatMap { plan?.milestones.indices.contains($0) == true ? plan?.milestones[$0].title : nil }
             show(Toast(tone: .success, text: next.map { "Milestone \(index + 1) built. Next: \($0)" } ?? "Every milestone is built"))
+        }
+        if let tag = reply.designApply, reply.error == nil, reply.files.contains(where: { $0.path.hasPrefix("lib/") }) {
+            designApplied(tag)
         }
         if reply.files.contains(where: { $0.path != ProductPlan.fileName }), let record = newProjectRecord, record.changed != true {
             update(record) { $0.changed = true }
@@ -631,10 +720,10 @@ final class Workspace {
 
     /// Makes changed files show in the running app: hot reload for code, a hot restart when start-up code changed,
     /// and an offer to run again for packages and native settings, which only a new build picks up.
-    private func applyEdits(_ files: [FileSnapshot.Change], done: String) {
+    func applyEdits(_ files: [FileSnapshot.Change], done: String) {
         guard !files.isEmpty else { return }
-        // PLAN.md isn't part of the app, so it needs no reload.
-        guard files.contains(where: { $0.path != ProductPlan.fileName }) else {
+        // PLAN.md and the mockups aren't part of the app, so they need no reload.
+        guard files.contains(where: { $0.path != ProductPlan.fileName && !$0.path.hasPrefix(DesignPaths.folder + "/") }) else {
             if done == "Undone" { show(Toast(tone: .success, text: "Undone")) }
             return
         }
@@ -647,7 +736,8 @@ final class Workspace {
         let paths = files.map(\.path)
         if paths.contains(where: { $0.hasPrefix("pubspec") || $0.hasPrefix("ios/") || $0.hasPrefix("android/") }) {
             show(Toast(tone: .warning, text: "\(done) \(count). Run again to apply package or iOS changes.", action: .runAgain))
-        } else if paths.contains("lib/main.dart") {
+        } else if paths.contains("lib/main.dart") || paths.contains(ThemeRenderer.path) || paths.contains(ThemeWiring.themePath) {
+            // Start-up code, and themes kept in static finals, which a hot reload leaves as they were.
             run.hotRestart()
             show(Toast(tone: .success, text: "\(done) · restarted the app"))
         } else {
@@ -656,7 +746,7 @@ final class Workspace {
         }
     }
 
-    private func show(_ toast: Toast) {
+    func show(_ toast: Toast) {
         self.toast = toast
         toastTask?.cancel()
         // One that asks for something stays until it's used or dismissed.
@@ -667,7 +757,7 @@ final class Workspace {
         }
     }
 
-    private func refreshFlow() {
+    func refreshFlow() {
         guard let folder = project.readyFolder else { flow = nil; return }
         Task {
             let found = await FlowFinder.found(in: folder)

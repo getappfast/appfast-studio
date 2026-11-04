@@ -74,13 +74,15 @@ enum AnswerParts {
 
 /// Kinds of step `ClaudeEvents` reports, for the chat's step list.
 enum ClaudeStep {
-    case reading, editing, searching, running, note
+    case reading, editing, searching, running, allowed, declined, note
 
     init(_ activity: String) {
         if activity.hasPrefix("Reading") { self = .reading }
         else if activity.hasPrefix("Editing") { self = .editing }
         else if activity.hasPrefix("Searching") { self = .searching }
         else if activity.hasPrefix("Running") { self = .running }
+        else if activity.hasPrefix("Allowed") { self = .allowed }
+        else if activity.hasPrefix("Declined") { self = .declined }
         else { self = .note }
     }
 
@@ -90,6 +92,8 @@ enum ClaudeStep {
         case .editing: "pencil"
         case .searching: "magnifyingglass"
         case .running: "terminal"
+        case .allowed: "checkmark.shield"
+        case .declined: "hand.raised"
         case .note: "info.circle"
         }
     }

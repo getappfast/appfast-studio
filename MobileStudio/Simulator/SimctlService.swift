@@ -63,6 +63,15 @@ struct SimctlService: Sendable {
         }
     }
 
+    /// Puts text on the device's pasteboard. `simctl pbcopy` reads stdin, which ProcessRunner doesn't offer, so the text goes through a file.
+    func setPasteboard(_ udid: String, text: String) async -> Bool {
+        let file = FileManager.default.temporaryDirectory.appendingPathComponent("ms-paste-\(UUID().uuidString).txt")
+        guard (try? text.write(to: file, atomically: true, encoding: .utf8)) != nil else { return false }
+        defer { try? FileManager.default.removeItem(at: file) }
+        let out = try? await ProcessRunner(timeout: 15).run("/bin/sh", ["-c", "\"$0\" simctl pbcopy \"$1\" < \"$2\"", xcrun, udid, file.path])
+        return out?.status == 0
+    }
+
     // MARK: Preview settings
 
     /// "light" or "dark", nil when it can't be read.

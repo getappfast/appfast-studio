@@ -1,4 +1,6 @@
+import AppKit
 import CoreGraphics
+import CoreImage
 import Foundation
 import Observation
 
@@ -125,6 +127,106 @@ final class SimulatorModel {
     }
 
     func recordTap(image: Data?) { lastTap = (Date(), image) }
+
+    // MARK: Agent control
+
+    /// Size of the screenshot the agent last saved: its coordinates are pixels of that picture.
+    @ObservationIgnored private var lastShotSize: CGSize?
+    @ObservationIgnored private var shotCount = 0
+
+    /// Runs one command from the in-app agent and answers in words it can act on.
+    func perform(_ command: SimulatorCommand) async -> String {
+        guard canSendInput, let display else {
+            return "The simulator isn't showing a running app. Ask the user to press Run in Mobile Studio."
+        }
+        switch command {
+        case .screenshot:
+            return saveScreenshot(of: display)
+        case .home:
+            display.pressHome()
+            return "Pressed Home."
+        case .type(let text):
+            let typed = KeyboardMap.keys(for: text)
+            for key in typed.keys {
+                display.pressKey(key.usage, shift: key.shift)
+                // Keys are queued on the display's input queue and each is held for 50 ms, so wait for that.
+                try? await Task.sleep(for: .milliseconds(key.shift ? 130 : 110))
+            }
+            let note = typed.skipped.isEmpty ? "" : " Couldn't type: \(String(typed.skipped))."
+            return "Typed \(typed.keys.count) characters.\(note) iOS may autocorrect words; take a screenshot to check."
+        case .hold(let x, let y):
+            guard let point = normalizedPoint(x, y) else { return Self.needsScreenshot }
+            display.sendTouch(.began, at: point)
+            try? await Task.sleep(for: .milliseconds(900))
+            display.sendTouch(.ended, at: point)
+            return "Held. Take a screenshot: a menu such as Paste or Select All may be showing."
+        case .paste(let text):
+            guard let udid = selected?.udid, await simctl.setPasteboard(udid, text: text) else {
+                return "Could not set the simulator's clipboard."
+            }
+            return "Copied to the simulator's clipboard. Now long-press the text field (ms-sim hold X Y), then tap Paste in the menu that appears."
+        case .key(let name):
+            guard let key = KeyboardMap.named(name) else { return "Unknown key." }
+            display.pressKey(key.usage, shift: false)
+            return "Pressed \(name)."
+        case .tap(let x, let y):
+            guard let point = normalizedPoint(x, y) else { return Self.needsScreenshot }
+            display.sendTouch(.began, at: point)
+            try? await Task.sleep(for: .milliseconds(60))
+            display.sendTouch(.ended, at: point)
+            return "Tapped. Take a new screenshot to see the result."
+        case .swipe(let x1, let y1, let x2, let y2):
+            guard let start = normalizedPoint(x1, y1), let end = normalizedPoint(x2, y2) else { return Self.needsScreenshot }
+            display.sendTouch(.began, at: start)
+            let steps = 12
+            for step in 1...steps {
+                let t = Double(step) / Double(steps)
+                display.sendTouch(.moved, at: CGPoint(x: start.x + (end.x - start.x) * t, y: start.y + (end.y - start.y) * t))
+                try? await Task.sleep(for: .milliseconds(16))
+            }
+            display.sendTouch(.ended, at: end)
+            return "Swiped. Take a new screenshot to see the result."
+        }
+    }
+
+    private static let needsScreenshot = "Take a screenshot first: coordinates are pixels of the latest one."
+
+    private func normalizedPoint(_ x: Double, _ y: Double) -> CGPoint? {
+        lastShotSize.flatMap { SimulatorCommand.normalized(x: x, y: y, in: $0) }
+    }
+
+    /// Saves the screen as a PNG no larger than 1000 pixels on its long side, which is plenty to read and cheap to send.
+    private func saveScreenshot(of display: MSSimulatorDisplay) -> String {
+        guard display.latestFrame != nil else { return "The screen has no picture yet. Try again in a second." }
+        guard let (png, size) = Self.png(of: display, maxSide: 1000) else { return "Could not capture the screen." }
+        shotCount += 1
+        let url = AgentBridge.screenshotDirectory.appendingPathComponent("screen-\(shotCount).png")
+        do {
+            try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try png.write(to: url)
+        } catch {
+            return "Could not save the screenshot: \(error.localizedDescription)"
+        }
+        lastShotSize = size
+        return "\(url.path)\nSize \(Int(size.width))x\(Int(size.height)) pixels. Read this file to see the screen."
+    }
+
+    /// A PNG of what the simulator shows now, for the design step's picture of a screen. Nil when nothing is showing.
+    func capturePNG() -> Data? {
+        guard canSendInput, let display else { return nil }
+        return Self.png(of: display, maxSide: 1000)?.data
+    }
+
+    /// The latest frame, scaled to at most `maxSide` pixels on its long side: plenty to read and cheap to send.
+    private static func png(of display: MSSimulatorDisplay, maxSide: CGFloat) -> (data: Data, size: CGSize)? {
+        guard let surface = display.latestFrame else { return nil }
+        var image = CIImage(ioSurface: surface)
+        let scale = min(1, maxSide / max(image.extent.width, image.extent.height))
+        image = image.transformed(by: CGAffineTransform(scaleX: scale, y: scale))
+        guard let cgImage = CIContext().createCGImage(image, from: image.extent),
+              let png = NSBitmapImageRep(cgImage: cgImage).representation(using: .png, properties: [:]) else { return nil }
+        return (png, CGSize(width: cgImage.width, height: cgImage.height))
+    }
 
     func setDark(_ dark: Bool) {
         guard let device = selected, device.isBooted else { return }

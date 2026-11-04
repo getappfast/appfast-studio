@@ -17,8 +17,12 @@ targets:
       - path: MobileStudio
         excludes:
           - Resources/Templates/**
+          - Resources/Design/**
       # A folder reference keeps the starter's directory layout inside the app bundle.
       - path: MobileStudio/Resources/Templates
+        type: folder
+      # The design kit, icon font, font catalog and styles, as one folder for the same reason.
+      - path: MobileStudio/Resources/Design
         type: folder
     info:
       path: MobileStudio/Info.plist

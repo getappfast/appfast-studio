@@ -158,6 +158,9 @@ struct ScreenMenu: View {
 
     var body: some View {
         Button("Ask Claude About It") { workspace.mention(screen) }
+        if !screen.isPlanned {
+            Button("Redesign…") { workspace.redesign(screen) }
+        }
         if let folder = workspace.project.readyFolder, !screen.isPlanned {
             let url = URL(fileURLWithPath: folder).appendingPathComponent(screen.file)
             Button("Open Code") { NSWorkspace.shared.open(url) }

@@ -49,12 +49,13 @@ final class FixModel {
 
     var isBusy: Bool { phase == .fixing || phase == .validating }
 
-    func fix(_ failure: RunFailure, using claude: ClaudeAccess, run: FlutterRunModel) {
+    /// `approve` answers Claude when it wants something outside its allow-list; it is what shows the user a question.
+    func fix(_ failure: RunFailure, using claude: ClaudeAccess, run: FlutterRunModel, approve: @escaping AgentPermissionHandler) {
         guard !isBusy else { return }
         self.run = run
         activity = []
         phase = .fixing
-        task = Task { await perform(failure, claude: claude, run: run) }
+        task = Task { await perform(failure, claude: claude, run: run, approve: approve) }
     }
 
     func cancel() {
@@ -73,7 +74,7 @@ final class FixModel {
 
     // MARK: Work
 
-    private func perform(_ failure: RunFailure, claude: ClaudeAccess, run: FlutterRunModel) async {
+    private func perform(_ failure: RunFailure, claude: ClaudeAccess, run: FlutterRunModel, approve: @escaping AgentPermissionHandler) async {
         let folder = failure.folder
         let before = await FileSnapshot.taken(of: folder, keepingContents: true)
         let process = await claude.agentProcess(Self.call(for: failure), folder: folder, timeout: 20 * 60)
@@ -82,9 +83,13 @@ final class FixModel {
 
         let finished: ClaudeStreamProcess.Finished
         do {
-            finished = try await process.run { [weak self] line in
+            finished = try await process.run(onLine: { [weak self] line in
                 Task { @MainActor in self?.noteActivity(line, folder: folder) }
-            }
+            }, onPermission: { [weak self] request in
+                let decision = await approve(request)
+                await self?.noteDecision(decision, for: request)
+                return decision
+            })
         } catch {
             self.process = nil
             finish(.failed(error.localizedDescription), note: "could not start: \(error.localizedDescription)")
@@ -164,6 +169,9 @@ final class FixModel {
         do not edit generated folders (build/, ios/Pods, .dart_tool) and do not upgrade packages beyond what the fix needs.
         - Never run `flutter run`, it does not exit. To check a fix use `flutter build ios --simulator --debug`, plus \
         `flutter pub get` or `pod install --project-directory=ios` when needed.
+        - A command beyond the ones listed, such as `dart run build_runner build --delete-conflicting-outputs` for stale \
+        generated code, is fine to run: the user is asked first. If they say no, do not work around it; set fixed to false \
+        and put the command in remainingIssues.
         - If the cause is outside the project (Xcode, the simulator, the network, a missing tool), change nothing, set \
         fixed to false and explain it in remainingIssues.
         When done, report: fixed (true only if your own build check passed), rootCause, summary, changes (each file you \
@@ -173,11 +181,17 @@ final class FixModel {
             prompt: prompt,
             jsonSchema: schema,
             maxBudgetUSD: 3,
-            allowedCommands: ["flutter pub *", "flutter build *", "flutter clean", "flutter analyze *", "pod *"]
+            allowedCommands: ["flutter pub *", "flutter build *", "flutter clean", "flutter analyze *", "pod *"],
+            asksForApproval: true
         )
     }
 
     // MARK: Progress
+
+    private func noteDecision(_ decision: AgentPermissionRequest.Decision, for request: AgentPermissionRequest) {
+        activity.append(request.note(for: decision))
+        Self.log.append("APPROVAL \(request.note(for: decision))")
+    }
 
     private func noteActivity(_ line: String, folder: String) {
         for item in ClaudeEvents.items(in: line, folder: folder) {

@@ -70,18 +70,20 @@ struct AppFlow: Equatable, Sendable {
 }
 
 extension AppFlow {
+    /// What two names of one screen have in common: "Home screen" in the plan is the `HomeScreen` in the code.
+    static func screenKey(_ name: String) -> String {
+        var key = name.lowercased().filter { $0.isLetter || $0.isNumber }
+        for suffix in ["screen", "page", "view"] where key.hasSuffix(suffix) && key.count > suffix.count {
+            key = String(key.dropLast(suffix.count))
+            break
+        }
+        return key
+    }
+
     /// The flow with the plan's screens added as planned cards. A planned screen that matches a real one by name
     /// ("Home" and `HomeScreen`) is the real one, and the plan's links to and from it are kept.
     func adding(_ plan: ProductPlan) -> AppFlow {
-        // "Home screen" in the plan is the `HomeScreen` in the code.
-        func key(_ name: String) -> String {
-            var key = name.lowercased().filter { $0.isLetter || $0.isNumber }
-            for suffix in ["screen", "page", "view"] where key.hasSuffix(suffix) && key.count > suffix.count {
-                key = String(key.dropLast(suffix.count))
-                break
-            }
-            return key
-        }
+        let key = Self.screenKey
         var classByKey = Dictionary(screens.map { (key($0.name), $0.className) }, uniquingKeysWith: { first, _ in first })
         var added: [AppScreen] = []
         for planned in plan.screens where classByKey[key(planned.name)] == nil && !key(planned.name).isEmpty {

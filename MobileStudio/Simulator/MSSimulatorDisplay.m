@@ -1,6 +1,9 @@
 #import "MSSimulatorDisplay.h"
+#import <AppKit/AppKit.h>
 #import <objc/message.h>
 #include <dlfcn.h>
+#include <mach/mach.h>
+#include <xpc/xpc.h>
 
 NSErrorDomain const MSSimulatorErrorDomain = @"MSSimulatorErrorDomain";
 
@@ -13,6 +16,40 @@ static NSString *const kDisplayPortIdentifier = @"com.apple.framebuffer.display"
 typedef void *(*MSMouseMessageFn)(CGPoint *point0, CGPoint *point1, uint32_t target,
                                   NSUInteger eventType, NSSize size, uint32_t edge);
 typedef void *(*MSButtonMessageFn)(int keyCode, int operation, uint32_t target);
+typedef void *(*MSKeyboardMessageFn)(int usage, int direction);
+typedef void *(*MSKeyboardEventFn)(NSEvent *event);
+typedef xpc_endpoint_t (*MSEndpointFn)(mach_port_t port);
+typedef void (*MSEnableSim2HostFn)(xpc_connection_t connection);
+
+// Xcode 27's CoreSimulator no longer delivers legacy Indigo keyboard events reliably. Keys go to the simulator's
+// dtuhidd daemon instead, which is what Xcode's own tooling uses: a CoreDevice "universal HID" service reached
+// through a mach lookup on the device. The wire format below was found by probing the daemon and reading its logs.
+static NSString *const kUniversalHIDService = @"com.apple.coredevice.feature.remote.universalhidservice";
+// The keyboard report is ID 1 followed by one bit per HID usage 0...239; the modifiers are usages 0xE0...0xE7.
+static const uint8_t kKeyboardReportID = 1;
+enum { kKeyBitmapBytes = 30 };
+// What dtuhidd calls the keyboard service, in case it can't be found by name.
+static const uint64_t kDefaultKeyboardServiceID = 0x200;
+
+// Mac virtual key code to USB HID usage (US layout). Zero means unmapped.
+static const int16_t kUsageForMacKeyCode[128] = {
+    [0] = 0x04, [1] = 0x16, [2] = 0x07, [3] = 0x09, [4] = 0x0B, [5] = 0x0A, [6] = 0x1D, [7] = 0x1B, [8] = 0x06,
+    [9] = 0x19, [11] = 0x05, [12] = 0x14, [13] = 0x1A, [14] = 0x08, [15] = 0x15, [16] = 0x1C, [17] = 0x17,
+    [18] = 0x1E, [19] = 0x1F, [20] = 0x20, [21] = 0x21, [22] = 0x23, [23] = 0x22, [24] = 0x2E, [25] = 0x26,
+    [26] = 0x24, [27] = 0x2D, [28] = 0x25, [29] = 0x27, [30] = 0x30, [31] = 0x12, [32] = 0x18, [33] = 0x2F,
+    [34] = 0x0C, [35] = 0x13, [36] = 0x28, [37] = 0x0F, [38] = 0x0D, [39] = 0x34, [40] = 0x0E, [41] = 0x33,
+    [42] = 0x31, [43] = 0x36, [44] = 0x38, [45] = 0x11, [46] = 0x10, [47] = 0x37, [48] = 0x2B, [49] = 0x2C,
+    [50] = 0x35, [51] = 0x2A, [53] = 0x29, [115] = 0x4A, [116] = 0x4B, [117] = 0x4C, [119] = 0x4D, [121] = 0x4E,
+    [123] = 0x50, [124] = 0x4F, [125] = 0x51, [126] = 0x52,
+};
+
+// Modifier keys arrive as flag changes: the key is down when its flag is now set.
+static const struct { unsigned short code; int usage; NSEventModifierFlags flag; } kModifierKeys[] = {
+    {56, 0xE1, NSEventModifierFlagShift}, {60, 0xE5, NSEventModifierFlagShift},
+    {59, 0xE0, NSEventModifierFlagControl}, {62, 0xE4, NSEventModifierFlagControl},
+    {58, 0xE2, NSEventModifierFlagOption}, {61, 0xE6, NSEventModifierFlagOption},
+    {55, 0xE3, NSEventModifierFlagCommand}, {54, 0xE7, NSEventModifierFlagCommand},
+};
 
 // NSEventType values the mouse builder understands.
 static const NSUInteger kMouseDown = 1, kMouseUp = 2, kMouseDragged = 6;
@@ -54,7 +91,15 @@ static NSError *MakeError(NSString *message) {
     dispatch_queue_t _inputQueue;
     MSMouseMessageFn _mouseMessage;
     MSButtonMessageFn _buttonMessage;
+    MSKeyboardMessageFn _keyboardMessage;
+    MSKeyboardEventFn _keyboardEventMessage;
     uint32_t _touchTarget;
+
+    // Keyboard transport (Xcode 27+). Only touched on _inputQueue.
+    xpc_connection_t _keyboardConnection;
+    uint64_t _keyboardServiceID;
+    uint8_t _keyBitmap[kKeyBitmapBytes];
+    NSDate *_lastKeyboardAttempt;
     BOOL _inputAvailable;
 }
 
@@ -73,6 +118,10 @@ static NSError *MakeError(NSString *message) {
 
 - (void)dealloc {
     [self stop];
+}
+
+- (IOSurface *)latestFrame {
+    @synchronized (self) { return _latest; }
 }
 
 - (CGSize)pixelSize {
@@ -189,6 +238,10 @@ static NSError *MakeError(NSString *message) {
     _device = nil;
     _hidClient = nil;
     _inputAvailable = NO;
+    dispatch_async(_inputQueue, ^{
+        if (self->_keyboardConnection) xpc_connection_cancel(self->_keyboardConnection);
+        self->_keyboardConnection = nil;
+    });
     _frameHandler = nil;
     if (descriptor && registration) {
         SEL sel = NSSelectorFromString(@"unregisterScreenCallbacksWithUUID:");
@@ -221,9 +274,18 @@ static NSError *MakeError(NSString *message) {
     id client = ((id (*)(id, SEL, id, NSError **))objc_msgSend)([clientClass alloc], initSel, _device, &error);
     if (!client) return;
 
+    // Optional: without it the screen and touch still work, only typing is off.
+    _keyboardMessage = (MSKeyboardMessageFn)dlsym(handle, "IndigoHIDMessageForKeyboardArbitrary");
+    _keyboardEventMessage = (MSKeyboardEventFn)dlsym(handle, "IndigoHIDMessageForKeyboardNSEvent");
     _mouseMessage = mouse;
     _buttonMessage = button;
     _hidClient = client;
+    // Without Simulator.app nothing tells the device a hardware keyboard is attached, and iOS then ignores every
+    // key we send. Optional: touch still works if the call is missing.
+    SEL keyboardSel = NSSelectorFromString(@"setHardwareKeyboardEnabled:keyboardType:error:");
+    if ([_device respondsToSelector:keyboardSel]) {
+        ((BOOL (*)(id, SEL, BOOL, long, NSError **))objc_msgSend)(_device, keyboardSel, YES, 0, NULL);
+    }
     _inputAvailable = YES;
 }
 
@@ -246,6 +308,138 @@ static NSError *MakeError(NSString *message) {
         CGPoint p = clamped;
         // A size of 1x1 means the point is already a 0...1 ratio of the screen.
         [self deliver:build(&p, NULL, target, type, NSMakeSize(1, 1), 0)];
+    });
+}
+
+#pragma mark - Keyboard
+
+/// Connects to dtuhidd's keyboard service when it hasn't yet. Runs on _inputQueue; NO when the runtime doesn't vend it
+/// (an older Xcode), in which case the legacy Indigo path is used instead.
+- (BOOL)ensureKeyboardTransport {
+    if (_keyboardConnection) return YES;
+    // Don't hammer a missing service on every key.
+    if (_lastKeyboardAttempt && -[_lastKeyboardAttempt timeIntervalSinceNow] < 2) return NO;
+    _lastKeyboardAttempt = [NSDate date];
+
+    id device = _device;
+    SEL lookup = NSSelectorFromString(@"lookup:error:");
+    MSEndpointFn makeEndpoint = (MSEndpointFn)dlsym(RTLD_DEFAULT, "xpc_endpoint_create_mach_port_4sim");
+    MSEnableSim2HostFn enableSim2Host = (MSEnableSim2HostFn)dlsym(RTLD_DEFAULT, "xpc_connection_enable_sim2host_4sim");
+    if (!device || ![device respondsToSelector:lookup] || !makeEndpoint || !enableSim2Host) return NO;
+
+    mach_port_t port = ((mach_port_t (*)(id, SEL, id, NSError **))objc_msgSend)(device, lookup, kUniversalHIDService, NULL);
+    if (port == MACH_PORT_NULL) return NO;
+    xpc_connection_t connection = xpc_connection_create_from_endpoint(makeEndpoint(port));
+    if (!connection) return NO;
+    enableSim2Host(connection);
+
+    // The daemon drops a peer it can't read, and a shut down device invalidates the connection: reconnect next time.
+    __weak MSSimulatorDisplay *weakSelf = self;
+    const void *identity = (__bridge const void *)connection;
+    xpc_connection_set_target_queue(connection, _inputQueue);
+    xpc_connection_set_event_handler(connection, ^(xpc_object_t event) {
+        if (xpc_get_type(event) != XPC_TYPE_ERROR) return;
+        MSSimulatorDisplay *strongSelf = weakSelf;
+        if (strongSelf && (__bridge const void *)strongSelf->_keyboardConnection == identity) {
+            strongSelf->_keyboardConnection = nil;
+            memset(strongSelf->_keyBitmap, 0, kKeyBitmapBytes);
+        }
+    });
+    xpc_connection_resume(connection);
+    _keyboardConnection = connection;
+    _keyboardServiceID = kDefaultKeyboardServiceID;
+    memset(_keyBitmap, 0, kKeyBitmapBytes);
+
+    // Ask which service is the keyboard, so a renumbered runtime still works. The default is used until it answers.
+    xpc_object_t list = xpc_dictionary_create(NULL, NULL, 0);
+    xpc_dictionary_set_value(list, "connectedServices", xpc_dictionary_create(NULL, NULL, 0));
+    xpc_object_t request = xpc_dictionary_create(NULL, NULL, 0);
+    xpc_dictionary_set_value(request, "payload", list);
+    xpc_connection_send_message_with_reply(connection, request, _inputQueue, ^(xpc_object_t reply) {
+        if (!reply || xpc_get_type(reply) != XPC_TYPE_DICTIONARY) return;
+        xpc_object_t services = xpc_dictionary_get_value(reply, "connectedServices");
+        if (!services || xpc_get_type(services) != XPC_TYPE_ARRAY) return;
+        xpc_array_apply(services, ^bool(size_t index, xpc_object_t service) {
+            const char *product = xpc_get_type(service) == XPC_TYPE_DICTIONARY ? xpc_dictionary_get_string(service, "Product") : NULL;
+            if (product && strstr(product, "keyboard")) {
+                uint64_t found = xpc_dictionary_get_uint64(service, "_ServiceID");
+                if (found) self->_keyboardServiceID = found;
+                return false;
+            }
+            return true;
+        });
+    });
+    return YES;
+}
+
+/// Sends the whole keyboard state as one report: the daemon turns changes between reports into key events.
+- (void)sendKeyboardState {
+    if (!_keyboardConnection) return;
+    uint8_t report[1 + kKeyBitmapBytes];
+    report[0] = kKeyboardReportID;
+    memcpy(report + 1, _keyBitmap, kKeyBitmapBytes);
+    xpc_object_t send = xpc_dictionary_create(NULL, NULL, 0);
+    xpc_dictionary_set_data(send, "_0", report, sizeof report);
+    xpc_dictionary_set_uint64(send, "_1", _keyboardServiceID);
+    xpc_object_t payload = xpc_dictionary_create(NULL, NULL, 0);
+    xpc_dictionary_set_value(payload, "send", send);
+    xpc_object_t message = xpc_dictionary_create(NULL, NULL, 0);
+    xpc_dictionary_set_value(message, "payload", payload);
+    xpc_connection_send_message(_keyboardConnection, message);
+}
+
+/// Presses or releases one HID usage. NO when the keyboard transport isn't available.
+- (BOOL)setUsage:(int)usage down:(BOOL)down {
+    if (usage <= 0 || usage >= kKeyBitmapBytes * 8 || ![self ensureKeyboardTransport]) return NO;
+    uint8_t bit = (uint8_t)(1 << (usage % 8));
+    if (down) _keyBitmap[usage / 8] |= bit; else _keyBitmap[usage / 8] &= (uint8_t)~bit;
+    [self sendKeyboardState];
+    return YES;
+}
+
+- (void)sendKeyEvent:(NSEvent *)event {
+    if (!_inputAvailable) return;
+    NSEventType type = event.type;
+    int usage = 0;
+    BOOL down = type == NSEventTypeKeyDown;
+    if (type == NSEventTypeFlagsChanged) {
+        for (size_t i = 0; i < sizeof kModifierKeys / sizeof kModifierKeys[0]; i++) {
+            if (kModifierKeys[i].code != event.keyCode) continue;
+            usage = kModifierKeys[i].usage;
+            down = (event.modifierFlags & kModifierKeys[i].flag) != 0;
+        }
+    } else if (event.keyCode < 128) {
+        usage = kUsageForMacKeyCode[event.keyCode];
+    }
+    MSKeyboardEventFn legacy = _keyboardEventMessage;
+    dispatch_async(_inputQueue, ^{
+        if (usage && [self setUsage:usage down:down]) return;
+        if (legacy && type != NSEventTypeFlagsChanged) [self deliver:legacy(event)];
+    });
+}
+
+- (void)pressKey:(int)usage shift:(BOOL)shift {
+    MSKeyboardMessageFn legacy = _keyboardMessage;
+    if (!_inputAvailable) return;
+    dispatch_async(_inputQueue, ^{
+        const int kLeftShift = 0xE1;
+        // iOS drops a key that goes down and up in the same instant, so hold it for a moment like a finger would.
+        const NSTimeInterval kHold = 0.05;
+        if ([self ensureKeyboardTransport]) {
+            if (shift) { [self setUsage:kLeftShift down:YES]; [NSThread sleepForTimeInterval:kHold]; }
+            [self setUsage:usage down:YES];
+            [NSThread sleepForTimeInterval:kHold];
+            [self setUsage:usage down:NO];
+            if (shift) [self setUsage:kLeftShift down:NO];
+            return;
+        }
+        if (!legacy) return;
+        const int kDown = 1, kUp = 2;
+        if (shift) { [self deliver:legacy(kLeftShift, kDown)]; [NSThread sleepForTimeInterval:kHold]; }
+        [self deliver:legacy(usage, kDown)];
+        [NSThread sleepForTimeInterval:kHold];
+        [self deliver:legacy(usage, kUp)];
+        if (shift) [self deliver:legacy(kLeftShift, kUp)];
     });
 }
 
