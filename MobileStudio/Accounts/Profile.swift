@@ -1,6 +1,6 @@
 import Foundation
 
-/// One Claude account Mobile Studio can run the CLI as.
+/// One Claude account AppFast Studio can run the CLI as.
 ///
 /// The CLI keeps a separate login per config directory, selected with CLAUDE_CONFIG_DIR.
 /// The built-in default profile leaves it unset so it keeps using the user's normal `~/.claude`

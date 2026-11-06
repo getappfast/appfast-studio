@@ -34,7 +34,7 @@ struct DesignView: View {
         .background(Color(nsColor: .underPageBackgroundColor))
         .sheet(item: $workspace.designDiffFile) { change in
             if let folder = workspace.project.readyFolder {
-                DiffSheet(folder: folder, change: change) { workspace.designDiffFile = nil }
+                DiffSheet(workspace: workspace, folder: folder, change: change) { workspace.designDiffFile = nil }
             }
         }
         .onAppear { design.refresh() }

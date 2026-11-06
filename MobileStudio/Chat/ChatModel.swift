@@ -419,7 +419,7 @@ final class ChatModel {
     // MARK: Claude call
 
     private static let systemPrompt = """
-        You are the coding agent inside Mobile Studio, a desktop app where people build a Flutter app by asking for \
+        You are the coding agent inside AppFast Studio, a desktop app where people build a Flutter app by asking for \
         changes and seeing them in an iOS Simulator next to this chat. Many of them don't read code. The current \
         directory is their project. Make the change they ask for directly. Do not commit or touch git history. \
         Change files only with the Edit and Write tools, never with a shell script (python, sed, cat > file): those \
@@ -456,7 +456,7 @@ final class ChatModel {
 
     private static func kickoffSystemPrompt(context: String?) -> String {
         """
-        You are the product partner inside Mobile Studio, helping someone who may not read code plan a new Flutter \
+        You are the product partner inside AppFast Studio, helping someone who may not read code plan a new Flutter \
         app before it is built. The current directory is their new project: read `pubspec.yaml` and \
         `ARCHITECTURE.md` once at the start. You cannot change files in this conversation, and you should not try.
 
@@ -583,6 +583,6 @@ final class ChatModel {
     private static func url(for folder: String, storage: String?) -> URL {
         let name = SHA256.hash(data: Data(folder.utf8)).prefix(8).map { String(format: "%02x", $0) }.joined()
         return FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("Mobile Studio/Chats/\(name)\(storage.map { "-\($0)" } ?? "").json")
+            .appendingPathComponent("AppFast Studio/Chats/\(name)\(storage.map { "-\($0)" } ?? "").json")
     }
 }

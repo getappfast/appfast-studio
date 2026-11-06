@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import Mobile_Studio
+@testable import AppFast_Studio
 
 private func tokens(_ style: String = "minimal") -> DesignTokens {
     DesignStyle.named(style)!.tokens

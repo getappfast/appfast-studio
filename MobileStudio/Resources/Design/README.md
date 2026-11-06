@@ -1,7 +1,7 @@
 # Design
 
-Mockups of this app's screens, made in Mobile Studio's Design window. They are the reference for how the screens
-should look; the Flutter code in `lib/` is what the app really is. Mobile Studio writes `README.md`, `kit.css`,
+Mockups of this app's screens, made in AppFast Studio's Design window. They are the reference for how the screens
+should look; the Flutter code in `lib/` is what the app really is. AppFast Studio writes `README.md`, `kit.css`,
 `tokens.css` and each screen's `screen.json`; Claude writes the mockups and `tokens.json`.
 
 - `tokens.json`: the look (colours for light and dark, fonts, corner radius, depth, spacing, type scale).

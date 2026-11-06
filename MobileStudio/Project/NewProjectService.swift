@@ -116,7 +116,7 @@ struct NewProjectService: Sendable {
         }
         let title = request.displayName.trimmingCharacters(in: .whitespacesAndNewlines)
         // Unsigned and without hooks: a signing prompt or a slow hook would hang a step the user can't see into.
-        _ = try await runGit(["-c", "commit.gpgsign=false", "commit", "--no-verify", "-m", "Create \(title) with Mobile Studio"], in: folder)
+        _ = try await runGit(["-c", "commit.gpgsign=false", "commit", "--no-verify", "-m", "Create \(title) with AppFast Studio"], in: folder)
         return GitResult(committed: true, note: nil)
     }
 

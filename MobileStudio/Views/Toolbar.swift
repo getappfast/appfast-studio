@@ -63,44 +63,44 @@ struct WorkspaceToolbar: ToolbarContent {
     }
 }
 
-/// The simulator to run on, grouped by runtime, with Boot and Shut Down for the selected one.
+/// The simulator to run on, grouped by OS version, with Boot and Shut Down for the selected one.
 struct DestinationMenu: View {
     let workspace: Workspace
-    private var simulator: SimulatorModel { workspace.simulator }
+    private var devices: DeviceModel { workspace.deviceModel }
 
     var body: some View {
         Menu {
-            ForEach(runtimes, id: \.self) { runtime in
-                Section(runtime) {
-                    ForEach(simulator.devices.filter { $0.runtime == runtime }) { device in
-                        Toggle(isOn: Binding(get: { device.udid == simulator.selected?.udid },
-                                             set: { _ in simulator.select(device) })) {
+            ForEach(osVersions, id: \.self) { osVersion in
+                Section(osVersion) {
+                    ForEach(devices.devices.filter { $0.osVersion == osVersion }) { device in
+                        Toggle(isOn: Binding(get: { device.selection == devices.selected?.selection },
+                                             set: { _ in devices.select(device) })) {
                             Text(device.isBooted ? "\(device.name) (Booted)" : device.name)
                         }
                     }
                 }
             }
-            if let device = simulator.selected {
+            if let device = devices.selected {
                 Divider()
                 if device.isBooted {
-                    Button("Shut Down \(device.name)") { simulator.shutdown() }.disabled(simulator.isBusy)
+                    Button("Shut Down \(device.name)") { devices.shutdown() }.disabled(devices.isBusy)
                 } else {
-                    Button("Boot \(device.name)") { simulator.boot() }.disabled(simulator.isBusy || device.isTransitioning)
+                    Button("Boot \(device.name)") { devices.boot() }.disabled(devices.isBusy || device.isTransitioning)
                 }
             }
         } label: {
-            Label(simulator.selected?.name ?? "Choose Simulator", systemImage: "iphone")
+            Label(devices.selected?.name ?? "Choose Simulator", systemImage: "iphone")
                 .labelStyle(.titleAndIcon)
         }
         .menuStyle(.borderlessButton)
         .fixedSize()
-        .disabled(simulator.devices.isEmpty)
+        .disabled(devices.devices.isEmpty)
         .help("Destination")
     }
 
-    private var runtimes: [String] {
+    private var osVersions: [String] {
         var seen = Set<String>()
-        return simulator.devices.map(\.runtime).filter { seen.insert($0).inserted }
+        return devices.devices.map(\.osVersion).filter { seen.insert($0).inserted }
     }
 }
 

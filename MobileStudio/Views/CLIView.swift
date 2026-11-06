@@ -21,7 +21,7 @@ struct CLISection: View {
         case .checking:
             Text("Looking for the claude CLI…").foregroundStyle(.secondary)
         case .notInstalled:
-            StatusBadge(tone: .failure, title: "Not installed", detail: "Mobile Studio could not find the claude CLI.")
+            StatusBadge(tone: .failure, title: "Not installed", detail: "AppFast Studio could not find the claude CLI.")
             CommandHint(label: "Install it, then check again:", command: "curl -fsSL https://claude.ai/install.sh | bash")
         case .failed(let message):
             StatusBadge(tone: .warning, title: "Could not check", detail: message)

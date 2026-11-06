@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import Mobile_Studio
+@testable import AppFast_Studio
 
 struct SimulatorCommandTests {
     @Test func parsesCommands() {

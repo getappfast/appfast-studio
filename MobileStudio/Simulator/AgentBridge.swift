@@ -86,9 +86,9 @@ final class AgentBridge {
     nonisolated static func script(connectionFile: String) -> String {
         """
         #!/bin/sh
-        # Installed by Mobile Studio. Sees and touches the simulator it is showing.
+        # Installed by AppFast Studio. Sees and touches the simulator it is showing.
         conn='\(connectionFile)'
-        [ -r "$conn" ] || { echo "Mobile Studio isn't running."; exit 1; }
+        [ -r "$conn" ] || { echo "AppFast Studio isn't running."; exit 1; }
         port=$(sed -n 1p "$conn"); token=$(sed -n 2p "$conn")
         ask() { curl -s --max-time 30 -H "X-Token: $token" "http://127.0.0.1:$port$1"; echo; }
         ask_text() { curl -s --max-time 60 -G -H "X-Token: $token" --data-urlencode "$2" "http://127.0.0.1:$port$1"; echo; }

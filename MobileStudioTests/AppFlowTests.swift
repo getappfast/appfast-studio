@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import Mobile_Studio
+@testable import AppFast_Studio
 
 struct FlowFinderTests {
     private func flow(_ files: [String: String]) -> AppFlow {

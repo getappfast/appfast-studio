@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import Mobile_Studio
+@testable import AppFast_Studio
 
 private func controlRequest(tool: String, input: String, id: String = "r1", reason: String? = nil) -> String {
     let description = reason.map { #","description":"\#($0)""# } ?? ""

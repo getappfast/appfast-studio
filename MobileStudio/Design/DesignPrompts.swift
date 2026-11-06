@@ -92,7 +92,7 @@ enum DesignPrompts {
     }
 
     static let systemPrompt = """
-        You are the designer inside Mobile Studio, a desktop app where people make Flutter apps without reading code. \
+        You are the designer inside AppFast Studio, a desktop app where people make Flutter apps without reading code. \
         In this chat you only make mockups: you change files in design/ and nothing else, and the app refuses any \
         other edit. The current directory is their project; read lib/ to understand the app when it helps.
 
@@ -160,7 +160,7 @@ enum DesignPrompts {
             if tokens == nil {
                 parts.append("""
                     There is no \(DesignPaths.tokens) yet. Write it too, taken from the app's ThemeData (lib/app/theme.dart \
-                    or wherever MaterialApp's theme comes from): the same shape as Mobile Studio's tokens, \
+                    or wherever MaterialApp's theme comes from): the same shape as AppFast Studio's tokens, \
                     {"style": one of "minimal", "soft", "bold", "editorial", "playful", "classic" (the nearest), "name", \
                     "mood", "light": {roles}, "dark": {roles}, "fonts": {"display", "body"}, "radius": {"small", "medium", \
                     "large"}, "elevation": "flat"|"subtle"|"raised", "borders": "none"|"hairline"|"bold", "density": \

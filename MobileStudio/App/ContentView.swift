@@ -23,7 +23,7 @@ struct ContentView: View {
                     .frame(maxWidth: .infinity)
                     .background(Color(nsColor: .underPageBackgroundColor))
                 // The device stays underneath the map: removing it would stop its display stream.
-                SimulatorCanvas(model: workspace.simulator, isPicking: workspace.pick.isPicking,
+                SimulatorCanvas(model: workspace.deviceModel, isPicking: workspace.pick.isPicking,
                                 showsFrame: workspace.showsDeviceFrame)
                     .contextMenu { DeviceRedesignMenu(workspace: workspace) }
                     .opacity(workspace.canvas == .device ? 1 : 0)
@@ -51,14 +51,14 @@ struct ContentView: View {
                     .inspectorColumnWidth(min: 300, ideal: 360, max: 540)
             }
         }
-        .navigationTitle(workspace.flutterProject?.name ?? "Mobile Studio")
+        .navigationTitle(workspace.flutterProject?.name ?? "AppFast Studio")
         .navigationSubtitle(workspace.project.branch ?? "")
         .toolbar { WorkspaceToolbar(workspace: workspace) }
         .onChange(of: workspace.menuState, initial: true) { _, state in menuBridge.state = state }
         .sheet(isPresented: $workspace.isNewProjectSheetVisible) { NewProjectSheet(workspace: workspace) }
         .sheet(item: $workspace.diffFile) { change in
             if let folder = workspace.project.readyFolder {
-                DiffSheet(folder: folder, change: change) { workspace.diffFile = nil }
+                DiffSheet(workspace: workspace, folder: folder, change: change) { workspace.diffFile = nil }
             }
         }
         .modifier(WorkspaceEvents(workspace: workspace))
@@ -112,9 +112,9 @@ private struct WorkspaceEvents: ViewModifier {
             .task { await workspace.start() }
             .onChange(of: workspace.project.path) { workspace.projectPathChanged() }
             .onChange(of: workspace.project.state) { workspace.projectStateChanged() }
-            .onChange(of: workspace.simulator.selected?.udid) { workspace.deviceChanged() }
-            .onChange(of: workspace.simulator.selected?.isBooted) { workspace.deviceChanged() }
-            .onChange(of: workspace.simulator.phase) { workspace.simulatorPhaseChanged() }
+            .onChange(of: workspace.deviceModel.selected?.id) { workspace.deviceChanged() }
+            .onChange(of: workspace.deviceModel.selected?.isBooted) { workspace.deviceChanged() }
+            .onChange(of: workspace.deviceModel.phase) { workspace.simulatorPhaseChanged() }
             .modifier(ActivityEvents(workspace: workspace))
     }
 }

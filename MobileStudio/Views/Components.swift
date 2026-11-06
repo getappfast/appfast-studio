@@ -163,7 +163,7 @@ struct ScreenMenu: View {
         }
         if let folder = workspace.project.readyFolder, !screen.isPlanned {
             let url = URL(fileURLWithPath: folder).appendingPathComponent(screen.file)
-            Button("Open Code") { NSWorkspace.shared.open(url) }
+            Button(workspace.editorTitle) { workspace.openInEditor(file: screen.file) }
             Button("Show in Finder") { NSWorkspace.shared.activateFileViewerSelecting([url]) }
         }
     }

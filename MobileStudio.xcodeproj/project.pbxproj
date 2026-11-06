@@ -8,14 +8,16 @@
 
 /* Begin PBXBuildFile section */
 		000684296115B57E1738B4D0 /* KeyboardMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00D285093B7FEFBA45E86A34 /* KeyboardMap.swift */; };
+		029ACFC18E236B45FEFDA66A /* SetupModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6890BED23B86DE7335907862 /* SetupModel.swift */; };
+		048E3B237B5B1B3319363FCB /* ToolchainDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D979A90F6096E0C9D2F1686 /* ToolchainDetector.swift */; };
 		049029C860295B549B622298 /* Checkpoints.swift in Sources */ = {isa = PBXBuildFile; fileRef = 275CF361D5418A2D7204D8BD /* Checkpoints.swift */; };
+		081C17E6355FDD1900CD9361 /* Device.swift in Sources */ = {isa = PBXBuildFile; fileRef = A53DF9FD8C74D55CA3269AAA /* Device.swift */; };
 		09E2E29D54EB2E485D6D596A /* DesignLint.swift in Sources */ = {isa = PBXBuildFile; fileRef = D33DEAE21864FE47AF934AAA /* DesignLint.swift */; };
 		0D7EF68C237F34D7954C7C8E /* Templates in Resources */ = {isa = PBXBuildFile; fileRef = CD947D9F02DDBB14858B6C8A /* Templates */; };
 		10534CA09F73CA7899F393AA /* DartSDKModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E1D72C1DD8CF0F35A562EBE /* DartSDKModel.swift */; };
 		1138CCAA09F59B08F3B291EB /* ClaudeEvents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D2C2092D4ED47BA92DE07C0 /* ClaudeEvents.swift */; };
 		1623ED5928D9F28529255CB4 /* PickModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51EFD1E26DE06F3BA89C5719 /* PickModel.swift */; };
 		16A5B335DAF4BB74A24D84E6 /* RunningAppFinder.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8C6540E59C1B8EDA8D81C10 /* RunningAppFinder.swift */; };
-		1A095142A45FAD75B49FF984 /* ToolchainCheck.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48528525320367ADC23F454C /* ToolchainCheck.swift */; };
 		1C3E6BC5CC4AB50DA9E3F6CE /* FlowMapModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0FA8E0C6B778FF792837C79 /* FlowMapModel.swift */; };
 		21FBD7539922E79424654951 /* ClaudeStreamProcess.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EAF3766A5E4C80EDBA71CE6 /* ClaudeStreamProcess.swift */; };
 		2309F0E4763FC86498DCB8EC /* StatusRenderingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62DC339195DB99B74FCE89E4 /* StatusRenderingTests.swift */; };
@@ -24,11 +26,14 @@
 		28902DECFE727584B5AECE12 /* LogAndDiffViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8BFF51074EE2AD390002E0C /* LogAndDiffViews.swift */; };
 		28EF0A77B1ACB1B288DFCAAD /* Choices.swift in Sources */ = {isa = PBXBuildFile; fileRef = D39B7E02CBED08183520404D /* Choices.swift */; };
 		2A6C727D1846536218DD5926 /* DesignView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17F192BD4EEFCFAC26BB9484 /* DesignView.swift */; };
+		2BECB18F4F48005C0D303361 /* SetupInstaller.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA1A0A6AC7009363E2A35670 /* SetupInstaller.swift */; };
 		2D3897E2057D19CFE1F80A0F /* CLIView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9116D54E4720D142D69AF9C /* CLIView.swift */; };
 		2EB82492B6A51DBC6E1969AC /* FlowViewport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41A8DD8C8A60F14CF854A3C4 /* FlowViewport.swift */; };
 		30DC2D705883F9C831CE3064 /* DesignStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 878EFDBAE9091B6BA0D62A08 /* DesignStore.swift */; };
 		330E3903766DDDA4A944DF8F /* NewProjectRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = C63653408F338F048F7134B1 /* NewProjectRequest.swift */; };
 		3378CE1ED39696250D694BA0 /* ApprovalTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C2ACC6CF286BE99B97C915E /* ApprovalTests.swift */; };
+		3448D0D6DAA003FDAA9C7B1D /* SetupTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EED714C1B7CA4C919ECAAA7D /* SetupTests.swift */; };
+		353C3D27E3A8202207AAAB05 /* SetupPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = 218EA05E144716934D6B1C07 /* SetupPlan.swift */; };
 		368407136B160092BD1E82B9 /* FlutterCreateCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58AFE7EDB4E11C891B109972 /* FlutterCreateCommand.swift */; };
 		3C2D137AB564685806DF621F /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49567BA1A7346DA894DA0A8F /* SettingsView.swift */; };
 		3C3ED791596FDA011C6B2051 /* Workspace+Design.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB944089FF84426D9898F0E9 /* Workspace+Design.swift */; };
@@ -37,15 +42,21 @@
 		3FF85A3DB056F141EB8D7094 /* ClaudeLoginProcess.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3C4EF6963B8A7C4682B6189 /* ClaudeLoginProcess.swift */; };
 		41799181973BA59D4911DA49 /* ModelsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC5563599B450CC1AF3C60BB /* ModelsView.swift */; };
 		49DE9F78E7D773964B367247 /* PlanTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7447EDE23D29D02BDB2A84A /* PlanTests.swift */; };
+		49F395D820B38AF90577E65C /* DeviceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB5021E754BFED17939A5613 /* DeviceService.swift */; };
+		4B55A54301244A8B33355810 /* LegacyMigration.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF89DEBBFAC5316AF278FD97 /* LegacyMigration.swift */; };
 		4CAFA92782B71E26DF7DD64E /* StudioCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0400B24E40E0E4808CF7D091 /* StudioCommands.swift */; };
 		4D0F134BCD641252A94CC05B /* ClaudeModelService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59BFC66633AD59CD4919DF83 /* ClaudeModelService.swift */; };
-		4D315C82E5DA16632DF64789 /* SimulatorModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 837641C453C83B5FB23DBD28 /* SimulatorModel.swift */; };
 		4DBB976E06A94E712E31790D /* DesignWeb.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3D7B25863869FFFD89AC38A /* DesignWeb.swift */; };
+		4E8735427432E2C54CAFA39E /* ManualEdit.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB916AE2F1C05FEFA95851A7 /* ManualEdit.swift */; };
+		54AEB50D0A9EA8E51AC97248 /* AndroidTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE09E021C3BABC8752BA3764 /* AndroidTests.swift */; };
 		5824A377E2846FA63755716E /* DartSDKService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A332F66AE4C1E543006642F /* DartSDKService.swift */; };
 		59CBE0987639CCE89F448155 /* FlutterOutputTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CBFC2D8B02BA0841E6E48B7 /* FlutterOutputTests.swift */; };
+		5C951A5DABAD7AEC836059A6 /* DeviceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B84370FCD88BDD973173326 /* DeviceTests.swift */; };
 		5F27FC387AEA2167F2F65919 /* MarkdownBlocks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E2A05DDF9704E65DF13A99D /* MarkdownBlocks.swift */; };
 		5FA1E9C44FDC17093DAAB1E8 /* AppFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3887AD55272504EA7A2C1D90 /* AppFlow.swift */; };
 		600F447CE71F63B3AC477E1A /* ProjectView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5EDA7C9FB65249BD33D5816 /* ProjectView.swift */; };
+		60EE4FE8D2DC19C6342F2372 /* CodeEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41BDED5513737AF4EE270B12 /* CodeEditor.swift */; };
+		66482506ED7B39F5948F9B59 /* SetupFormats.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4059E99453C8D11EDB1AFA9 /* SetupFormats.swift */; };
 		6B80827696964634962BF5EF /* InspectorClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68A8C87B6E1683121FB0AC3F /* InspectorClient.swift */; };
 		6BC3B0ACFFDAC4D148683769 /* DesignStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = A759C6B1E3FC29B5512C21F6 /* DesignStyle.swift */; };
 		6C21C4A0048B4EE61DDD02C0 /* SimulatorCommandTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D225CD7FF4B40961A1D63BE /* SimulatorCommandTests.swift */; };
@@ -55,14 +66,18 @@
 		77FB02DA2994BE1BDF8C74E0 /* Toolbar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 648481D249AAC7C0EEB3EA81 /* Toolbar.swift */; };
 		7917AE5E78D1C8421E6608CD /* CoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 063160B764E8BEA408180098 /* CoreTests.swift */; };
 		7C824D9096EB8267C7D677EF /* MSSimulatorDisplay.m in Sources */ = {isa = PBXBuildFile; fileRef = 6733DBD5625108AFC9CC438B /* MSSimulatorDisplay.m */; };
+		7D0B0BF26D3666F525D9DA42 /* ManualEditTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29CD16BD4C68F02757194D66 /* ManualEditTests.swift */; };
 		80A795C8A90FCE1C8910C923 /* DesignReferencesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00AD3689358C35793E1AC61D /* DesignReferencesTests.swift */; };
 		80F502B4AD247B7831DD8BEE /* SimulatorCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15F1DE66D3DCD7F77618CAB8 /* SimulatorCommand.swift */; };
 		81558967177AAB6B214A011A /* NewProjectSmokeTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FB8BC040B6D1F0A7060BD1E /* NewProjectSmokeTest.swift */; };
 		81D861A8D3AF5262758DCB71 /* DiagnosticLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B4558791E4DC76EC183EE44 /* DiagnosticLog.swift */; };
 		825F80ED2C298826CB27F4FA /* FlowViewportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77ECB5A193D36EB734498E90 /* FlowViewportTests.swift */; };
+		82C8E856A36A6A1A8C216603 /* DeviceScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 514924B6878F9C8CB6BA6127 /* DeviceScreen.swift */; };
 		845E3E4EF668ABB49F78542C /* FlowNavigation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 332EB613FB35362C06AFFB5E /* FlowNavigation.swift */; };
 		87CC7F96965942B647137614 /* FixModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABF3B83D36B28C480AEEE96B /* FixModel.swift */; };
+		88FB71B18EB5747BFCB7CB21 /* CodeTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 487EFBFDB099C7865BC7BF10 /* CodeTextView.swift */; };
 		89F18572B452B5B977141723 /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = 836E335207FDB9F1BA85D373 /* Components.swift */; };
+		8A58E187D905DB61B74A5346 /* AndroidParsing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 860E54ED9B81902F32BC58DD /* AndroidParsing.swift */; };
 		8A7D4F74F116AA88F63F7461 /* FileSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05D882B88E504A6D26DC1AC3 /* FileSnapshot.swift */; };
 		8E8CD5F80F9C44DBB1C81F95 /* MobileStudioApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D46FFCDF80E4AF9D79D83DC /* MobileStudioApp.swift */; };
 		99C19F326B054054189A8EAF /* DesignPrompts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04D6E82652EEE90238C1A852 /* DesignPrompts.swift */; };
@@ -73,6 +88,7 @@
 		A7F13111B450E26304959350 /* AgentBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F98EB1A196319917221AADA /* AgentBridge.swift */; };
 		A86577D8E32FF3E89BECC19F /* GitDiff.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1878D0756FDCF9BD088709B2 /* GitDiff.swift */; };
 		A96F4E829469D36B499384ED /* ClaudeCLIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2278BC7E8E3DF50FADCAF3CC /* ClaudeCLIService.swift */; };
+		AA15DBC4882F04ECBFF326AA /* DeviceModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B17A22FE4EB18F3A96129B5F /* DeviceModel.swift */; };
 		AFEFE6DA8E8A106A95BDD940 /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53B651022902A63C0841C077 /* Extensions.swift */; };
 		B14665D0241E67EC7BC85F24 /* FlutterRunModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 639D4D8A19632523364D91B0 /* FlutterRunModel.swift */; };
 		B3760722BC8D08888E834D3E /* ApprovalCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3285EEAAABFA709933B629EF /* ApprovalCard.swift */; };
@@ -80,7 +96,9 @@
 		B9B94E85659423A5EFCC71AB /* DeviceChromeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3EF75D06E98B4B22C69A861 /* DeviceChromeTests.swift */; };
 		BA207E58CC616073F36B0906 /* SimulatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3E94F545A9D3C4FB20FE9B3 /* SimulatorView.swift */; };
 		BB3CA4170D518FD4CAA98C5F /* DesignTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37BA07D110AA0CCCD8D97691 /* DesignTests.swift */; };
+		BD933FC3219FCAC1A248CFFD /* ShellProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62E0AC7DE377CF74C98366A0 /* ShellProfile.swift */; };
 		BF52C52E22F0C8C7381A60E0 /* DesignVersions.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70C158D0BCD49BF58BBE21D /* DesignVersions.swift */; };
+		C10F4A348AA7AF52BC0BE3F4 /* LegacyMigrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFE49059CF4B41652084F198 /* LegacyMigrationTests.swift */; };
 		C1A774E549AE72C69E564D45 /* StarterTemplate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 622CCEDDE0A20A5417BD7133 /* StarterTemplate.swift */; };
 		C247D3C87F351058FE0BDCBE /* IOSurface.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 043B1B8B9F21AA69AB5E30DC /* IOSurface.framework */; };
 		C360330888C2E8137155D5CE /* GitBranch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68D7AC6C1B1CCF922B4958EC /* GitBranch.swift */; };
@@ -96,6 +114,7 @@
 		CFBF633E3828AF829F80D396 /* FlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 242D3271DE1D35FB68142615 /* FlowView.swift */; };
 		D20AD300B5A1909161114964 /* ClaudeModelsModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FA1C4963449C9792E24C74C /* ClaudeModelsModel.swift */; };
 		D320DEB4B6691309C9C860E7 /* SimctlService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEDDFB47D8F146F8EEAFB2C9 /* SimctlService.swift */; };
+		D434D11EB33A59C9E720AC41 /* EmulatorService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 932FF1E6CD5856BB56BD5780 /* EmulatorService.swift */; };
 		DC01A725964492C31EBD1C0E /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3182C9E8D192D1016590E47F /* AppDelegate.swift */; };
 		DCA0BDE6F41CA285331F98D2 /* DesignLibrary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 411A7E4B9B6DFC832728CA96 /* DesignLibrary.swift */; };
 		DD688942598725357BCDBD0D /* AccountsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D9CFA723DEEC7EA441E509B /* AccountsView.swift */; };
@@ -148,9 +167,12 @@
 		1878D0756FDCF9BD088709B2 /* GitDiff.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitDiff.swift; sourceTree = "<group>"; };
 		1A332F66AE4C1E543006642F /* DartSDKService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DartSDKService.swift; sourceTree = "<group>"; };
 		1F98EB1A196319917221AADA /* AgentBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentBridge.swift; sourceTree = "<group>"; };
+		218EA05E144716934D6B1C07 /* SetupPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupPlan.swift; sourceTree = "<group>"; };
 		2278BC7E8E3DF50FADCAF3CC /* ClaudeCLIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeCLIService.swift; sourceTree = "<group>"; };
 		242D3271DE1D35FB68142615 /* FlowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlowView.swift; sourceTree = "<group>"; };
 		275CF361D5418A2D7204D8BD /* Checkpoints.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Checkpoints.swift; sourceTree = "<group>"; };
+		29CD16BD4C68F02757194D66 /* ManualEditTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManualEditTests.swift; sourceTree = "<group>"; };
+		2B84370FCD88BDD973173326 /* DeviceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceTests.swift; sourceTree = "<group>"; };
 		2CBFC2D8B02BA0841E6E48B7 /* FlutterOutputTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlutterOutputTests.swift; sourceTree = "<group>"; };
 		2CF293A1D6EA1DBE1484F1AE /* ProcessRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessRunner.swift; sourceTree = "<group>"; };
 		2D4DC322C08FF23E9822B4ED /* RedesignTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedesignTests.swift; sourceTree = "<group>"; };
@@ -164,11 +186,13 @@
 		408F2F129904C99DBAE32CD0 /* ApprovalModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApprovalModel.swift; sourceTree = "<group>"; };
 		411A7E4B9B6DFC832728CA96 /* DesignLibrary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignLibrary.swift; sourceTree = "<group>"; };
 		41A8DD8C8A60F14CF854A3C4 /* FlowViewport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlowViewport.swift; sourceTree = "<group>"; };
-		48528525320367ADC23F454C /* ToolchainCheck.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolchainCheck.swift; sourceTree = "<group>"; };
+		41BDED5513737AF4EE270B12 /* CodeEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodeEditor.swift; sourceTree = "<group>"; };
+		487EFBFDB099C7865BC7BF10 /* CodeTextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodeTextView.swift; sourceTree = "<group>"; };
 		49567BA1A7346DA894DA0A8F /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		4B4558791E4DC76EC183EE44 /* DiagnosticLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagnosticLog.swift; sourceTree = "<group>"; };
 		4B8BB98EBC819D9B44DA13E7 /* MobileStudio-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "MobileStudio-Bridging-Header.h"; sourceTree = "<group>"; };
 		4D27E3166C95541C689B8892 /* AgentPermission.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentPermission.swift; sourceTree = "<group>"; };
+		514924B6878F9C8CB6BA6127 /* DeviceScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceScreen.swift; sourceTree = "<group>"; };
 		51EFD1E26DE06F3BA89C5719 /* PickModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PickModel.swift; sourceTree = "<group>"; };
 		53B651022902A63C0841C077 /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
 		57572E9822B3208CD0E706C5 /* Design */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Design; path = MobileStudio/Resources/Design; sourceTree = SOURCE_ROOT; };
@@ -176,14 +200,17 @@
 		59BFC66633AD59CD4919DF83 /* ClaudeModelService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeModelService.swift; sourceTree = "<group>"; };
 		5B57B38CEAE21EB2ADB5B0FC /* AppFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppFlowTests.swift; sourceTree = "<group>"; };
 		5D46FFCDF80E4AF9D79D83DC /* MobileStudioApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileStudioApp.swift; sourceTree = "<group>"; };
+		5D979A90F6096E0C9D2F1686 /* ToolchainDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolchainDetector.swift; sourceTree = "<group>"; };
 		5D9CFA723DEEC7EA441E509B /* AccountsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountsView.swift; sourceTree = "<group>"; };
 		5F0D578CEE0D155ED69F804F /* FlavorValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlavorValidator.swift; sourceTree = "<group>"; };
 		622CCEDDE0A20A5417BD7133 /* StarterTemplate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StarterTemplate.swift; sourceTree = "<group>"; };
 		62DC339195DB99B74FCE89E4 /* StatusRenderingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusRenderingTests.swift; sourceTree = "<group>"; };
+		62E0AC7DE377CF74C98366A0 /* ShellProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShellProfile.swift; sourceTree = "<group>"; };
 		639D4D8A19632523364D91B0 /* FlutterRunModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlutterRunModel.swift; sourceTree = "<group>"; };
 		648481D249AAC7C0EEB3EA81 /* Toolbar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Toolbar.swift; sourceTree = "<group>"; };
 		665A8358BF2A4DD6EEFDCBF3 /* NewProjectRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewProjectRecord.swift; sourceTree = "<group>"; };
 		6733DBD5625108AFC9CC438B /* MSSimulatorDisplay.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = MSSimulatorDisplay.m; sourceTree = "<group>"; };
+		6890BED23B86DE7335907862 /* SetupModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupModel.swift; sourceTree = "<group>"; };
 		68A8C87B6E1683121FB0AC3F /* InspectorClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InspectorClient.swift; sourceTree = "<group>"; };
 		68D7AC6C1B1CCF922B4958EC /* GitBranch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitBranch.swift; sourceTree = "<group>"; };
 		6D225CD7FF4B40961A1D63BE /* SimulatorCommandTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SimulatorCommandTests.swift; sourceTree = "<group>"; };
@@ -194,7 +221,7 @@
 		77ECB5A193D36EB734498E90 /* FlowViewportTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlowViewportTests.swift; sourceTree = "<group>"; };
 		8312E6EFADCD02F667A8CBDE /* NewProjectSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewProjectSheet.swift; sourceTree = "<group>"; };
 		836E335207FDB9F1BA85D373 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
-		837641C453C83B5FB23DBD28 /* SimulatorModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SimulatorModel.swift; sourceTree = "<group>"; };
+		860E54ED9B81902F32BC58DD /* AndroidParsing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AndroidParsing.swift; sourceTree = "<group>"; };
 		86E4BA8B7DB04456CDD4488A /* DesignReferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignReferences.swift; sourceTree = "<group>"; };
 		878EFDBAE9091B6BA0D62A08 /* DesignStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignStore.swift; sourceTree = "<group>"; };
 		87BB1F715EAE3BA6CDAC2B98 /* StudioModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudioModel.swift; sourceTree = "<group>"; };
@@ -207,14 +234,18 @@
 		8EB0B668ABF720678A711BC2 /* NewProjectModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewProjectModel.swift; sourceTree = "<group>"; };
 		9071DF1090A765089DED4118 /* ProductPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProductPlan.swift; sourceTree = "<group>"; };
 		90E92DB27276DFCC7FDB1B0F /* MSSimulatorDisplay.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MSSimulatorDisplay.h; sourceTree = "<group>"; };
+		932FF1E6CD5856BB56BD5780 /* EmulatorService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmulatorService.swift; sourceTree = "<group>"; };
 		93480E8461B93756995EE712 /* RunFailure.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunFailure.swift; sourceTree = "<group>"; };
 		9784DC6C60D28D725C553620 /* ClaudeAccess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeAccess.swift; sourceTree = "<group>"; };
 		9FA1C4963449C9792E24C74C /* ClaudeModelsModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeModelsModel.swift; sourceTree = "<group>"; };
 		A070EDD9454BAC50C13296F5 /* AppIDWriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppIDWriter.swift; sourceTree = "<group>"; };
 		A3C4EF6963B8A7C4682B6189 /* ClaudeLoginProcess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeLoginProcess.swift; sourceTree = "<group>"; };
+		A53DF9FD8C74D55CA3269AAA /* Device.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Device.swift; sourceTree = "<group>"; };
 		A759C6B1E3FC29B5512C21F6 /* DesignStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignStyle.swift; sourceTree = "<group>"; };
 		ABF3B83D36B28C480AEEE96B /* FixModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FixModel.swift; sourceTree = "<group>"; };
 		AC7F041EA5FBE18A59289A6D /* DesignModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignModel.swift; sourceTree = "<group>"; };
+		AFE49059CF4B41652084F198 /* LegacyMigrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegacyMigrationTests.swift; sourceTree = "<group>"; };
+		B17A22FE4EB18F3A96129B5F /* DeviceModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceModel.swift; sourceTree = "<group>"; };
 		B7447EDE23D29D02BDB2A84A /* PlanTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanTests.swift; sourceTree = "<group>"; };
 		B8BFF51074EE2AD390002E0C /* LogAndDiffViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogAndDiffViews.swift; sourceTree = "<group>"; };
 		BA38FD2679D98A9E7976E7B3 /* NewProjectTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewProjectTests.swift; sourceTree = "<group>"; };
@@ -225,23 +256,30 @@
 		C70C158D0BCD49BF58BBE21D /* DesignVersions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignVersions.swift; sourceTree = "<group>"; };
 		C8C6540E59C1B8EDA8D81C10 /* RunningAppFinder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunningAppFinder.swift; sourceTree = "<group>"; };
 		C99F1897F9F1747834466EAC /* ProjectVerifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectVerifier.swift; sourceTree = "<group>"; };
+		CA1A0A6AC7009363E2A35670 /* SetupInstaller.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupInstaller.swift; sourceTree = "<group>"; };
 		CB944089FF84426D9898F0E9 /* Workspace+Design.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Workspace+Design.swift"; sourceTree = "<group>"; };
 		CC5563599B450CC1AF3C60BB /* ModelsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelsView.swift; sourceTree = "<group>"; };
 		CD947D9F02DDBB14858B6C8A /* Templates */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Templates; path = MobileStudio/Resources/Templates; sourceTree = SOURCE_ROOT; };
+		CE09E021C3BABC8752BA3764 /* AndroidTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AndroidTests.swift; sourceTree = "<group>"; };
 		CE6A2C879F4AD944F31375A9 /* MobileStudio.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MobileStudio.entitlements; sourceTree = "<group>"; };
 		D33DEAE21864FE47AF934AAA /* DesignLint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignLint.swift; sourceTree = "<group>"; };
 		D39B7E02CBED08183520404D /* Choices.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Choices.swift; sourceTree = "<group>"; };
 		D77CAE1293C3C56947E04276 /* FlutterProject.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlutterProject.swift; sourceTree = "<group>"; };
+		DB916AE2F1C05FEFA95851A7 /* ManualEdit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManualEdit.swift; sourceTree = "<group>"; };
 		DEDDFB47D8F146F8EEAFB2C9 /* SimctlService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SimctlService.swift; sourceTree = "<group>"; };
 		E0FA8E0C6B778FF792837C79 /* FlowMapModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlowMapModel.swift; sourceTree = "<group>"; };
 		E214ACAAE40C3011FC668B13 /* ProjectNames.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectNames.swift; sourceTree = "<group>"; };
 		E6345991BF3AE76BA8A97FED /* FlutterRunProcess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlutterRunProcess.swift; sourceTree = "<group>"; };
 		E6DB0A6793CC912145272968 /* DesignTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignTokens.swift; sourceTree = "<group>"; };
 		EA5DFB1D3B3C6D134BA24C81 /* ChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatView.swift; sourceTree = "<group>"; };
+		EED714C1B7CA4C919ECAAA7D /* SetupTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupTests.swift; sourceTree = "<group>"; };
+		EF89DEBBFAC5316AF278FD97 /* LegacyMigration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegacyMigration.swift; sourceTree = "<group>"; };
 		F183B1551D688724E9F4B73C /* FlutterOutput.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlutterOutput.swift; sourceTree = "<group>"; };
+		F4059E99453C8D11EDB1AFA9 /* SetupFormats.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupFormats.swift; sourceTree = "<group>"; };
 		F5EDA7C9FB65249BD33D5816 /* ProjectView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectView.swift; sourceTree = "<group>"; };
 		F6E172ED02B0EEBAEB12D76A /* ClaudeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeTests.swift; sourceTree = "<group>"; };
 		F9116D54E4720D142D69AF9C /* CLIView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CLIView.swift; sourceTree = "<group>"; };
+		FB5021E754BFED17939A5613 /* DeviceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -269,8 +307,10 @@
 		05016BCE7065A105116698CD /* Core */ = {
 			isa = PBXGroup;
 			children = (
+				41BDED5513737AF4EE270B12 /* CodeEditor.swift */,
 				4B4558791E4DC76EC183EE44 /* DiagnosticLog.swift */,
 				53B651022902A63C0841C077 /* Extensions.swift */,
+				EF89DEBBFAC5316AF278FD97 /* LegacyMigration.swift */,
 				2CF293A1D6EA1DBE1484F1AE /* ProcessRunner.swift */,
 				8C34D86D100466FDA9871DD6 /* ShellEnvironment.swift */,
 			);
@@ -303,6 +343,7 @@
 				E6345991BF3AE76BA8A97FED /* FlutterRunProcess.swift */,
 				68D7AC6C1B1CCF922B4958EC /* GitBranch.swift */,
 				1878D0756FDCF9BD088709B2 /* GitDiff.swift */,
+				DB916AE2F1C05FEFA95851A7 /* ManualEdit.swift */,
 				8EB0B668ABF720678A711BC2 /* NewProjectModel.swift */,
 				665A8358BF2A4DD6EEFDCBF3 /* NewProjectRecord.swift */,
 				C63653408F338F048F7134B1 /* NewProjectRequest.swift */,
@@ -313,7 +354,6 @@
 				93480E8461B93756995EE712 /* RunFailure.swift */,
 				C8C6540E59C1B8EDA8D81C10 /* RunningAppFinder.swift */,
 				622CCEDDE0A20A5417BD7133 /* StarterTemplate.swift */,
-				48528525320367ADC23F454C /* ToolchainCheck.swift */,
 			);
 			path = Project;
 			sourceTree = "<group>";
@@ -372,9 +412,23 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		4E2A0194EE57E08E80C68F4E /* Setup */ = {
+			isa = PBXGroup;
+			children = (
+				F4059E99453C8D11EDB1AFA9 /* SetupFormats.swift */,
+				CA1A0A6AC7009363E2A35670 /* SetupInstaller.swift */,
+				6890BED23B86DE7335907862 /* SetupModel.swift */,
+				218EA05E144716934D6B1C07 /* SetupPlan.swift */,
+				62E0AC7DE377CF74C98366A0 /* ShellProfile.swift */,
+				5D979A90F6096E0C9D2F1686 /* ToolchainDetector.swift */,
+			);
+			path = Setup;
+			sourceTree = "<group>";
+		};
 		513A0B08BB9A18A954D5FE83 /* MobileStudioTests */ = {
 			isa = PBXGroup;
 			children = (
+				CE09E021C3BABC8752BA3764 /* AndroidTests.swift */,
 				5B57B38CEAE21EB2ADB5B0FC /* AppFlowTests.swift */,
 				8C2ACC6CF286BE99B97C915E /* ApprovalTests.swift */,
 				F6E172ED02B0EEBAEB12D76A /* ClaudeTests.swift */,
@@ -382,12 +436,16 @@
 				00AD3689358C35793E1AC61D /* DesignReferencesTests.swift */,
 				37BA07D110AA0CCCD8D97691 /* DesignTests.swift */,
 				C3EF75D06E98B4B22C69A861 /* DeviceChromeTests.swift */,
+				2B84370FCD88BDD973173326 /* DeviceTests.swift */,
 				77ECB5A193D36EB734498E90 /* FlowViewportTests.swift */,
 				2CBFC2D8B02BA0841E6E48B7 /* FlutterOutputTests.swift */,
+				AFE49059CF4B41652084F198 /* LegacyMigrationTests.swift */,
 				14C8AF9DA1D80B016009385B /* LowCodeTests.swift */,
+				29CD16BD4C68F02757194D66 /* ManualEditTests.swift */,
 				BA38FD2679D98A9E7976E7B3 /* NewProjectTests.swift */,
 				B7447EDE23D29D02BDB2A84A /* PlanTests.swift */,
 				2D4DC322C08FF23E9822B4ED /* RedesignTests.swift */,
+				EED714C1B7CA4C919ECAAA7D /* SetupTests.swift */,
 				6D225CD7FF4B40961A1D63BE /* SimulatorCommandTests.swift */,
 				62DC339195DB99B74FCE89E4 /* StatusRenderingTests.swift */,
 			);
@@ -416,15 +474,18 @@
 				4B8BB98EBC819D9B44DA13E7 /* MobileStudio-Bridging-Header.h */,
 				CE6A2C879F4AD944F31375A9 /* MobileStudio.entitlements */,
 				047BAEF1B20DC978D26379BE /* Accounts */,
+				E1A0A2A19D38FAEBBE4C46FC /* Android */,
 				9439E49549181DF693C38AF6 /* App */,
 				393674EDED48CB64C5C5CB42 /* Chat */,
 				4721E5AFB581C85F9984B43B /* ClaudeCLI */,
 				05016BCE7065A105116698CD /* Core */,
 				C12A557A13CF05AAF937069C /* Dart */,
 				41177F6E52F90B8D963DE334 /* Design */,
+				D1C632BD04B1339C67042E7B /* Device */,
 				0E82AEEFE41A5449A5065B57 /* Inspector */,
 				2D4B34B8F8EF16251AD6E606 /* Project */,
 				A3A9B403E94AAE0D80BE7432 /* Resources */,
+				4E2A0194EE57E08E80C68F4E /* Setup */,
 				C99F5BA3E23D5BBB405198BA /* Simulator */,
 				B427E34AE687C0C01D49E1AF /* Views */,
 			);
@@ -447,6 +508,7 @@
 				3285EEAAABFA709933B629EF /* ApprovalCard.swift */,
 				EA5DFB1D3B3C6D134BA24C81 /* ChatView.swift */,
 				F9116D54E4720D142D69AF9C /* CLIView.swift */,
+				487EFBFDB099C7865BC7BF10 /* CodeTextView.swift */,
 				836E335207FDB9F1BA85D373 /* Components.swift */,
 				17F192BD4EEFCFAC26BB9484 /* DesignView.swift */,
 				332EB613FB35362C06AFFB5E /* FlowNavigation.swift */,
@@ -481,9 +543,19 @@
 				6733DBD5625108AFC9CC438B /* MSSimulatorDisplay.m */,
 				DEDDFB47D8F146F8EEAFB2C9 /* SimctlService.swift */,
 				15F1DE66D3DCD7F77618CAB8 /* SimulatorCommand.swift */,
-				837641C453C83B5FB23DBD28 /* SimulatorModel.swift */,
 			);
 			path = Simulator;
+			sourceTree = "<group>";
+		};
+		D1C632BD04B1339C67042E7B /* Device */ = {
+			isa = PBXGroup;
+			children = (
+				A53DF9FD8C74D55CA3269AAA /* Device.swift */,
+				B17A22FE4EB18F3A96129B5F /* DeviceModel.swift */,
+				514924B6878F9C8CB6BA6127 /* DeviceScreen.swift */,
+				FB5021E754BFED17939A5613 /* DeviceService.swift */,
+			);
+			path = Device;
 			sourceTree = "<group>";
 		};
 		DDAFD06B649772A7B2A2A8FD = {
@@ -502,6 +574,15 @@
 				043B1B8B9F21AA69AB5E30DC /* IOSurface.framework */,
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		E1A0A2A19D38FAEBBE4C46FC /* Android */ = {
+			isa = PBXGroup;
+			children = (
+				860E54ED9B81902F32BC58DD /* AndroidParsing.swift */,
+				932FF1E6CD5856BB56BD5780 /* EmulatorService.swift */,
+			);
+			path = Android;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -595,6 +676,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				54AEB50D0A9EA8E51AC97248 /* AndroidTests.swift in Sources */,
 				CECB7DD92867508E3D725877 /* AppFlowTests.swift in Sources */,
 				3378CE1ED39696250D694BA0 /* ApprovalTests.swift in Sources */,
 				DD7448482A42B7DDF69BE317 /* ClaudeTests.swift in Sources */,
@@ -602,12 +684,16 @@
 				80A795C8A90FCE1C8910C923 /* DesignReferencesTests.swift in Sources */,
 				BB3CA4170D518FD4CAA98C5F /* DesignTests.swift in Sources */,
 				B9B94E85659423A5EFCC71AB /* DeviceChromeTests.swift in Sources */,
+				5C951A5DABAD7AEC836059A6 /* DeviceTests.swift in Sources */,
 				825F80ED2C298826CB27F4FA /* FlowViewportTests.swift in Sources */,
 				59CBE0987639CCE89F448155 /* FlutterOutputTests.swift in Sources */,
+				C10F4A348AA7AF52BC0BE3F4 /* LegacyMigrationTests.swift in Sources */,
 				3FA52E1C9AF1E1CEEF8EBEED /* LowCodeTests.swift in Sources */,
+				7D0B0BF26D3666F525D9DA42 /* ManualEditTests.swift in Sources */,
 				FE74742F748C93FFB142D4A9 /* NewProjectTests.swift in Sources */,
 				49DE9F78E7D773964B367247 /* PlanTests.swift in Sources */,
 				FD96278AD7C20217835C1298 /* RedesignTests.swift in Sources */,
+				3448D0D6DAA003FDAA9C7B1D /* SetupTests.swift in Sources */,
 				6C21C4A0048B4EE61DDD02C0 /* SimulatorCommandTests.swift in Sources */,
 				2309F0E4763FC86498DCB8EC /* StatusRenderingTests.swift in Sources */,
 			);
@@ -620,6 +706,7 @@
 				DD688942598725357BCDBD0D /* AccountsView.swift in Sources */,
 				A7F13111B450E26304959350 /* AgentBridge.swift in Sources */,
 				E3EA7B8CDEC43EE1E09B99C3 /* AgentPermission.swift in Sources */,
+				8A58E187D905DB61B74A5346 /* AndroidParsing.swift in Sources */,
 				DC01A725964492C31EBD1C0E /* AppDelegate.swift in Sources */,
 				5FA1E9C44FDC17093DAAB1E8 /* AppFlow.swift in Sources */,
 				A12522DB981B01B6CB0EA57E /* AppIDWriter.swift in Sources */,
@@ -637,6 +724,8 @@
 				4D0F134BCD641252A94CC05B /* ClaudeModelService.swift in Sources */,
 				D20AD300B5A1909161114964 /* ClaudeModelsModel.swift in Sources */,
 				21FBD7539922E79424654951 /* ClaudeStreamProcess.swift in Sources */,
+				60EE4FE8D2DC19C6342F2372 /* CodeEditor.swift in Sources */,
+				88FB71B18EB5747BFCB7CB21 /* CodeTextView.swift in Sources */,
 				89F18572B452B5B977141723 /* Components.swift in Sources */,
 				DF72A30A6524CADFEFB4EC8D /* ContentView.swift in Sources */,
 				10534CA09F73CA7899F393AA /* DartSDKModel.swift in Sources */,
@@ -652,8 +741,13 @@
 				BF52C52E22F0C8C7381A60E0 /* DesignVersions.swift in Sources */,
 				2A6C727D1846536218DD5926 /* DesignView.swift in Sources */,
 				4DBB976E06A94E712E31790D /* DesignWeb.swift in Sources */,
+				081C17E6355FDD1900CD9361 /* Device.swift in Sources */,
 				F34D6660305810C0EB281E28 /* DeviceChrome.swift in Sources */,
+				AA15DBC4882F04ECBFF326AA /* DeviceModel.swift in Sources */,
+				82C8E856A36A6A1A8C216603 /* DeviceScreen.swift in Sources */,
+				49F395D820B38AF90577E65C /* DeviceService.swift in Sources */,
 				81D861A8D3AF5262758DCB71 /* DiagnosticLog.swift in Sources */,
+				D434D11EB33A59C9E720AC41 /* EmulatorService.swift in Sources */,
 				AFEFE6DA8E8A106A95BDD940 /* Extensions.swift in Sources */,
 				8A7D4F74F116AA88F63F7461 /* FileSnapshot.swift in Sources */,
 				87CC7F96965942B647137614 /* FixModel.swift in Sources */,
@@ -672,8 +766,10 @@
 				EF244B7B9CFF31ABA30D76BC /* GoogleFonts.swift in Sources */,
 				6B80827696964634962BF5EF /* InspectorClient.swift in Sources */,
 				000684296115B57E1738B4D0 /* KeyboardMap.swift in Sources */,
+				4B55A54301244A8B33355810 /* LegacyMigration.swift in Sources */,
 				28902DECFE727584B5AECE12 /* LogAndDiffViews.swift in Sources */,
 				7C824D9096EB8267C7D677EF /* MSSimulatorDisplay.m in Sources */,
+				4E8735427432E2C54CAFA39E /* ManualEdit.swift in Sources */,
 				5F27FC387AEA2167F2F65919 /* MarkdownBlocks.swift in Sources */,
 				8E8CD5F80F9C44DBB1C81F95 /* MobileStudioApp.swift in Sources */,
 				41799181973BA59D4911DA49 /* ModelsView.swift in Sources */,
@@ -695,16 +791,20 @@
 				B96D69F0F30ACE6ADDBA6254 /* RunFailure.swift in Sources */,
 				16A5B335DAF4BB74A24D84E6 /* RunningAppFinder.swift in Sources */,
 				3C2D137AB564685806DF621F /* SettingsView.swift in Sources */,
+				66482506ED7B39F5948F9B59 /* SetupFormats.swift in Sources */,
+				2BECB18F4F48005C0D303361 /* SetupInstaller.swift in Sources */,
+				029ACFC18E236B45FEFDA66A /* SetupModel.swift in Sources */,
+				353C3D27E3A8202207AAAB05 /* SetupPlan.swift in Sources */,
 				C9E99D3265100508B7475FED /* ShellEnvironment.swift in Sources */,
+				BD933FC3219FCAC1A248CFFD /* ShellProfile.swift in Sources */,
 				D320DEB4B6691309C9C860E7 /* SimctlService.swift in Sources */,
 				80F502B4AD247B7831DD8BEE /* SimulatorCommand.swift in Sources */,
-				4D315C82E5DA16632DF64789 /* SimulatorModel.swift in Sources */,
 				BA207E58CC616073F36B0906 /* SimulatorView.swift in Sources */,
 				C1A774E549AE72C69E564D45 /* StarterTemplate.swift in Sources */,
 				4CAFA92782B71E26DF7DD64E /* StudioCommands.swift in Sources */,
 				7434F76CE501E776D2D9C55F /* StudioModel.swift in Sources */,
 				77FB02DA2994BE1BDF8C74E0 /* Toolbar.swift in Sources */,
-				1A095142A45FAD75B49FF984 /* ToolchainCheck.swift in Sources */,
+				048E3B237B5B1B3319363FCB /* ToolchainDetector.swift in Sources */,
 				3C3ED791596FDA011C6B2051 /* Workspace+Design.swift in Sources */,
 				C36F3EF8094242BBBC4198F0 /* Workspace.swift in Sources */,
 			);
@@ -773,7 +873,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MARKETING_VERSION = 0.1.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
@@ -802,8 +902,8 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.leo.mobilestudio.app;
-				PRODUCT_NAME = "Mobile Studio";
+				PRODUCT_BUNDLE_IDENTIFIER = app.fast.studio;
+				PRODUCT_NAME = "AppFast Studio";
 				SDKROOT = macosx;
 				SWIFT_OBJC_BRIDGING_HEADER = "MobileStudio/MobileStudio-Bridging-Header.h";
 			};
@@ -855,7 +955,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MARKETING_VERSION = 0.1.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
@@ -879,9 +979,9 @@
 					"@executable_path/../Frameworks",
 					"@loader_path/../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.leo.mobilestudio.tests;
+				PRODUCT_BUNDLE_IDENTIFIER = app.fast.studio.tests;
 				SDKROOT = macosx;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Mobile Studio.app/Contents/MacOS/Mobile Studio";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/AppFast Studio.app/Contents/MacOS/AppFast Studio";
 			};
 			name = Release;
 		};
@@ -901,8 +1001,8 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.leo.mobilestudio.app;
-				PRODUCT_NAME = "Mobile Studio";
+				PRODUCT_BUNDLE_IDENTIFIER = app.fast.studio;
+				PRODUCT_NAME = "AppFast Studio";
 				SDKROOT = macosx;
 				SWIFT_OBJC_BRIDGING_HEADER = "MobileStudio/MobileStudio-Bridging-Header.h";
 			};
@@ -920,9 +1020,9 @@
 					"@executable_path/../Frameworks",
 					"@loader_path/../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.leo.mobilestudio.tests;
+				PRODUCT_BUNDLE_IDENTIFIER = app.fast.studio.tests;
 				SDKROOT = macosx;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Mobile Studio.app/Contents/MacOS/Mobile Studio";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/AppFast Studio.app/Contents/MacOS/AppFast Studio";
 			};
 			name = Debug;
 		};

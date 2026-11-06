@@ -15,7 +15,6 @@ struct NewProjectSheet: View {
     @State private var usesGit = true
     @State private var platforms: Set<ProjectPlatform> = [.ios, .android]
     /// Missing tools found before Create, shown as warnings on the last step.
-    @State private var toolchainProblems: [String] = []
 
     private var creator: NewProjectModel { workspace.creator }
 
@@ -50,7 +49,6 @@ struct NewProjectSheet: View {
         }
         .frame(width: 500)
         .interactiveDismissDisabled(creator.isWorking)
-        .task { toolchainProblems = await ToolchainCheck.problems() }
     }
 
     // MARK: Steps
@@ -165,7 +163,7 @@ struct NewProjectSheet: View {
             Section("Summary") {
                 Text(summary).fixedSize(horizontal: false, vertical: true)
                 IssueList(issues: issues, fields: [.name, .appID, .folder])
-                ForEach(toolchainProblems, id: \.self) { StatusBadge(tone: .warning, title: $0).fontWeight(.regular).font(.callout) }
+                ForEach(workspace.toolchainProblems, id: \.self) { StatusBadge(tone: .warning, title: $0).fontWeight(.regular).font(.callout) }
             }
         }
     }

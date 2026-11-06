@@ -11,5 +11,5 @@ Claude Code.
   read the PNG. The user may already have a copy running; a snapshot run quits by itself and leaves theirs alone.
 - The app runs `claude` itself, with `--safe-mode`. Your own skills, hooks and MCP servers don't reach those
   runs, so don't rely on them when debugging what the in-app agent did. Read
-  `~/Library/Logs/Mobile Studio/chat.log` and `claude-fix.log` instead.
+  `~/Library/Logs/AppFast Studio/chat.log` and `claude-fix.log` instead.
 - Don't run `flutter run` in a user's project from here: the app owns that process.

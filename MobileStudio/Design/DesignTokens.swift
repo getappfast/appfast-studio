@@ -262,7 +262,7 @@ enum TokensCSS {
     static let fileName = "tokens.css"
 
     static func css(_ tokens: DesignTokens, fonts: [FontFile] = []) -> String {
-        var out = ["/* Written by Mobile Studio from tokens.json (\(tokens.name), \(tokens.style)). Change tokens.json, not this file. */", ""]
+        var out = ["/* Written by AppFast Studio from tokens.json (\(tokens.name), \(tokens.style)). Change tokens.json, not this file. */", ""]
         for font in fonts {
             out.append("@font-face { font-family: '\(cssEscaped(font.family))'; font-style: \(font.italic ? "italic" : "normal"); "
                        + "font-weight: \(font.weight); src: url('\(font.path)'); }")
@@ -355,8 +355,8 @@ enum ThemeRenderer {
         if fonts { out.append("import 'package:google_fonts/google_fonts.dart';") }
         out += [
             "",
-            "/// Written by Mobile Studio from design/tokens.json (\(dartComment(tokens.name)), \(dartComment(tokens.style))).",
-            "/// Change the design in Mobile Studio's Design window rather than this file: it is written again from there.",
+            "/// Written by AppFast Studio from design/tokens.json (\(dartComment(tokens.name)), \(dartComment(tokens.style))).",
+            "/// Change the design in AppFast Studio's Design window rather than this file: it is written again from there.",
             "class DesignTheme {",
             "  const DesignTheme._();",
             "",

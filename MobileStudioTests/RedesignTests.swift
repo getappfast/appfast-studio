@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import Mobile_Studio
+@testable import AppFast_Studio
 
 struct MarkdownBlockTests {
     @Test func splitsHeadingsListsCodeAndParagraphs() {
@@ -51,6 +51,64 @@ struct GitDiffTests {
         +new
         """
         #expect(GitDiff.parse(diff).map(\.kind) == [.hunk, .context, .removed, .added])
+    }
+
+    @Test func readsWhereAHunkStartsInTheNewFile() {
+        #expect(GitDiff.newStartLine(ofHunk: "@@ -12,3 +14,4 @@ class Foo {") == 14)
+        #expect(GitDiff.newStartLine(ofHunk: "@@ -1 +1 @@") == 1)
+        #expect(GitDiff.newStartLine(ofHunk: "@@ -0,0 +1,20 @@") == 1)
+        #expect(GitDiff.newStartLine(ofHunk: "@@ -3,2 +0,0 @@") == 0)
+        #expect(GitDiff.newStartLine(ofHunk: "+not a hunk") == nil)
+        #expect(GitDiff.newStartLine(ofHunk: "@@ nothing useful @@") == nil)
+    }
+
+    @Test func firstChangedLineSkipsTheHunksLeadingContext() {
+        let diff = """
+        diff --git a/lib/a.dart b/lib/a.dart
+        --- a/lib/a.dart
+        +++ b/lib/a.dart
+        @@ -10,6 +10,6 @@
+         one
+         two
+         three
+        -old
+        +new
+         after
+        @@ -40,2 +40,2 @@
+        -later
+        +later still
+        """
+        // Three context lines from line 10 put the change on line 13, and the second hunk is not the first change.
+        #expect(GitDiff.firstChangedLine(in: GitDiff.parse(diff)) == 13)
+        #expect(GitDiff.Result.diff(GitDiff.parse(diff)).firstChangedLine == 13)
+    }
+
+    @Test func firstChangedLineOfANewFileAndOfADeletionAtTheTop() {
+        let added = GitDiff.parse("""
+        diff --git a/lib/new.dart b/lib/new.dart
+        new file mode 100644
+        --- /dev/null
+        +++ b/lib/new.dart
+        @@ -0,0 +1,2 @@
+        +first
+        +second
+        """)
+        #expect(GitDiff.firstChangedLine(in: added) == 1)
+        // A hunk that starts at line 0 (everything above was removed) still points at a real line.
+        let removed = GitDiff.parse("""
+        --- a/lib/a.dart
+        +++ b/lib/a.dart
+        @@ -1,2 +0,0 @@
+        -gone
+        -too
+        """)
+        #expect(GitDiff.firstChangedLine(in: removed) == 1)
+    }
+
+    @Test func firstChangedLineIsNilWithoutAHunk() {
+        #expect(GitDiff.firstChangedLine(in: []) == nil)
+        #expect(GitDiff.Result.unchanged.firstChangedLine == nil)
+        #expect(GitDiff.Result.unavailable("no git").firstChangedLine == nil)
     }
 }
 

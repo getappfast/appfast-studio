@@ -16,10 +16,13 @@ struct ProcessRunner: Sendable {
     var timeout: TimeInterval
     /// Added on top of the app's environment, e.g. CLAUDE_CONFIG_DIR to select an account.
     var extraEnvironment: [String: String] = [:]
+    /// Called with each chunk of stdout and stderr as it arrives, for installers that show progress.
+    var onOutput: (@Sendable (String) -> Void)?
 
     func run(_ executable: String, _ arguments: [String], currentDirectory: URL? = nil) async throws -> ProcessOutput {
         let timeout = self.timeout
         let extra = self.extraEnvironment
+        let onOutput = self.onOutput
         let handle = ProcessHandle()
         // Cancelling the calling task stops the child too; the result then carries its non-zero status.
         return try await withTaskCancellationHandler {
@@ -39,8 +42,8 @@ struct ProcessRunner: Sendable {
                 handle.set(process)
 
                 // Drain both pipes concurrently so a chatty process can't fill a buffer and hang.
-                async let stdout = Self.drain(outPipe)
-                async let stderr = Self.drain(errPipe)
+                async let stdout = Self.drain(outPipe, onOutput: onOutput)
+                async let stderr = Self.drain(errPipe, onOutput: onOutput)
 
                 let timedOut = TimedOutFlag()
                 let watchdog = Task {
@@ -60,9 +63,17 @@ struct ProcessRunner: Sendable {
         }
     }
 
-    private static func drain(_ pipe: Pipe) async -> String {
+    private static func drain(_ pipe: Pipe, onOutput: (@Sendable (String) -> Void)?) async -> String {
         await Task.detached {
-            let data = (try? pipe.fileHandleForReading.readToEnd()) ?? Data()
+            let handle = pipe.fileHandleForReading
+            guard let onOutput else {
+                return String(decoding: (try? handle.readToEnd()) ?? Data(), as: UTF8.self)
+            }
+            var data = Data()
+            while case let chunk = handle.availableData, !chunk.isEmpty {
+                data.append(chunk)
+                onOutput(String(decoding: chunk, as: UTF8.self))
+            }
             return String(decoding: data, as: UTF8.self)
         }.value
     }

@@ -14,12 +14,34 @@ struct SettingsView: View {
             .formStyle(.grouped)
             .tabItem { Label("Claude", systemImage: "sparkles") }
 
-            Form { DartSDKSection(dart: dart) }
+            Form {
+                DartSDKSection(dart: dart)
+                AndroidEmulatorSection()
+            }
                 .formStyle(.grouped)
                 .tabItem { Label("Tools", systemImage: "wrench.and.screwdriver") }
                 .task { await dart.refresh() }
         }
         .frame(width: 600, height: 620)
+    }
+}
+
+/// What happens to emulators this app started when it quits.
+private struct AndroidEmulatorSection: View {
+    @AppStorage(AndroidQuitChoice.key) private var choice = AndroidQuitChoice.ask.rawValue
+
+    var body: some View {
+        Section {
+            Picker("When quitting", selection: $choice) {
+                Text("Ask me").tag(AndroidQuitChoice.ask.rawValue)
+                Text("Keep emulators running").tag(AndroidQuitChoice.keep.rawValue)
+                Text("Shut them down").tag(AndroidQuitChoice.shutDown.rawValue)
+            }
+            Text("Only emulators AppFast Studio started are affected. Ones you started elsewhere are never touched.")
+                .font(.callout).foregroundStyle(.secondary)
+        } header: {
+            Text("Android emulators")
+        }
     }
 }
 
@@ -58,7 +80,7 @@ private struct DartSDKSection: View {
         case .checking:
             Text("Looking for the Dart SDK…").foregroundStyle(.secondary)
         case .notInstalled:
-            StatusBadge(tone: .failure, title: "Not installed", detail: "Mobile Studio could not find the dart command.")
+            StatusBadge(tone: .failure, title: "Not installed", detail: "AppFast Studio could not find the dart command.")
             CommandHint(label: "Install it, then check again:", command: "brew tap dart-lang/dart && brew install dart")
         case .failed(let message):
             StatusBadge(tone: .warning, title: "Could not check", detail: message)

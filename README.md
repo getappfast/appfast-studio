@@ -1,4 +1,4 @@
-# Mobile Studio
+# AppFast Studio
 
 A native macOS app for building Flutter apps with a coding agent. Your project, a live iOS Simulator and a
 Claude Code chat sit in one window: ask for a change, watch it hot-reload, and tap a widget on the simulator to
@@ -9,7 +9,7 @@ show Claude exactly what you mean.
 - **Live simulator in the window.** Boot any installed iOS Simulator and see its screen in the app. Click to
   tap, drag to swipe. There's no Simulator.app window and no screen-recording permission involved.
 - **Run and Hot Reload, Xcode-style.** Pick a destination and press Run (⌘R). If the simulator is off, it boots
-  first. Projects with flavors run the flavor you pick in the sidebar. Mobile Studio also finds an app left
+  first. Projects with flavors run the flavor you pick in the sidebar. AppFast Studio also finds an app left
   running by an earlier run or a terminal and offers to reconnect.
 - **Build log** under the device (⇧⌘Y), and a banner that says what to do when something goes wrong.
 - **History.** The sidebar lists every change Claude made, in plain words; click a file to see its diff.
@@ -93,7 +93,7 @@ Read [AGENTS.md](AGENTS.md) for the architecture rules and conventions.
 
 ### Safety
 
-Mobile Studio runs Claude with edit access to your project, so every call is restricted:
+AppFast Studio runs Claude with edit access to your project, so every call is restricted:
 
 - It runs in safe mode, so your machine's plugins, skills, MCP servers and hooks stay off.
 - Edits are limited to the project folder, and shell commands to an allow-list: `flutter pub/build/analyze/test`,
@@ -107,5 +107,5 @@ error rather than crashing.
 
 ### Logs
 
-Every run, check, chat and fix writes the exact command and output to `~/Library/Logs/Mobile Studio/`. Each
+Every run, check, chat and fix writes the exact command and output to `~/Library/Logs/AppFast Studio/`. Each
 failure in the app has a **Show log** button.

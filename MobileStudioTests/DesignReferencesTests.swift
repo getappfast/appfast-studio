@@ -1,7 +1,7 @@
 import AppKit
 import Foundation
 import Testing
-@testable import Mobile_Studio
+@testable import AppFast_Studio
 
 struct DesignReferencesTests {
     /// A scratch folder for one test, removed when the test ends.

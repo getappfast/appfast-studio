@@ -1,8 +1,8 @@
 name: MobileStudio
 options:
-  bundleIdPrefix: com.leo.mobilestudio
+  bundleIdPrefix: app.fast
   deploymentTarget:
-    macOS: "14.0"
+    macOS: "15.0"
   createIntermediateGroups: true
 settings:
   base:
@@ -27,8 +27,8 @@ targets:
     info:
       path: MobileStudio/Info.plist
       properties:
-        CFBundleDisplayName: Mobile Studio
-        LSMinimumSystemVersion: "14.0"
+        CFBundleDisplayName: AppFast Studio
+        LSMinimumSystemVersion: "15.0"
         NSHumanReadableCopyright: ""
     entitlements:
       path: MobileStudio/MobileStudio.entitlements
@@ -38,8 +38,8 @@ targets:
     settings:
       base:
         SWIFT_OBJC_BRIDGING_HEADER: MobileStudio/MobileStudio-Bridging-Header.h
-        PRODUCT_BUNDLE_IDENTIFIER: com.leo.mobilestudio.app
-        PRODUCT_NAME: Mobile Studio
+        PRODUCT_BUNDLE_IDENTIFIER: app.fast.studio
+        PRODUCT_NAME: AppFast Studio
         GENERATE_INFOPLIST_FILE: NO
         ENABLE_APP_SANDBOX: NO
         ENABLE_HARDENED_RUNTIME: YES
@@ -59,8 +59,8 @@ targets:
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
-        PRODUCT_BUNDLE_IDENTIFIER: com.leo.mobilestudio.tests
+        PRODUCT_BUNDLE_IDENTIFIER: app.fast.studio.tests
         # The app's product name has a space, so the default test host path doesn't exist.
-        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Mobile Studio.app/Contents/MacOS/Mobile Studio"
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/AppFast Studio.app/Contents/MacOS/AppFast Studio"
         BUNDLE_LOADER: "$(TEST_HOST)"
         CODE_SIGN_IDENTITY: "-"

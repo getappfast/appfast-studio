@@ -402,64 +402,164 @@ private struct HistoryRow: View {
 
 // MARK: - Setup
 
-/// What has to be in place before Mobile Studio can do its job, each with the way to fix it.
+/// What has to be in place before AppFast Studio can do its job. Every tool the app can install has an Install
+/// button, and Set Up Everything does them all in order; only Xcode needs the user, in the App Store.
 struct SetupChecklist: View {
     let workspace: Workspace
 
     static func isComplete(_ workspace: Workspace) -> Bool {
-        workspace.studio.claude != nil && !workspace.simulator.devices.isEmpty && workspace.project.readyFolder != nil
+        let setup = workspace.setup
+        // Before the first check, go by what the simulator model already knows, so a set-up Mac doesn't flash the list.
+        let tools = setup.requiredReady ?? !workspace.deviceModel.devices.isEmpty
+        let busy: Bool = switch setup.phase {
+        case .idle: false
+        case .working, .waitingForXcode: true
+        case .failed(let item, _): item.isRequired
+        }
+        return tools && !busy && workspace.studio.claude != nil && workspace.project.readyFolder != nil
     }
 
     private var studio: StudioModel { workspace.studio }
+    private var setup: SetupModel { workspace.setup }
 
     var body: some View {
-        step(cliTone, "Claude CLI", cliDetail) {
-            if case .notInstalled = studio.install { SettingsLink { Text("Install…") } }
-        }
+        if !setup.pendingItems.isEmpty || setup.phase.isWorking { everything }
+        tool(.claude)
         step(studio.claude != nil ? .success : .neutral, "Signed in to Claude",
-             studio.claude != nil ? studio.profiles.active.name : "Sign in from Settings.") {
-            if studio.cliPath != nil, studio.claude == nil { SettingsLink { Text("Settings…") } }
+             studio.claude != nil ? studio.profiles.active.name : "Sign in with your Claude account.") {
+            if studio.cliPath != nil, studio.claude == nil { SettingsLink { Text("Sign In…") } }
         }
-        step(workspace.simulator.devices.isEmpty ? .neutral : .success, "iOS Simulator",
-             workspace.simulator.devices.isEmpty ? "Add an iOS runtime in Xcode." : "\(workspace.simulator.devices.count) available") {
-            EmptyView()
-        }
+        tool(.xcode)
+        tool(.simulator)
+        tool(.flutter)
+        tool(.cocoapods)
         step(workspace.project.readyFolder != nil ? .success : .neutral, "Flutter project",
-             workspace.project.readyFolder == nil ? "The folder with pubspec.yaml." : workspace.flutterProject?.name ?? "") {
+             workspace.project.readyFolder == nil ? "Make a new app, or open one you have." : workspace.flutterProject?.name ?? "") {
             if workspace.project.readyFolder == nil {
                 Button("New…", action: workspace.newProject).disabled(!workspace.canCreateProject)
                     .help(workspace.createProjectBlocker ?? "Make a new Flutter app")
-                Button("Choose…", action: workspace.chooseProject)
+                Button("Open…", action: workspace.chooseProject)
             }
         }
     }
 
-    private var cliTone: StatusTone {
-        switch studio.install {
-        case .installed: .success
-        case .notInstalled, .failed: .warning
-        case .checking: .neutral
+    // MARK: Set Up Everything
+
+    @ViewBuilder
+    private var everything: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            if setup.phase.isWorking {
+                Button("Stop Setup", action: setup.cancel)
+                    .help("Stops after the current command. Nothing already installed is removed.")
+            } else {
+                Button("Set Up Everything", action: setup.installEverything)
+                    .buttonStyle(.borderedProminent)
+                    .help("Installs each missing tool in order")
+                Text(everythingNote).font(.caption).foregroundStyle(.secondary).lineLimit(4)
+            }
+        }
+        .controlSize(.small)
+        .padding(.vertical, 2)
+    }
+
+    private var everythingNote: String {
+        var note = "About \(SetupError.size(setup.pendingDownloadBytes)) to download."
+        if case .needed(.getXcode) = setup.status(of: .xcode) { note += " Xcode comes from the App Store: click Get there." }
+        if setup.asksForPassword { note += " Your Mac will ask for your password." }
+        return note
+    }
+
+    // MARK: Tool rows
+
+    @ViewBuilder
+    private func tool(_ item: SetupItem) -> some View {
+        let status = setup.status(of: item)
+        switch setup.phase {
+        case .working(item, let progress):
+            progressRow(item, progress)
+        case .waitingForXcode(let flutter) where item == .xcode:
+            waitingRow(flutter)
+        case .failed(item, let message):
+            step(.warning, item.title, message, lines: 4) {
+                Button("Try Again", action: setup.retry)
+                Button("Log") { setup.revealLog() }.help("Show the setup log in Finder")
+            }
+        default:
+            step(tone(status, item), title(item), detail(status, item)) {
+                if let action = status.action, !setup.phase.isWorking {
+                    Button(action.buttonTitle) { setup.install(item) }
+                        .help(action.needsPassword ? "Your Mac will ask for your password." : action.explanation)
+                }
+            }
         }
     }
 
-    private var cliDetail: String {
-        switch studio.install {
+    private func title(_ item: SetupItem) -> String {
+        item.isRequired ? item.title : "\(item.title) (optional)"
+    }
+
+    private func tone(_ status: SetupStatus, _ item: SetupItem) -> StatusTone {
+        switch status {
+        case .ready: .success
+        case .needed, .blocked, .checking: .neutral
+        }
+    }
+
+    private func detail(_ status: SetupStatus, _ item: SetupItem) -> String {
+        switch status {
         case .checking: "Looking for it…"
-        case .notInstalled: "Not installed."
-        case .failed(let message): message
-        case .installed(_, let version): version
+        case .ready(let detail): detail
+        case .needed(let action): action.explanation
+        case .blocked(let reason): reason
         }
     }
 
-    private func step<Action: View>(_ tone: StatusTone, _ title: String, _ detail: String,
+    private func progressRow(_ item: SetupItem, _ progress: InstallProgress) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            ProgressView().controlSize(.mini)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title(item))
+                if let fraction = progress.fraction {
+                    ProgressView(value: fraction).controlSize(.small)
+                        .accessibilityLabel("\(item.title) progress")
+                }
+                Text(progressText(progress)).font(.caption).foregroundStyle(.secondary).lineLimit(2)
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    private func waitingRow(_ flutter: InstallProgress?) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            ProgressView().controlSize(.mini)
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Xcode")
+                Text("Click Get in the App Store. Setup carries on by itself when Xcode has arrived.")
+                    .font(.caption).foregroundStyle(.secondary).lineLimit(3)
+                if let flutter {
+                    Text("Meanwhile: \(progressText(flutter))").font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                }
+                Button("Open App Store", action: setup.reopenAppStore).controlSize(.small)
+            }
+        }
+        .accessibilityElement(children: .contain)
+    }
+
+    private func progressText(_ progress: InstallProgress) -> String {
+        guard let fraction = progress.fraction else { return progress.text }
+        return "\(progress.text) \(Int((fraction * 100).rounded())) %"
+    }
+
+    private func step<Action: View>(_ tone: StatusTone, _ title: String, _ detail: String, lines: Int = 2,
                                     @ViewBuilder action: () -> Action) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             Image(systemName: tone == .success ? "checkmark.circle.fill" : tone == .warning ? tone.symbol : "circle")
                 .foregroundStyle(tone == .neutral ? Color.secondary : tone.tint)
                 .imageScale(.small)
+                .accessibilityLabel(tone == .success ? "Done" : tone == .warning ? "Problem" : "To do")
             VStack(alignment: .leading, spacing: 1) {
                 Text(title)
-                Text(detail).font(.caption).foregroundStyle(.secondary).lineLimit(2)
+                Text(detail).font(.caption).foregroundStyle(.secondary).lineLimit(lines)
             }
             Spacer(minLength: 4)
             action().controlSize(.small)

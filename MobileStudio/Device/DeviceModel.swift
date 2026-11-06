@@ -4,7 +4,7 @@ import CoreImage
 import Foundation
 import Observation
 
-enum SimulatorPhase: Equatable {
+enum DevicePhase: Equatable {
     case idle
     case booting
     case connecting
@@ -14,35 +14,45 @@ enum SimulatorPhase: Equatable {
 
 @MainActor
 @Observable
-final class SimulatorModel {
-    private(set) var devices: [SimulatorDevice] = []
-    private(set) var selectedUDID: String?
-    private(set) var phase: SimulatorPhase = .idle
-    private(set) var display: MSSimulatorDisplay?
+final class DeviceModel {
+    private(set) var devices: [Device] = []
+    private(set) var selection: DeviceSelection?
+    private(set) var phase: DevicePhase = .idle
+    private(set) var display: (any DeviceScreen)?
     private(set) var screenSize: CGSize?
     private(set) var framesPerSecond = 0
     /// True while a boot, shutdown or connect is in flight; the UI disables its buttons meanwhile.
     private(set) var isBusy = false
     /// The booted device's appearance and text size, for the preview controls under the screen.
     private(set) var isDark: Bool?
-    private(set) var contentSize: String?
+    private(set) var textSize: String?
     /// The last tap on the screen and a picture of the area around it, used as a picked element's thumbnail.
     private(set) var lastTap: (date: Date, image: Data?)?
 
-    private let simctl = SimctlService()
-    private let defaults = UserDefaults.standard
-    private let selectionKey = "simulator.selected.v1"
+    private let services: [DevicePlatform: any DeviceService]
+    private let defaults: UserDefaults
+    private let selectionKey = "device.selected.v2"
+    /// Read once for the saved choice from before Android: a bare simulator UDID.
+    private let legacySelectionKey = "simulator.selected.v1"
 
-    private var developerDir: String?
     private var lastFrameCount: UInt64 = 0
 
-    init() {
-        selectedUDID = defaults.string(forKey: selectionKey)
+    init(services: [any DeviceService] = [SimctlService(), EmulatorService()], defaults: UserDefaults = .standard) {
+        self.services = Dictionary(uniqueKeysWithValues: services.map { ($0.platform, $0) })
+        self.defaults = defaults
+        selection = DeviceSelection.saved(v2: defaults.string(forKey: selectionKey), v1: defaults.string(forKey: legacySelectionKey))
     }
 
-    var selected: SimulatorDevice? {
-        devices.first { $0.udid == selectedUDID }
+    var selected: Device? {
+        devices.first { $0.selection == selection }
     }
+
+    /// The text sizes the selected device's platform offers.
+    var textSizes: [TextSizeOption] {
+        selected.flatMap { services[$0.platform]?.textSizes } ?? []
+    }
+
+    private func service(for device: Device) -> (any DeviceService)? { services[device.platform] }
 
     /// Whether the stream accepts touch and Home presses.
     var canSendInput: Bool {
@@ -54,7 +64,6 @@ final class SimulatorModel {
     /// Keeps the device list, the stream and the fps readout current. Run for as long as the
     /// panel is on screen; cancelling it stops the stream.
     func monitor() async {
-        developerDir = await simctl.developerDir()
         var tick = 0
         while !Task.isCancelled {
             if tick % 3 == 0 { await refreshDevices() }
@@ -65,38 +74,52 @@ final class SimulatorModel {
         detach()
     }
 
+    /// Xcode was just selected or a runtime added: an error from before Xcode was there no longer applies.
+    func toolchainChanged() async {
+        if display == nil, !isBusy, case .failed = phase { phase = .idle }
+        await refreshDevices()
+    }
+
     private func refreshDevices() async {
-        do {
-            devices = try await simctl.devices()
-        } catch {
-            if display == nil, !isBusy { phase = .failed(error.localizedDescription) }
+        var found: [Device] = []
+        var failure: Error?
+        var succeeded = false
+        for platform in DevicePlatform.allCases {
+            guard let service = services[platform] else { continue }
+            do {
+                found += try await service.devices()
+                succeeded = true
+            } catch {
+                failure = error
+            }
+        }
+        // One platform's tools failing must not hide the other's devices.
+        if !succeeded, let failure {
+            if display == nil, !isBusy { phase = .failed(failure.localizedDescription) }
             return
         }
-        if selected == nil {
-            // Prefer a running device, otherwise the first iPhone.
-            let pick = devices.first(where: \.isBooted) ?? devices.first { $0.name.hasPrefix("iPhone") } ?? devices.first
-            choose(pick)
-        }
+        devices = found
+        if selected == nil { choose(DeviceSelection.firstChoice(in: devices)?.selection) }
         await reconcile()
     }
 
     // MARK: User actions
 
-    func select(_ device: SimulatorDevice) {
-        guard device.udid != selectedUDID else { return }
+    func select(_ device: Device) {
+        guard device.selection != selection else { return }
         detach()
-        choose(device)
+        choose(device.selection)
         phase = .idle
         Task { await reconcile() }
     }
 
     func boot() {
-        guard let device = selected, !isBusy else { return }
+        guard let device = selected, let service = service(for: device), !isBusy else { return }
         Task {
             isBusy = true
             phase = .booting
             do {
-                try await simctl.boot(device.udid)
+                try await service.boot(device)
                 isBusy = false
                 await refreshDevices()
             } catch {
@@ -107,12 +130,12 @@ final class SimulatorModel {
     }
 
     func shutdown() {
-        guard let device = selected, !isBusy else { return }
+        guard let device = selected, let service = service(for: device), !isBusy else { return }
         Task {
             isBusy = true
             detach()
             do {
-                try await simctl.shutdown(device.udid)
+                try await service.shutdown(device)
                 phase = .idle
             } catch {
                 phase = .failed(error.localizedDescription)
@@ -123,7 +146,7 @@ final class SimulatorModel {
     }
 
     func pressHome() {
-        display?.pressHome()
+        display?.press(.home)
     }
 
     func recordTap(image: Data?) { lastTap = (Date(), image) }
@@ -137,13 +160,13 @@ final class SimulatorModel {
     /// Runs one command from the in-app agent and answers in words it can act on.
     func perform(_ command: SimulatorCommand) async -> String {
         guard canSendInput, let display else {
-            return "The simulator isn't showing a running app. Ask the user to press Run in Mobile Studio."
+            return "The simulator isn't showing a running app. Ask the user to press Run in AppFast Studio."
         }
         switch command {
         case .screenshot:
             return saveScreenshot(of: display)
         case .home:
-            display.pressHome()
+            display.press(.home)
             return "Pressed Home."
         case .type(let text):
             let typed = KeyboardMap.keys(for: text)
@@ -161,7 +184,7 @@ final class SimulatorModel {
             display.sendTouch(.ended, at: point)
             return "Held. Take a screenshot: a menu such as Paste or Select All may be showing."
         case .paste(let text):
-            guard let udid = selected?.udid, await simctl.setPasteboard(udid, text: text) else {
+            guard let device = selected, let service = service(for: device), await service.setClipboard(device, text: text) else {
                 return "Could not set the simulator's clipboard."
             }
             return "Copied to the simulator's clipboard. Now long-press the text field (ms-sim hold X Y), then tap Paste in the menu that appears."
@@ -196,7 +219,7 @@ final class SimulatorModel {
     }
 
     /// Saves the screen as a PNG no larger than 1000 pixels on its long side, which is plenty to read and cheap to send.
-    private func saveScreenshot(of display: MSSimulatorDisplay) -> String {
+    private func saveScreenshot(of display: any DeviceScreen) -> String {
         guard display.latestFrame != nil else { return "The screen has no picture yet. Try again in a second." }
         guard let (png, size) = Self.png(of: display, maxSide: 1000) else { return "Could not capture the screen." }
         shotCount += 1
@@ -218,7 +241,7 @@ final class SimulatorModel {
     }
 
     /// The latest frame, scaled to at most `maxSide` pixels on its long side: plenty to read and cheap to send.
-    private static func png(of display: MSSimulatorDisplay, maxSide: CGFloat) -> (data: Data, size: CGSize)? {
+    private static func png(of display: any DeviceScreen, maxSide: CGFloat) -> (data: Data, size: CGSize)? {
         guard let surface = display.latestFrame else { return nil }
         var image = CIImage(ioSurface: surface)
         let scale = min(1, maxSide / max(image.extent.width, image.extent.height))
@@ -229,25 +252,16 @@ final class SimulatorModel {
     }
 
     func setDark(_ dark: Bool) {
-        guard let device = selected, device.isBooted else { return }
+        guard let device = selected, device.isBooted, let service = service(for: device) else { return }
         isDark = dark
-        Task { await simctl.setAppearance(device.udid, dark: dark) }
+        Task { await service.setDark(device, dark) }
     }
 
-    func setContentSize(_ size: String) {
-        guard let device = selected, device.isBooted else { return }
-        contentSize = size
-        Task { await simctl.setContentSize(device.udid, size) }
+    func setTextSize(_ id: String) {
+        guard let device = selected, device.isBooted, let service = service(for: device) else { return }
+        textSize = id
+        Task { await service.setTextSize(device, id) }
     }
-
-    /// Dynamic Type sizes simctl accepts, smallest first, with a short name for each.
-    static let contentSizes: [(id: String, name: String)] = [
-        ("extra-small", "Extra Small"), ("small", "Small"), ("medium", "Medium"), ("large", "Default"),
-        ("extra-large", "Large"), ("extra-extra-large", "Extra Large"), ("extra-extra-extra-large", "Largest"),
-        ("accessibility-medium", "Accessibility M"), ("accessibility-large", "Accessibility L"),
-        ("accessibility-extra-large", "Accessibility XL"), ("accessibility-extra-extra-large", "Accessibility XXL"),
-        ("accessibility-extra-extra-extra-large", "Accessibility XXXL"),
-    ]
 
     func retry() {
         phase = .idle
@@ -272,18 +286,14 @@ final class SimulatorModel {
         }
     }
 
-    private func connect(to device: SimulatorDevice) async {
-        guard let developerDir else {
-            phase = .failed("Xcode's developer directory was not found. Install Xcode and run xcode-select.")
-            return
-        }
+    private func connect(to device: Device) async {
+        guard let service = service(for: device) else { return }
         isBusy = true
         phase = .connecting
-        let candidate = MSSimulatorDisplay(udid: device.udid, developerDir: developerDir)
         do {
-            try await candidate.start()
+            let candidate = try await service.screen(for: device)
             // The user may have switched device while the display was attaching.
-            guard selectedUDID == device.udid else {
+            guard selection == device.selection else {
                 candidate.stop()
                 isBusy = false
                 return
@@ -291,10 +301,9 @@ final class SimulatorModel {
             display = candidate
             lastFrameCount = 0
             phase = .streaming
-            isDark = await simctl.appearance(device.udid).map { $0 == "dark" }
-            contentSize = await simctl.contentSize(device.udid)
+            isDark = await service.isDark(device)
+            textSize = await service.textSize(device)
         } catch {
-            candidate.stop()
             phase = .failed(error.localizedDescription)
         }
         isBusy = false
@@ -317,8 +326,8 @@ final class SimulatorModel {
         if size != .zero, size != screenSize { screenSize = size }
     }
 
-    private func choose(_ device: SimulatorDevice?) {
-        selectedUDID = device?.udid
-        defaults.set(device?.udid, forKey: selectionKey)
+    private func choose(_ selection: DeviceSelection?) {
+        self.selection = selection
+        defaults.set(selection?.rawValue, forKey: selectionKey)
     }
 }

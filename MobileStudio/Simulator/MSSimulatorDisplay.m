@@ -110,8 +110,8 @@ static NSError *MakeError(NSString *message) {
     if ((self = [super init])) {
         _udid = [udid copy];
         _developerDir = [developerDir copy];
-        _callbackQueue = dispatch_queue_create("com.leo.mobilestudio.simulator-frames", DISPATCH_QUEUE_SERIAL);
-        _inputQueue = dispatch_queue_create("com.leo.mobilestudio.simulator-input", DISPATCH_QUEUE_SERIAL);
+        _callbackQueue = dispatch_queue_create("app.fast.studio.simulator-frames", DISPATCH_QUEUE_SERIAL);
+        _inputQueue = dispatch_queue_create("app.fast.studio.simulator-input", DISPATCH_QUEUE_SERIAL);
     }
     return self;
 }
@@ -144,7 +144,7 @@ static NSError *MakeError(NSString *message) {
     Class contextClass = NSClassFromString(@"SimServiceContext");
     SEL contextSel = NSSelectorFromString(@"sharedServiceContextForDeveloperDir:error:");
     if (!contextClass || ![contextClass respondsToSelector:contextSel]) {
-        if (error) *error = MakeError(@"This Xcode's CoreSimulator is not compatible with Mobile Studio.");
+        if (error) *error = MakeError(@"This Xcode's CoreSimulator is not compatible with AppFast Studio.");
         return nil;
     }
 

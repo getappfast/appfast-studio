@@ -6,15 +6,17 @@ this file in the same change.
 
 ## What this is
 
-Mobile Studio is a native macOS app (SwiftUI, Swift 6, macOS 14+) for building Flutter apps with a coding agent.
+AppFast Studio is a native macOS app (SwiftUI, Swift 6, macOS 14+) for building Flutter apps with a coding agent.
 One window shows:
 
 - **Toolbar** (like Xcode's): Run/Stop, the destination simulator menu, an activity line, **Point at…**
   (Pick), a Device / App Flow switch for the canvas, and toggles for the build log and the chat. Every action is
   also in the Product/View menus with a shortcut (⌘R, ⌘., ⇧⌘R hot reload, ⌥⇧⌘R hot restart, ⇧⌘E, ⌘1/⌘2, ⇧⌘Y, ⌥⌘0).
-- **Sidebar:** a setup checklist until everything is ready, then the project (a health badge opens a popover
+- **Sidebar:** a setup checklist that installs what's missing (see **Setup**) until everything is ready, then the project (a health badge opens a popover
   with issues, the run flavor and Claude's project check), **Screens** (found in the source; clicking one starts
-  a chat message about it) and **History** (every change Claude made, undoable, each file opening a git diff).
+  a chat message about it) and **History** (every change Claude made or the user made by hand, undoable, each file
+  opening a git diff that can also be edited). Code opens in the user's own editor at the right line (see **Code in
+  your own editor**).
 - **Canvas:** a live iOS Simulator screen drawn in-app from CoreSimulator's framebuffer (click → tap,
   drag → swipe). One banner above it for what matters now (run failed → *Fix with Claude*, an app already
   running → Reconnect, a fix in progress), and a build log drawer under it. **App Flow** swaps the device for a
@@ -62,8 +64,16 @@ xcodebuild -project MobileStudio.xcodeproj -scheme MobileStudio test
 New Swift files under `MobileStudio/` or `MobileStudioTests/` are picked up by `xcodegen generate`. The build
 must have **zero warnings** and the tests must pass before a change is done.
 
-The product is named `Mobile Studio` (with a space), so the Swift module is `Mobile_Studio`:
-tests use `@testable import Mobile_Studio`.
+The product is named `AppFast Studio` (with a space), so the Swift module is `AppFast_Studio`:
+tests use `@testable import AppFast_Studio`. The bundle ID is `app.fast.studio`. The Xcode project, target and source folders
+keep the internal name `MobileStudio` (renaming them would only churn history), and so do the `MOBILE_STUDIO_*` debug
+environment variables.
+
+The app was called Mobile Studio before. `LegacyMigration` (`Core/LegacyMigration.swift`, run first thing in
+`MobileStudioApp.init`) moves `~/Library/{Application Support,Logs,Caches}/Mobile Studio` to `AppFast Studio` when the new
+folder isn't there yet, leaves a symlink at the old Application Support path (saved Claude accounts keep their config folder
+by absolute path, and the CLI keys the login to that path), and copies the old `com.leo.mobilestudio.app` preferences once
+without overwriting anything. Keep the symlink behaviour if you touch it.
 
 ## Architecture
 
@@ -72,16 +82,16 @@ Layered, with dependencies pointing down only:
 ```
 App/          Composition root and window wiring       MobileStudioApp, AppDelegate, Workspace, ContentView, StudioModel
 Views/        SwiftUI views, layout only               read models, call their methods, never coordinate two models
-<Feature>/    @Observable models + services            Project/, Chat/, Simulator/, Inspector/, Accounts/, ClaudeCLI/, Dart/, Design/
-Core/         Feature-agnostic helpers                 ProcessRunner, DiagnosticLog, ShellEnvironment, Extensions
+<Feature>/    @Observable models + services            Project/, Chat/, Device/, Simulator/, Android/, Inspector/, Accounts/, ClaudeCLI/, Dart/, Design/, Setup/
+Core/         Feature-agnostic helpers                 ProcessRunner, DiagnosticLog, ShellEnvironment, Extensions, CodeEditor
 ```
 
 ### The pieces
 
 | Kind | Shape | Examples |
 |---|---|---|
-| **Model** | `@MainActor @Observable final class`, `private(set)` state, intent methods | `FlutterRunModel`, `ChatModel`, `ProjectModel`, `SimulatorModel` |
-| **Service** | `Sendable` struct or enum that does I/O and returns values; no UI state | `SimctlService`, `ClaudeCLIService`, `ProjectVerifier`, `RunningAppFinder` |
+| **Model** | `@MainActor @Observable final class`, `private(set)` state, intent methods | `FlutterRunModel`, `ChatModel`, `ProjectModel`, `DeviceModel` |
+| **Service** | `Sendable` struct or enum that does I/O and returns values; no UI state | `SimctlService` (a `DeviceService`), `ClaudeCLIService`, `ProjectVerifier`, `RunningAppFinder` |
 | **Process wrapper** | Owns one child `Process`, streams its output | `FlutterRunProcess`, `ClaudeStreamProcess`, `ClaudeLoginProcess` |
 | **Value / parser** | Pure `Sendable` structs and enums: easy to test | `FlutterOutput`, `ClaudeEvents`, `ClaudeAgentCall`, `FileSnapshot`, `RunFailure`, `AppFlow` |
 | **Coordinator** | Owns the per-window models and the rules between them | `Workspace` |
@@ -115,7 +125,19 @@ Core/         Feature-agnostic helpers                 ProcessRunner, Diagnostic
   signed in. Gate UI on it rather than re-deriving that.
 - **The Objective-C bridge is isolated.** `Simulator/MSSimulatorDisplay.{h,m}` is the only code that touches
   private CoreSimulator/SimulatorKit API. It reports every failure as `NSError`, never crashes, and is reached
-  only through `SimulatorModel`.
+  only through `SimctlService.screen(for:)`; everything else sees it as a `DeviceScreen`.
+- **Devices are platform-neutral.** `Device/` holds `Device` (id, name, `DevicePlatform`, `osVersion`, state, `runID`),
+  `DeviceScreen` (frames as `IOSurface`s, touch, keys, `press(.home|.back)`), `DeviceService` (list, boot, shut down,
+  dark mode, text size, clipboard, `screen(for:)`) and `DeviceModel` (`Workspace.deviceModel`). A platform is one
+  `DeviceService`; today only `SimctlService`. The saved choice is `DeviceSelection` (`device.selected.v2`, "ios:<udid>";
+  the v1 key's bare UDID reads as iOS), and `DeviceSelection.firstChoice` is the rule when nothing is saved. Use
+  `Device.runID` for `flutter run -d`. `Android/` is the second platform: `EmulatorService` (a `DeviceService`) lists AVDs from
+  `~/.android/avd/*/config.ini`, finds running ones from the emulator's discovery files, boots one detached (`nohup` through sh,
+  gRPC port and token, log in `emulator.log`) and waits for `sys.boot_completed`, and sets dark mode and font scale with `adb`.
+  The pure parsers (`AndroidSDK.locate`, `AVDInfo`, `RunningEmulator`, `AdbOutput`) are in `AndroidParsing.swift`. No SDK means no
+  Android entries, not an error. Emulators this app booted are remembered (`BootedByApp`) and `applicationShouldTerminate` asks
+  whether to keep them running (`android.quitChoice.v1`, also in Settings ▸ Tools); ones started elsewhere are never touched. The
+  screen, touch and keyboard are not there yet (`screen(for:)` says so), so see the plan's phase 3. The plan for an Android backend is `docs/plans/android.md` (phase 1, this layer, is done).
 
 ## New Project
 
@@ -137,7 +159,8 @@ owns the Dart SDK model). When the create finishes, `finishNewProject(path:)` sa
 and the kickoff state, per project folder), opens the folder and runs it once the open project has settled
 (`runAfterOpen`, consumed in `projectStateChanged`).
 
-The sheet's last step shows `ToolchainCheck` warnings (Xcode not selected, CocoaPods missing); they never block Create.
+The sheet's last step shows `Workspace.toolchainProblems` (Xcode not set up, CocoaPods missing, from `SetupModel`); they
+never block Create.
 An answer may carry several `choices` blocks (`ChoiceSet.extractAll`): the card shows every question and sends them back
 together (`ChoiceSet.reply(answering:)`), which is how the kickoff asks up to three per turn.
 
@@ -164,6 +187,40 @@ so it is an undoable change. *Build milestone 1* switches back to `.build`. `App
 unbuilt screens as dashed cards. To check the kickoff without spending anything, run a Debug build with a stand-in
 `MOBILE_STUDIO_CLAUDE_CLI` and `MOBILE_STUDIO_SNAPSHOT_KICKOFF=1` against a project made by
 `MOBILE_STUDIO_SNAPSHOT_NEW_PROJECT` (`MOBILE_STUDIO_SNAPSHOT_SHEET=0|1|2` snapshots the sheet).
+
+## Setup: installing the tools
+
+The people using this don't install developer tools, so the sidebar's **Get Started** checklist finds and installs them
+(`Setup/`). `ToolchainDetector` reads what's there into `ToolchainFacts` without changing anything, and never runs `git`
+or `flutter` (before Xcode is set up, `/usr/bin/git` pops up macOS's Command Line Tools installer). `SetupPlan` (pure,
+tested) turns the facts into a `SetupStatus` per `SetupItem` (claude, xcode, flutter, cocoapods, simulator): ready,
+`needed(SetupAction)`, or blocked ("Set up Xcode first."). Flutter, CocoaPods and the simulator wait for Xcode.
+CocoaPods is optional (`isRequired`): Flutter uses Swift Package Manager by default, and only some plugins need it.
+
+`SetupModel` (`Workspace.setup`) runs one item or **Set Up Everything** (`SetupItem.allCases` order) as one task, one
+step at a time, and tells `Workspace.toolInstalled` so the CLI, Dart and simulator models look again. `SetupInstaller`
+does each action, logging to `setup.log`:
+
+- **Claude CLI:** the official `curl -fsSL https://claude.ai/install.sh | bash` (to `~/.local/bin`).
+- **Xcode:** can't be automated (the App Store needs the user's Apple ID). The app opens Xcode's App Store page and
+  polls for a complete `Xcode.app`, downloading Flutter meanwhile (`prefetchFlutter`), then runs `xcode-select --switch`,
+  `xcodebuild -license accept` and `-runFirstLaunch` as root.
+- **Flutter:** the current stable zip for this processor from Flutter's release feed (`FlutterRelease`), unpacked to
+  `~/development/flutter` (a numbered folder if that exists), added to PATH, then `flutter --version` to warm it up.
+- **CocoaPods:** Homebrew's signed `.pkg` from its latest GitHub release (`HomebrewRelease`) when there is no brew,
+  installed as root, then `brew install cocoapods`.
+- **iOS Simulator:** `xcodebuild -downloadPlatform iOS`, then `simctl create` with the plain newest iPhone when the
+  runtime came with no devices (`SetupPlan.preferrediPhone`).
+
+Rules: every download goes through `curl` into `~/Library/Caches/AppFast Studio/Downloads` and is used only once its
+SHA-256 matches the publisher's (`VerifiedDownload`). Root steps go through `AdminShell` (`osascript … with administrator
+privileges`, macOS's own password dialog): the script is inline and its arguments are AppleScript-quoted, never spliced,
+and the Homebrew script copies the package somewhere only root can write and checks it again before installing. PATH
+changes go through `ShellProfile` (the login file of the user's `$SHELL`; bash uses whichever of .bash_profile,
+.bash_login, .profile exists), appended once under `# Added by AppFast Studio`. Nothing the user made is deleted. Free space
+is checked first (`SetupAction.bytesNeeded`). To see the checklist on a Mac that has everything, run a Debug snapshot with
+`MOBILE_STUDIO_SETUP_FAKE=missing|xcode|almost` and `MOBILE_STUDIO_SETUP_FAKE_PHASE=flutter:42|wait|fail:simulator`
+(`SetupFake`). None of the real installs run in tests; check a change to one on a Mac or VM that lacks the tool.
 
 ## Design
 
@@ -227,9 +284,44 @@ shows every screen as a mockup and lets Claude change them without touching the 
   and `sim:/screenshot`, `sim:/tap?x=&y=`, `sim:/type?text=` drive the device like `ms-sim` (writing `-device-N.png`), to
   check an applied design on the device. Do it all in one run: the debug app quits with the snapshot instance.
 
+## Code in your own editor
+
+Nothing here is a dead end: every place that names a piece of code can open it, and a small change can be made without
+leaving the app.
+
+- **Open in an editor.** `CodeEditor` (`Core/CodeEditor.swift`) finds the first installed editor of Cursor, VS Code, Zed and
+  Android Studio (`CodeEditor.Editor.Kind` is the priority order; Launch Services by bundle ID, then the usual Applications
+  folders, and an app without its command-line tool is skipped) and runs that tool with `Editor.arguments(file:line:folder:)`
+  (pure and tested; the CLI paths inside each app are in `Kind.commandPath`). With no editor, or when the tool exits
+  non-zero, it falls back to `NSWorkspace.open`. Views never call it: `Workspace.openInEditor(file:line:)` does (it says so
+  with a toast when the file is gone) and `Workspace.editorTitle` is the label ("Open in Cursor", else "Open Code"). The editor
+  is looked up at launch and whenever the app becomes active, so a view never does file-system work. Callers: a screen's
+  context menu, the picked-widget chip in the chat (at the widget's line), and the diff sheet's **Open**, which lands on
+  `GitDiff.Result.firstChangedLine` (the hunk header's new-file start plus its leading context lines). Android Studio's
+  `Contents/MacOS/studio` takes `<folder> --line N <file>`; that one was not run against a live Android Studio.
+- **Edit in the diff sheet.** `DiffSheet` has a Diff / Edit switch for any file that isn't deleted. Edit shows the file in
+  `CodeTextView`, an `NSTextView` with smart quotes, dashes and text replacement off (SwiftUI's `TextEditor` would curl the
+  quotes in Dart) and no line wrapping. **Save** (⌘S) calls `Workspace.saveManualEdit(path:content:replacing:)`, which goes
+  through `ManualEdit` (`Project/ManualEdit.swift`): it refuses a file that changed on disk since the editor opened it,
+  one that is over `FileSnapshot.undoLimit` (it couldn't be undone) or isn't UTF-8, and a path outside the project; it
+  snapshots the folder before and after, writes atomically (keeping the executable bit), and keeps a `CheckpointStore`
+  checkpoint of just that file. The workspace then records it as "Edited <file> by hand" in the chat's History
+  (`ChatModel.appendLocal`, or the design chat for `design/` files), so **Undo** and the newest-first undo order work
+  as for Claude's changes, marks the project changed, refreshes the design library, and calls `applyEdits(…, done: "Saved")`:
+  hot reload, hot restart or the "Run Again" toast, and the flow map refresh for `lib/`.
+- **Rules.** Saving waits while Claude is working (`manualEditBlocker`), and chats wait while a save runs (`isSavingEdit` in
+  `chatBlocker` / `designBlocker`), because every Claude turn snapshots the whole folder and would claim the edit. A Claude
+  turn's older checkpoint stays valid: its fingerprint no longer matches after a hand edit, so Undo refuses it rather than
+  overwrite the edit, and undoing the newer hand edit first makes it match again. Closing the sheet with unsaved text asks
+  first (Save / Don't Save / Cancel), and the sheet is `interactiveDismissDisabled` while there is any.
+- **Seeing it.** `MOBILE_STUDIO_SNAPSHOT_DIFF=lib/main.dart` opens that file's diff sheet and writes `-diff.png`
+  (`MOBILE_STUDIO_SNAPSHOT_DIFF_EDIT=1` opens it in Edit mode); with `MOBILE_STUDIO_SNAPSHOT_DIFF_SAVE="note"` it also saves a
+  comment through `saveManualEdit`, writes History as `-saved.png`, undoes it and logs both steps to `snapshot.log`. Point it
+  at a throwaway project, as always.
+
 ## Running Claude safely
 
-Mobile Studio runs an agent with edit rights on the user's code, so these are hard rules:
+AppFast Studio runs an agent with edit rights on the user's code, so these are hard rules:
 
 - Build editing calls with **`ClaudeAgentCall`**. It always adds `--safe-mode` (no machine plugins, skills,
   MCP servers, hooks), `--permission-mode acceptEdits`, the tool list, and a budget. Don't hand-roll argument
@@ -264,11 +356,11 @@ Mobile Studio runs an agent with edit rights on the user's code, so these are ha
 
 The chat's agent can check its own work in the running app. `AgentBridge` (`Simulator/`) listens on the loopback
 interface only (random port and token per launch, in a 0600 file) and installs `ms-sim` into
-`~/Library/Application Support/Mobile Studio/Agent/bin`; `ClaudeAccess.agentProcess` puts that folder on the agent's
+`~/Library/Application Support/AppFast Studio/Agent/bin`; `ClaudeAccess.agentProcess` puts that folder on the agent's
 PATH. The agent runs `ms-sim screenshot | tap X Y | swipe X1 Y1 X2 Y2 | home` (allow-listed as `ms-sim *` in the build
 call). Screenshots are PNGs of at most 1000 px, saved in `Agent/Screenshots`, which the call exposes with
 `ClaudeAgentCall.readableFolders` (`--add-dir`) so the agent reads them with its Read tool. Coordinates are pixels of the
-latest screenshot (`SimulatorCommand.normalized`). `Workspace` connects the bridge to `SimulatorModel.perform`, which
+latest screenshot (`SimulatorCommand.normalized`). `Workspace` connects the bridge to `DeviceModel.perform`, which
 answers in words ("Take a screenshot first…", "isn't showing a running app"). The chat shows these as "Looking at the
 app" / "Tapping the app" (`SimulatorCommand.activity`). Scrolling is a swipe. `ms-sim type TEXT` and `ms-sim key return|delete|tab|escape` send hardware key presses through
 SimulatorKit's `IndigoHIDMessageForKeyboardArbitrary` (`KeyboardMap` maps US-layout characters to HID usages; others are
@@ -297,8 +389,8 @@ reported as skipped). Each key is held 50 ms: iOS drops a key that goes down and
 - **Respect Reduce Motion** for any animation (`@Environment(\.accessibilityReduceMotion)`).
 - **Persistence:** small state goes in `UserDefaults` through `setEncoded(_:forKey:)` /
   `decoded(_:forKey:)`, with a versioned key (`run.failure.v1`). Change the shape, bump the version. Chat
-  transcripts live in `~/Library/Application Support/Mobile Studio/Chats/`.
-- **Diagnostics:** each feature appends to a `DiagnosticLog` (`~/Library/Logs/Mobile Studio/<name>.log`): the
+  transcripts live in `~/Library/Application Support/AppFast Studio/Chats/`.
+- **Diagnostics:** each feature appends to a `DiagnosticLog` (`~/Library/Logs/AppFast Studio/<name>.log`): the
   exact command, exit status and output. Expose it with `log.reveal()` ("Show log"). Log enough to debug a
   user's failure without a repro.
 - **Errors:** services throw (`ClaudeCLIError`, `NSError` from the bridge). Models catch at the boundary and
@@ -331,7 +423,7 @@ skips Claude's automatic project check, so it costs nothing:
 
 ```bash
 MOBILE_STUDIO_SNAPSHOT=/tmp/shot MOBILE_STUDIO_APPEARANCE=dark MOBILE_STUDIO_SNAPSHOT_SETTINGS=1 \
-  "<DerivedData>/Build/Products/Debug/Mobile Studio.app/Contents/MacOS/Mobile Studio"
+  "<DerivedData>/Build/Products/Debug/AppFast Studio.app/Contents/MacOS/AppFast Studio"
 ```
 
 It writes `/tmp/shot-main.png` (and `-settings.png`), then quits. `MOBILE_STUDIO_SNAPSHOT_LOG=1` opens the build

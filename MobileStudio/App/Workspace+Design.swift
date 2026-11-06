@@ -26,6 +26,7 @@ extension Workspace {
         if studio.claude == nil { return "Install the claude CLI and sign in to design with Claude." }
         if fix.isBusy { return "Claude is fixing the project. You can design again when it's done." }
         if chat.isSending { return "Claude is changing the app in the main chat. You can design again when it's done." }
+        if isSavingEdit { return "Saving your edit. You can design again in a moment." }
         return nil
     }
 
@@ -95,7 +96,7 @@ extension Workspace {
     /// Saves what the simulator shows now as the screen's picture in the app.
     @discardableResult
     func captureCurrent(for screenID: String) -> Bool {
-        guard let store = design.store, let png = simulator.capturePNG() else {
+        guard let store = design.store, let png = deviceModel.capturePNG() else {
             show(Toast(tone: .warning, text: "Run the app and show this screen on the device to take its picture."))
             return false
         }
@@ -104,7 +105,7 @@ extension Workspace {
         return true
     }
 
-    var canCapture: Bool { simulator.canSendInput }
+    var canCapture: Bool { deviceModel.canSendInput }
 
     /// Draws the screen as the code builds it now, into current.html.
     func redrawFromApp(_ screenID: String, name: String? = nil, file: String? = nil) {
@@ -211,8 +212,8 @@ extension Workspace {
         designAttachments += saved.map(\.path)
         let skipped = urls.count - saved.count
         if skipped > 0 {
-            show(Toast(tone: .warning, text: skipped == 1 ? "That file isn't a picture Mobile Studio can read."
-                                                          : "\(skipped) files aren't pictures Mobile Studio can read."))
+            show(Toast(tone: .warning, text: skipped == 1 ? "That file isn't a picture AppFast Studio can read."
+                                                          : "\(skipped) files aren't pictures AppFast Studio can read."))
         }
     }
 

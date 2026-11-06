@@ -1,12 +1,12 @@
 import AppKit
 
-/// Appends plain-text entries to ~/Library/Logs/Mobile Studio/<name>.log so a failed run can be inspected.
+/// Appends plain-text entries to ~/Library/Logs/AppFast Studio/<name>.log so a failed run can be inspected.
 struct DiagnosticLog: Sendable {
     let name: String
 
     var url: URL {
         FileManager.default.urls(for: .libraryDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("Logs/Mobile Studio/\(name).log")
+            .appendingPathComponent("Logs/AppFast Studio/\(name).log")
     }
 
     func append(_ entry: String) {

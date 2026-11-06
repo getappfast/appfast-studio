@@ -1,6 +1,6 @@
 import CoreGraphics
 import Testing
-@testable import Mobile_Studio
+@testable import AppFast_Studio
 
 struct FlowViewportTests {
     private let content = CGSize(width: 1000, height: 4000)

@@ -3,7 +3,7 @@ import AppKit
 /// Pictures the user attaches to a Design chat message as reference. They're copied as PNG, so Claude's Read tool
 /// can open them whatever format they came in, and the copy stays put if the original moves.
 enum DesignReferences {
-    /// The picture at `source` as PNG data, or nil when it isn't a picture Mobile Studio can read.
+    /// The picture at `source` as PNG data, or nil when it isn't a picture AppFast Studio can read.
     static func png(of source: URL) -> Data? {
         guard let image = NSImage(contentsOf: source), let tiff = image.tiffRepresentation,
               let bitmap = NSBitmapImageRep(data: tiff) else { return nil }

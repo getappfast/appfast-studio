@@ -20,6 +20,43 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         #endif
     }
 
+    /// Emulators this app booted outlive it, so ask whether to keep them running (or follow the saved answer).
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        if Self.isSnapshotRun { return .terminateNow }
+        let ours = EmulatorService.runningBootedByApp()
+        let choice = AndroidQuitChoice(rawValue: UserDefaults.standard.string(forKey: AndroidQuitChoice.key) ?? "") ?? .ask
+        switch choice.action(runningBootedByApp: ours.count) {
+        case .quit:
+            return .terminateNow
+        case .shutDownThenQuit:
+            Self.shutDownThenQuit(ours)
+            return .terminateLater
+        case .askUser:
+            let alert = NSAlert()
+            let names = ours.map(\.avdName).map { $0.replacingOccurrences(of: "_", with: " ") }
+            alert.messageText = ours.count == 1 ? "\(names[0]) is still running." : "\(ours.count) Android emulators are still running."
+            alert.informativeText = "Keep it running for next time? It starts much faster that way, but uses memory until you shut it down."
+            alert.addButton(withTitle: "Keep Running")
+            alert.addButton(withTitle: "Shut Down")
+            alert.showsSuppressionButton = true
+            alert.suppressionButton?.title = "Don't ask again"
+            let shutDown = alert.runModal() == .alertSecondButtonReturn
+            if alert.suppressionButton?.state == .on {
+                UserDefaults.standard.set((shutDown ? AndroidQuitChoice.shutDown : .keep).rawValue, forKey: AndroidQuitChoice.key)
+            }
+            guard shutDown else { return .terminateNow }
+            Self.shutDownThenQuit(ours)
+            return .terminateLater
+        }
+    }
+
+    private static func shutDownThenQuit(_ emulators: [RunningEmulator]) {
+        Task {
+            await EmulatorService.shutDown(emulators)
+            await MainActor.run { NSApplication.shared.reply(toApplicationShouldTerminate: true) }
+        }
+    }
+
     /// A debug launch that only takes screenshots of the app's own windows; see `Snapshot`.
     static var isSnapshotRun: Bool {
         #if DEBUG
@@ -49,6 +86,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 ///     MOBILE_STUDIO_SNAPSHOT_UNDO_AFTER=20      then undo its edits this many seconds after the answer
 ///     MOBILE_STUDIO_SNAPSHOT_CHOOSE=1           or pick the recommended options of the answer's choice card
 ///     MOBILE_STUDIO_SNAPSHOT_SHEET=0|1|2        also open the New Project sheet on that step and write -sheet.png
+///     MOBILE_STUDIO_SNAPSHOT_DIFF=lib/main.dart  also open that file's diff sheet and write -diff.png (add _DIFF_EDIT=1 for Edit mode)
+///     MOBILE_STUDIO_SNAPSHOT_DIFF_SAVE="note"   then save a hand edit of that file (a comment) as the sheet's Save does,
+///                                               capture History (-saved.png), undo it, and log both steps to snapshot.log
 ///     MOBILE_STUDIO_SNAPSHOT_KICKOFF=1          start the planning chat and ask for the plan (with a stand-in CLI)
 ///     MOBILE_STUDIO_SNAPSHOT_APPROVAL="message" send this chat message; a stand-in CLI that asks permission leaves the card open
 ///     MOBILE_STUDIO_SNAPSHOT_NEW_PROJECT=/tmp/x  create a project in that folder, run flutter analyze + test, log, quit
@@ -172,6 +212,14 @@ enum Snapshot {
                 workspace?.closeNewProjectSheet()
                 try? await Task.sleep(for: .milliseconds(500))
             }
+            if let path = env["MOBILE_STUDIO_SNAPSHOT_DIFF"] {
+                workspace?.showDiff(of: .init(path: path, kind: .modified))
+                try? await Task.sleep(for: .seconds(3))
+                captureSheet(to: base, name: "diff")
+                workspace?.diffFile = nil
+                try? await Task.sleep(for: .milliseconds(500))
+                if let note = env["MOBILE_STUDIO_SNAPSHOT_DIFF_SAVE"] { await saveAndUndoHandEdit(path, note: note, base: base) }
+            }
             if settings {
                 NotificationCenter.default.post(name: openSettingsNotification, object: nil)
                 try? await Task.sleep(for: .seconds(2))
@@ -243,7 +291,7 @@ enum Snapshot {
             case "sim":
                 // Drives the device like ms-sim: sim:/screenshot, sim:/tap?x=200&y=900, sim:/paste?text=Walk.
                 if let command = SimulatorCommand(path: argument) {
-                    let answer = await workspace.simulator.perform(command)
+                    let answer = await workspace.deviceModel.perform(command)
                     log.append("SNAPSHOT design sim \(argument): \(answer)")
                     if command == .screenshot, let path = answer.split(separator: "\n").first {
                         shot += 1
@@ -450,13 +498,33 @@ enum Snapshot {
         try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: path))
     }
 
+    /// Saves a comment into `path` through `Workspace.saveManualEdit`, shows the result, then undoes it, logging what happened.
+    @MainActor
+    private static func saveAndUndoHandEdit(_ path: String, note: String, base: String) async {
+        guard let workspace, let folder = workspace.project.readyFolder else { return log.append("HAND EDIT: no project is open") }
+        let url = URL(fileURLWithPath: folder).appendingPathComponent(path)
+        func text() -> String? { try? String(contentsOf: url, encoding: .utf8) }
+        guard let old = text() else { return log.append("HAND EDIT: \(path) can't be read") }
+        do {
+            try await workspace.saveManualEdit(path: path, content: old + "// \(note)\n", replacing: old)
+            let entry = workspace.chat.messages.last
+            log.append("HAND EDIT saved: file changed = \(text() != old), history = \(entry?.text ?? "none"), files = \(entry?.files.map(\.path) ?? []), undoable = \(workspace.chat.undoable.count)")
+            try? await Task.sleep(for: .seconds(1))
+            capture(title: "saved", to: base)
+            if let latest = workspace.chat.undoable.first { workspace.undo(latest) }
+            log.append("HAND EDIT undone: file restored = \(text() == old), undoable = \(workspace.chat.undoable.count), toast = \(workspace.toast?.text ?? "none")")
+        } catch {
+            log.append("HAND EDIT failed: \(error.localizedDescription)")
+        }
+    }
+
     /// The sheet is its own window, so `capture` doesn't include it.
     @MainActor
-    private static func captureSheet(to base: String) {
+    private static func captureSheet(to base: String, name: String = "sheet") {
         guard let root = NSApp.windows.first(where: { $0.isSheet && $0.isVisible })?.contentView?.superview,
               let rep = root.bitmapImageRepForCachingDisplay(in: root.bounds) else { return }
         root.cacheDisplay(in: root.bounds, to: rep)
-        try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: "\(base)-sheet.png"))
+        try? rep.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: "\(base)-\(name).png"))
     }
 
     @MainActor

@@ -173,7 +173,7 @@ struct NewProjectRequest: Codable, Equatable, Sendable {
         }
         guard isDirectory.boolValue else { return [.error(.folder, "Pick a folder, not a file.")] }
         guard fileManager.isWritableFile(atPath: parentFolder) else {
-            return [.error(.folder, "Mobile Studio can't save to that folder. Pick another.")]
+            return [.error(.folder, "AppFast Studio can't save to that folder. Pick another.")]
         }
 
         var issues: [Issue] = []

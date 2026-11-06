@@ -46,7 +46,7 @@ final class ProfileStore {
     func makeConfigDirectory() throws -> URL {
         let base = try FileManager.default
             .url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
-            .appendingPathComponent("Mobile Studio/Profiles", isDirectory: true)
+            .appendingPathComponent("AppFast Studio/Profiles", isDirectory: true)
         let dir = base.appendingPathComponent(UUID().uuidString, isDirectory: true)
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir

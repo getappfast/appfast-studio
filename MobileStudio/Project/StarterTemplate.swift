@@ -56,7 +56,7 @@ enum StarterTemplate {
     enum WriteError: LocalizedError {
         case templatesMissing
 
-        var errorDescription: String? { "The starter files are missing from the app. Reinstall Mobile Studio." }
+        var errorDescription: String? { "The starter files are missing from the app. Reinstall AppFast Studio." }
     }
 
     /// Renders every `*.tmpl` under `templates` into `folder`, replacing files of the same name. Returns the

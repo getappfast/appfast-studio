@@ -1,6 +1,6 @@
 # Plan: New Project
 
-Let someone who has never run `flutter create` start an app from Mobile Studio: name it, describe it, pick
+Let someone who has never run `flutter create` start an app from AppFast Studio: name it, describe it, pick
 where it lives and which platforms it targets, get a clean, well-structured starter that runs at once, and then
 talk it through with Claude. The talk ends in a written product plan (design decisions, must have, can have,
 open questions, build order) that later chat turns follow.
@@ -87,7 +87,7 @@ Each step is a small `Sendable` service so it is testable without the app:
    resolved by pub, not pinned in the template, so the starter doesn't rot. Offline → step fails with "Couldn't
    download packages. Check your connection and try again." and a Retry that resumes from this step.
 5. **Git** (when on) — `git init -b main`, write `.gitignore` additions, `git add -A`,
-   `git commit -m "Create <App name> with Mobile Studio"`. Local only: no remote is added and nothing is pushed.
+   `git commit -m "Create <App name> with AppFast Studio"`. Local only: no remote is added and nothing is pushed.
    No identity configured → still init and stage, skip the commit, and say: "Set your name in git to save the
    first version: `git config --global user.name …`" with a `CommandHint`. This is the app's own write, not the
    agent's; the agent's no-git-writes rule is unchanged.

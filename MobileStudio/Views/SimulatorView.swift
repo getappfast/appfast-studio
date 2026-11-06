@@ -7,7 +7,7 @@ import IOSurface
 /// and drag is a swipe. Each frame is an IOSurface that the simulator renders into, set straight
 /// on the layer so the GPU composites it with no copy.
 struct SimulatorScreen: NSViewRepresentable {
-    let display: MSSimulatorDisplay?
+    let display: (any DeviceScreen)?
     /// The screen's corner radius as a share of its width, so the corners match the device at any size.
     var cornerFraction: CGFloat
     /// What VoiceOver says for the screen.
@@ -25,7 +25,7 @@ struct SimulatorScreen: NSViewRepresentable {
     }
 
     final class ScreenView: NSView {
-        var display: MSSimulatorDisplay? {
+        var display: (any DeviceScreen)? {
             didSet {
                 guard display !== oldValue else { return }
                 oldValue?.frameHandler = nil
@@ -85,7 +85,7 @@ struct SimulatorScreen: NSViewRepresentable {
 
         /// The view is sized to the screen's aspect ratio, so the view bounds are the screen.
         /// AppKit's origin is bottom-left; the simulator's is top-left.
-        private func sendTouch(_ phase: MSTouchPhase, _ event: NSEvent) {
+        private func sendTouch(_ phase: TouchPhase, _ event: NSEvent) {
             guard bounds.width > 0, bounds.height > 0 else { return }
             let point = convert(event.locationInWindow, from: nil)
             display?.sendTouch(phase, at: CGPoint(x: point.x / bounds.width, y: 1 - point.y / bounds.height))
@@ -127,7 +127,7 @@ struct ProportionalRoundedRectangle: Shape {
     }
 }
 
-extension SimulatorDevice {
+extension Device {
     /// Roughly the display's corner radius over its width: rounded for Face ID iPhones, square for
     /// Home-button ones, slight for iPads.
     var screenCornerFraction: CGFloat {
@@ -140,7 +140,7 @@ extension SimulatorDevice {
 /// The device, centred on the canvas, with its empty and error states. Device choice and Boot live in
 /// the toolbar's destination menu.
 struct SimulatorCanvas: View {
-    let model: SimulatorModel
+    let model: DeviceModel
     /// Pick is waiting for a tap: the screen gets an outline and a crosshair so it's clear where to click.
     var isPicking = false
     /// Draw the device's hardware frame around the screen when Xcode has one for it.
@@ -179,7 +179,7 @@ struct SimulatorCanvas: View {
         }
     }
 
-    private func screen(of device: SimulatorDevice, size: CGSize) -> some View {
+    private func screen(of device: Device, size: CGSize) -> some View {
         // With a frame, the screen's corners come from the device itself, so they meet the frame's inner edge.
         let corner = showsFrame ? chrome.map { $0.cornerRadius / $0.screenSize.width } ?? device.screenCornerFraction
             : device.screenCornerFraction
@@ -278,7 +278,7 @@ struct SimulatorCanvas: View {
         }
     }
 
-    private func controls(_ device: SimulatorDevice, labelled: Bool) -> some View {
+    private func controls(_ device: Device, labelled: Bool) -> some View {
         HStack(spacing: 10) {
             Group {
                 Button { model.pressHome() } label: { Label("Home", systemImage: "house") }
@@ -290,10 +290,10 @@ struct SimulatorCanvas: View {
                     }
                     .help("Switch the simulator to \(dark ? "light" : "dark") mode")
                 }
-                if let size = model.contentSize {
+                if let size = model.textSize {
                     Menu {
-                        ForEach(SimulatorModel.contentSizes, id: \.id) { option in
-                            Toggle(option.name, isOn: Binding(get: { size == option.id }, set: { _ in model.setContentSize(option.id) }))
+                        ForEach(model.textSizes) { option in
+                            Toggle(option.name, isOn: Binding(get: { size == option.id }, set: { _ in model.setTextSize(option.id) }))
                         }
                     } label: {
                         Label("Text Size", systemImage: "textformat.size")
@@ -309,13 +309,13 @@ struct SimulatorCanvas: View {
         }
     }
 
-    private func caption(_ device: SimulatorDevice) -> String {
+    private func caption(_ device: Device) -> String {
         if isPicking { return "Click the element you mean." }
         guard hovering, let size = model.screenSize else {
             return model.canSendInput ? "Click to tap, drag to swipe." : "View only."
         }
         let fps = model.framesPerSecond > 0 ? "\(model.framesPerSecond) fps" : "idle"
-        return "\(device.name) · \(device.runtime) · \(Int(size.width))×\(Int(size.height)) · \(fps)"
+        return "\(device.name) · \(device.osVersion) · \(Int(size.width))×\(Int(size.height)) · \(fps)"
     }
 }
 

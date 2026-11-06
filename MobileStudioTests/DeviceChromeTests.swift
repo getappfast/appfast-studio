@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import Mobile_Studio
+@testable import AppFast_Studio
 
 struct DeviceChromeTests {
     /// Xcode's own files are used when present; the test skips on a machine without them.

@@ -235,6 +235,14 @@ struct ChatPanel: View {
                 }
             }
             Spacer(minLength: 4)
+            if !widget.place.file.isEmpty {
+                Button { workspace.openInEditor(file: widget.place.file, line: widget.place.line) } label: {
+                    Label(workspace.editorTitle, systemImage: "chevron.left.forwardslash.chevron.right").labelStyle(.iconOnly)
+                }
+                .buttonStyle(.borderless)
+                .foregroundStyle(.secondary)
+                .help("Open \(widget.place.file) in editor")
+            }
             if !widget.ancestors.isEmpty {
                 Menu {
                     Section("Select a parent instead") {

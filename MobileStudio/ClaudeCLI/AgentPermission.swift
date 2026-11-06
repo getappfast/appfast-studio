@@ -63,7 +63,7 @@ struct AgentPermissionRequest: Equatable, Sendable {
     static func unsupportedResponse(to line: String) -> String? {
         guard let object = ClaudeEvents.json(line), object["type"] as? String == "control_request",
               let id = object["request_id"] as? String, parse(line) == nil else { return nil }
-        return controlResponse(["subtype": "error", "request_id": id, "error": "Mobile Studio doesn't handle this request."])
+        return controlResponse(["subtype": "error", "request_id": id, "error": "AppFast Studio doesn't handle this request."])
     }
 
     private static func controlResponse(_ response: [String: Any]) -> String {
@@ -114,13 +114,13 @@ enum AgentPermissionPolicy {
             if let reason = refusal(forCommand: command) { return .refuse(reason) }
             return approvedCommands.contains(normalized(command)) ? .allow : .ask
         case .readFile(let path):
-            if isSecret(path) { return .refuse("Mobile Studio doesn't let Claude read passwords, keys or other credentials.") }
+            if isSecret(path) { return .refuse("AppFast Studio doesn't let Claude read passwords, keys or other credentials.") }
             return .ask
         case .editFile:
             // Edits inside the project are accepted before they get here, so this is outside it, or a protected folder.
-            return .refuse("Mobile Studio only lets Claude change files inside the project.")
+            return .refuse("AppFast Studio only lets Claude change files inside the project.")
         case .other(let tool):
-            return .refuse("Mobile Studio doesn't let Claude use \(tool).")
+            return .refuse("AppFast Studio doesn't let Claude use \(tool).")
         }
     }
 
@@ -142,14 +142,14 @@ enum AgentPermissionPolicy {
             guard let program = words.first.map({ ($0 as NSString).lastPathComponent }) else { continue }
             let rest = Array(words.dropFirst())
             switch program {
-            case "rm": return "Mobile Studio never lets Claude delete files with rm."
-            case "sudo", "su", "doas": return "Mobile Studio never lets Claude run commands as an administrator."
-            case "sh", "bash", "zsh", "dash", "eval": return "Mobile Studio doesn't let Claude start another shell. Run the command itself."
+            case "rm": return "AppFast Studio never lets Claude delete files with rm."
+            case "sudo", "su", "doas": return "AppFast Studio never lets Claude run commands as an administrator."
+            case "sh", "bash", "zsh", "dash", "eval": return "AppFast Studio doesn't let Claude start another shell. Run the command itself."
             case "flutter" where rest.first(where: { !$0.hasPrefix("-") }) == "run":
                 return "The app runs `flutter run` itself and reloads on its own. Don't run it."
             case "git":
                 if let subcommand = gitSubcommand(rest), gitWrites.contains(subcommand) {
-                    return "Mobile Studio never lets Claude change git. Leave committing to the user."
+                    return "AppFast Studio never lets Claude change git. Leave committing to the user."
                 }
             default: break
             }

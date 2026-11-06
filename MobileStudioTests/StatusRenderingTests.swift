@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
 import Testing
-@testable import Mobile_Studio
+@testable import AppFast_Studio
 
 /// Renders the status badge and checks its icon really comes out in the tone's colour, not just that the
 /// code asks for it.

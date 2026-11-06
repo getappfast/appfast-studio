@@ -156,7 +156,7 @@ final class ClaudeStreamProcess: @unchecked Sendable {
         guard let input else { return }
         if let request = AgentPermissionRequest.parse(line) {
             let task = Task { [weak self] in
-                let decision = await onPermission?(request) ?? .deny("Mobile Studio can't ask the user here.")
+                let decision = await onPermission?(request) ?? .deny("AppFast Studio can't ask the user here.")
                 self?.input?.write(request.response(decision))
             }
             state.track(task)

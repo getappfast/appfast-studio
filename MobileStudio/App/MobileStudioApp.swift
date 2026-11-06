@@ -8,6 +8,8 @@ struct MobileStudioApp: App {
     @StateObject private var menuBridge: MenuBridge
 
     init() {
+        // Before any model reads its folders or settings, bring over what the app saved under its old name.
+        LegacyMigration.run()
         // The composition root: app-wide state is made once here and handed down.
         let studio = StudioModel()
         _studio = State(initialValue: studio)
@@ -22,7 +24,7 @@ struct MobileStudioApp: App {
     }
 
     var body: some Scene {
-        Window("Mobile Studio", id: "main") {
+        Window("AppFast Studio", id: "main") {
             ContentView(workspace: workspace, menuBridge: menuBridge)
                 .frame(minWidth: 1160, minHeight: 680)
         }

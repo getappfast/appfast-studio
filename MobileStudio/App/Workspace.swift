@@ -8,7 +8,7 @@ import Observation
 @Observable
 final class Workspace {
     let studio: StudioModel
-    let simulator = SimulatorModel()
+    let deviceModel = DeviceModel()
     let project = ProjectModel()
     let run = FlutterRunModel()
     let fix = FixModel()
@@ -17,6 +17,8 @@ final class Workspace {
     let approvals = ApprovalModel()
     let pick = PickModel()
     let dart = DartSDKModel()
+    /// What's installed on the Mac (Xcode, the simulator, Flutter, CocoaPods, the claude CLI) and installing the rest.
+    let setup = SetupModel()
     let creator = NewProjectModel()
     /// Where the app-flow map is and how big it's drawn.
     let flowMap = FlowMapModel()
@@ -47,6 +49,11 @@ final class Workspace {
     var isNewProjectSheetVisible = false
     /// The changed file whose diff is shown in a sheet.
     var diffFile: FileSnapshot.Change?
+    /// The code editor "Open in …" uses, looked up again whenever the user comes back to the app.
+    private(set) var editor: CodeEditor.Editor? = CodeEditor.detected()
+    /// A hand edit is being saved. Chats wait, because they compare the whole folder before and after a turn
+    /// and would claim the edit as Claude's.
+    private(set) var isSavingEdit = false
     /// The failure the user closed the banner of. A newer failure brings the banner back.
     private(set) var dismissedFailureDate: Date?
     /// A short confirmation over the device ("Updated", "Undone"), cleared after a few seconds.
@@ -96,13 +103,18 @@ final class Workspace {
 
     init(studio: StudioModel) {
         self.studio = studio
-        agentBridge.handler = { [simulator] command in await simulator.perform(command) }
+        agentBridge.handler = { [deviceModel] command in await deviceModel.perform(command) }
         agentBridge.start()
+        setup.onInstalled = { [weak self] item in await self?.toolInstalled(item) }
         // An app left running by an earlier run can be picked up again, so look whenever the user comes back.
         activeObserver = NotificationCenter.default.addObserver(
             forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main
         ) { [weak self] _ in
-            MainActor.assumeIsolated { self?.refreshExistingApp() }
+            MainActor.assumeIsolated {
+                self?.refreshExistingApp()
+                self?.refreshEditor()
+                self?.refreshSetupIfIncomplete()
+            }
         }
     }
 
@@ -114,8 +126,10 @@ final class Workspace {
         loadRecord()
         refreshFlow()
         async let sdk: Void = dart.refresh()
+        async let tools: Void = setup.refresh()
         await studio.refresh()
         await sdk
+        await tools
         if runsAutomaticChecks { project.autoVerify(studio.projectVerifier) }
         refreshExistingApp()
     }
@@ -144,8 +158,8 @@ final class Workspace {
     var runBlocker: String? {
         guard let flutter = flutterProject else { return "Choose a Flutter project first." }
         if !flutter.platforms.contains("ios") { return "This project has no ios folder, so it can't run in the iOS Simulator." }
-        guard simulator.selected != nil else {
-            return simulator.devices.isEmpty ? "No iOS Simulators are installed." : "Choose a simulator."
+        guard deviceModel.selected != nil else {
+            return deviceModel.devices.isEmpty ? "No iOS Simulators are installed." : "Choose a simulator."
         }
         if fix.isBusy { return "Claude is fixing the project." }
         return nil
@@ -180,6 +194,36 @@ final class Workspace {
 
     var canCreateProject: Bool { createProjectBlocker == nil && !creator.isWorking }
 
+    /// What a new iOS app still needs besides Flutter, shown before Create. Warnings only: the project can be made.
+    var toolchainProblems: [String] {
+        var problems: [String] = []
+        if !setup.status(of: .xcode).isReady, setup.facts != nil {
+            problems.append("Xcode isn't set up yet, so the app can't run in the iOS Simulator. Finish it in Get Started.")
+        }
+        if case .needed = setup.status(of: .cocoapods) {
+            problems.append("CocoaPods isn't installed. Most apps don't need it, but some plugins do; it's in Get Started.")
+        }
+        return problems
+    }
+
+    // MARK: Setup
+
+    /// Someone back from the App Store or a Terminal may have installed something: look again, unless all is in.
+    private func refreshSetupIfIncomplete() {
+        guard setup.requiredReady != true, !setup.phase.isWorking else { return }
+        Task { await setup.refresh() }
+    }
+
+    /// Each tool feeds a different model, which only looked when the app started.
+    private func toolInstalled(_ item: SetupItem) async {
+        switch item {
+        case .claude: await studio.refresh()
+        case .flutter: await dart.refresh()
+        case .xcode, .simulator: await deviceModel.toolchainChanged()
+        case .cocoapods: break
+        }
+    }
+
     /// The kickoff card is showing: a new project whose planning chat was neither started nor skipped.
     var isKickoffOffered: Bool { newProjectRecord?.kickoff == .offered && chat.mode == .build && chat.messages.isEmpty }
 
@@ -193,12 +237,13 @@ final class Workspace {
         if fix.isBusy { return "Claude is fixing the project. You can chat again when it's done." }
         // Both chats compare the whole folder before and after, so one would claim the other's changes.
         if designChat.isSending { return "Claude is designing. You can chat again when it's done." }
+        if isSavingEdit { return "Saving your edit. You can chat again in a moment." }
         return nil
     }
 
     /// One line for the toolbar's activity area, like Xcode's.
     var activity: Activity {
-        let device = run.deviceName ?? simulator.selected?.name ?? "the simulator"
+        let device = run.deviceName ?? deviceModel.selected?.name ?? "the simulator"
         if approvals.current != nil { return Activity(tone: .warning, text: "Waiting for your OK", busy: false) }
         if fix.phase == .fixing { return Activity(tone: .neutral, text: "Claude is fixing the project…", busy: true) }
         if fix.phase == .validating { return Activity(tone: .neutral, text: "Checking the fix on \(device)…", busy: true) }
@@ -210,7 +255,7 @@ final class Workspace {
         case .idle, .failed:
             break
         }
-        if runAfterBoot || simulator.phase == .booting { return Activity(tone: .neutral, text: "Booting \(device)…", busy: true) }
+        if runAfterBoot || deviceModel.phase == .booting { return Activity(tone: .neutral, text: "Booting \(device)…", busy: true) }
         if visibleFailure != nil { return Activity(tone: .failure, text: "Run failed", busy: false) }
         if run.existing != nil { return Activity(tone: .neutral, text: "Already running on \(device)", busy: false) }
         if let blocker = runBlocker { return Activity(tone: .neutral, text: blocker, busy: false) }
@@ -347,13 +392,13 @@ final class Workspace {
 
     /// Runs the app on the selected simulator, booting it first when it is off.
     func runApp() {
-        guard canRun, let flutter = flutterProject, let device = simulator.selected else { return }
+        guard canRun, let flutter = flutterProject, let device = deviceModel.selected else { return }
         guard device.isBooted else {
             runAfterBoot = true
-            simulator.boot()
+            deviceModel.boot()
             return
         }
-        run.start(folder: flutter.path, deviceID: device.udid, deviceName: device.name, flavor: project.runFlavor)
+        run.start(folder: flutter.path, deviceID: device.runID ?? device.id, deviceName: device.name, flavor: project.runFlavor)
     }
 
     func stopApp() {
@@ -377,7 +422,7 @@ final class Workspace {
 
     func reconnect() {
         guard let folder = project.readyFolder else { return }
-        run.reconnect(folder: folder, deviceName: simulator.selected?.name ?? "the simulator")
+        run.reconnect(folder: folder, deviceName: deviceModel.selected?.name ?? "the simulator")
     }
 
     func stopExistingApp() { run.stopExisting() }
@@ -397,6 +442,65 @@ final class Workspace {
     func cancelFix() { fix.cancel() }
 
     func showDiff(of change: FileSnapshot.Change) { diffFile = change }
+
+    // MARK: Editing code by hand
+
+    /// The menu title for opening code: names the editor when one was found.
+    var editorTitle: String { editor.map { "Open in \($0.name)" } ?? "Open Code" }
+
+    /// Opens a project file in the code editor, at `line` when the editor can go there.
+    func openInEditor(file: String, line: Int? = nil) {
+        guard let folder = project.readyFolder else { return }
+        guard FileManager.default.fileExists(atPath: CodeEditor.absolutePath(of: file, inProject: folder)) else {
+            show(Toast(tone: .warning, text: "\(FriendlyName.of(file)) isn't in the project anymore."))
+            return
+        }
+        CodeEditor.open(file: file, line: line, inProject: folder)
+    }
+
+    private func refreshEditor() {
+        let found = CodeEditor.detected()
+        if found != editor { editor = found }
+    }
+
+    /// Why a hand edit can't be saved now, nil when it can.
+    var manualEditBlocker: String? {
+        if project.readyFolder == nil { return "Choose a Flutter project first." }
+        if chat.isSending || designChat.isSending { return "Claude is working on the project. You can save when it's done." }
+        if fix.isBusy { return "Claude is fixing the project. You can save when it's done." }
+        if isSavingEdit { return "Saving…" }
+        return nil
+    }
+
+    /// Saves an edit made in the diff sheet. It is recorded like one of Claude's changes: a checkpoint, a line in
+    /// History with Undo, and the running app reloads. `original` is the text the edit started from; the save is
+    /// refused when the file has changed since, so nobody's work is overwritten.
+    func saveManualEdit(path: String, content: String, replacing original: String? = nil) async throws {
+        guard let folder = project.readyFolder else { throw ManualEdit.Failure.outsideProject }
+        if let reason = manualEditBlocker { throw ManualEdit.Failure.blocked(reason) }
+        isSavingEdit = true
+        defer { isSavingEdit = false }
+        let id = UUID()
+        let saved = try await ManualEdit.save(content, to: path, in: folder, replacing: original, checkpoint: id)
+        guard folder == project.readyFolder, let file = saved.changes.first?.path else { return }
+
+        let name = FriendlyName.of(file)
+        let target = file.hasPrefix(DesignPaths.folder + "/") ? designChat : chat
+        target.appendLocal(
+            request: "Edited \(name) by hand",
+            reply: "**Saved your edit to \(name).**" + (saved.isUndoable ? "" : " A copy of the original couldn't be kept, so it can't be undone."),
+            files: saved.changes, checkpointID: saved.isUndoable ? id : nil)
+        markChanged(saved.changes)
+        if file.hasPrefix(DesignPaths.folder + "/") { design.refresh() }
+        applyEdits(saved.changes, done: "Saved")
+    }
+
+    /// The project no longer matches the first version New Project saved, once something but PLAN.md changes.
+    private func markChanged(_ files: [FileSnapshot.Change]) {
+        if files.contains(where: { $0.path != ProductPlan.fileName }), let record = newProjectRecord, record.changed != true {
+            update(record) { $0.changed = true }
+        }
+    }
 
     /// Starts a chat message about a screen, for people who'd rather name it than point at it.
     func mention(_ screen: AppScreen) {
@@ -457,7 +561,7 @@ final class Workspace {
     /// What Claude gets back when it asks for something outside its allow-list in this folder's run.
     func approvalHandler(folder: String) -> AgentPermissionHandler {
         { [weak self] request in
-            await self?.ask(request, folder: folder) ?? .deny("Mobile Studio is closing.")
+            await self?.ask(request, folder: folder) ?? .deny("AppFast Studio is closing.")
         }
     }
 
@@ -649,25 +753,23 @@ final class Workspace {
         if let tag = reply.designApply, reply.error == nil, reply.files.contains(where: { $0.path.hasPrefix("lib/") }) {
             designApplied(tag)
         }
-        if reply.files.contains(where: { $0.path != ProductPlan.fileName }), let record = newProjectRecord, record.changed != true {
-            update(record) { $0.changed = true }
-        }
+        markChanged(reply.files)
         applyEdits(reply.files, done: "Updated")
     }
 
     /// A pick came in: give it a picture of where the user tapped.
     func picksChanged() {
         guard let newest = pick.picks.last, newest.thumbnail == nil,
-              let tap = simulator.lastTap, Date().timeIntervalSince(tap.date) < 20 else { return }
+              let tap = deviceModel.lastTap, Date().timeIntervalSince(tap.date) < 20 else { return }
         pick.setThumbnail(tap.image, for: newest.id)
     }
 
     func deviceChanged() {
         if runAfterBoot {
-            if simulator.selected?.isBooted == true {
+            if deviceModel.selected?.isBooted == true {
                 runAfterBoot = false
                 runApp()
-            } else if case .failed = simulator.phase {
+            } else if case .failed = deviceModel.phase {
                 runAfterBoot = false
             }
         }
@@ -675,7 +777,7 @@ final class Workspace {
     }
 
     func simulatorPhaseChanged() {
-        if case .failed = simulator.phase { runAfterBoot = false }
+        if case .failed = deviceModel.phase { runAfterBoot = false }
     }
 
     func runPhaseChanged() {
@@ -767,10 +869,10 @@ final class Workspace {
 
     /// Looks for the project's app already running on the selected simulator, so it can be reconnected to.
     private func refreshExistingApp() {
-        guard let folder = project.readyFolder, let device = simulator.selected, device.isBooted else {
+        guard let folder = project.readyFolder, let device = deviceModel.selected, device.isBooted else {
             run.forgetExisting()
             return
         }
-        run.refreshExisting(folder: folder, deviceID: device.udid)
+        run.refreshExisting(folder: folder, deviceID: device.runID ?? device.id)
     }
 }

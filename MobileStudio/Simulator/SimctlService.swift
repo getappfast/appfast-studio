@@ -1,21 +1,20 @@
 import Foundation
 
-struct SimulatorDevice: Identifiable, Hashable, Sendable {
-    let udid: String
-    let name: String
-    /// e.g. "iOS 26.5"
-    let runtime: String
-    let state: String
-
-    var id: String { udid }
-    var isBooted: Bool { state == "Booted" }
-    var isTransitioning: Bool { state == "Booting" || state == "Shutting Down" }
-}
-
 /// Lists, boots and shuts down simulators with `xcrun simctl`, which is stable public tooling.
 /// Only the screen itself goes through the private framework (see MSSimulatorDisplay).
-struct SimctlService: Sendable {
+struct SimctlService: DeviceService {
     private let xcrun = "/usr/bin/xcrun"
+
+    var platform: DevicePlatform { .ios }
+
+    /// Dynamic Type sizes simctl accepts, smallest first, with a short name for each.
+    let textSizes: [TextSizeOption] = [
+        ("extra-small", "Extra Small"), ("small", "Small"), ("medium", "Medium"), ("large", "Default"),
+        ("extra-large", "Large"), ("extra-extra-large", "Extra Large"), ("extra-extra-extra-large", "Largest"),
+        ("accessibility-medium", "Accessibility M"), ("accessibility-large", "Accessibility L"),
+        ("accessibility-extra-large", "Accessibility XL"), ("accessibility-extra-extra-large", "Accessibility XXL"),
+        ("accessibility-extra-extra-extra-large", "Accessibility XXXL"),
+    ].map { TextSizeOption(id: $0.0, name: $0.1) }
 
     func developerDir() async -> String? {
         let runner = ProcessRunner(timeout: 10)
@@ -25,7 +24,7 @@ struct SimctlService: Sendable {
     }
 
     /// iPhones and iPads that are installed and usable, newest runtime first.
-    func devices() async throws -> [SimulatorDevice] {
+    func devices() async throws -> [Device] {
         let out = try await ProcessRunner(timeout: 20).run(xcrun, ["simctl", "list", "devices", "available", "-j"])
         guard out.status == 0 else {
             throw ClaudeCLIError.commandFailed(out.failureDetail(fallback: "simctl could not list devices."))
@@ -39,24 +38,24 @@ struct SimctlService: Sendable {
                 return (name, entries)
             }
             .flatMap { runtime, entries in
-                entries.map { SimulatorDevice(udid: $0.udid, name: $0.name, runtime: runtime, state: $0.state) }
+                entries.map { Device(id: $0.udid, name: $0.name, platform: .ios, osVersion: runtime, state: Self.state(from: $0.state), runID: $0.udid) }
             }
             .sorted {
-                if $0.runtime != $1.runtime { return $0.runtime.compare($1.runtime, options: .numeric) == .orderedDescending }
+                if $0.osVersion != $1.osVersion { return $0.osVersion.compare($1.osVersion, options: .numeric) == .orderedDescending }
                 return $0.name.localizedStandardCompare($1.name) == .orderedAscending
             }
     }
 
     /// Boots the device if needed and returns once it has finished booting.
-    func boot(_ udid: String) async throws {
-        let out = try await ProcessRunner(timeout: 240).run(xcrun, ["simctl", "bootstatus", udid, "-b"])
+    func boot(_ device: Device) async throws {
+        let out = try await ProcessRunner(timeout: 240).run(xcrun, ["simctl", "bootstatus", device.id, "-b"])
         guard out.status == 0 else {
             throw ClaudeCLIError.commandFailed(out.failureDetail(fallback: "The simulator did not finish booting."))
         }
     }
 
-    func shutdown(_ udid: String) async throws {
-        let out = try await ProcessRunner(timeout: 60).run(xcrun, ["simctl", "shutdown", udid])
+    func shutdown(_ device: Device) async throws {
+        let out = try await ProcessRunner(timeout: 60).run(xcrun, ["simctl", "shutdown", device.id])
         // Already-shut-down is not a failure.
         guard out.status == 0 || out.stderr.contains("current state: Shutdown") else {
             throw ClaudeCLIError.commandFailed(out.failureDetail(fallback: "The simulator did not shut down."))
@@ -64,32 +63,45 @@ struct SimctlService: Sendable {
     }
 
     /// Puts text on the device's pasteboard. `simctl pbcopy` reads stdin, which ProcessRunner doesn't offer, so the text goes through a file.
-    func setPasteboard(_ udid: String, text: String) async -> Bool {
+    func setClipboard(_ device: Device, text: String) async -> Bool {
         let file = FileManager.default.temporaryDirectory.appendingPathComponent("ms-paste-\(UUID().uuidString).txt")
         guard (try? text.write(to: file, atomically: true, encoding: .utf8)) != nil else { return false }
         defer { try? FileManager.default.removeItem(at: file) }
-        let out = try? await ProcessRunner(timeout: 15).run("/bin/sh", ["-c", "\"$0\" simctl pbcopy \"$1\" < \"$2\"", xcrun, udid, file.path])
+        let out = try? await ProcessRunner(timeout: 15).run("/bin/sh", ["-c", "\"$0\" simctl pbcopy \"$1\" < \"$2\"", xcrun, device.id, file.path])
         return out?.status == 0
     }
 
     // MARK: Preview settings
 
-    /// "light" or "dark", nil when it can't be read.
-    func appearance(_ udid: String) async -> String? {
-        await ui(udid, ["appearance"])
+    func isDark(_ device: Device) async -> Bool? {
+        await ui(device.id, ["appearance"]).map { $0 == "dark" }
     }
 
-    func setAppearance(_ udid: String, dark: Bool) async {
-        _ = await ui(udid, ["appearance", dark ? "dark" : "light"])
+    func setDark(_ device: Device, _ dark: Bool) async {
+        _ = await ui(device.id, ["appearance", dark ? "dark" : "light"])
     }
 
     /// The Dynamic Type size, e.g. "large" or "accessibility-extra-large".
-    func contentSize(_ udid: String) async -> String? {
-        await ui(udid, ["content_size"])
+    func textSize(_ device: Device) async -> String? {
+        await ui(device.id, ["content_size"])
     }
 
-    func setContentSize(_ udid: String, _ size: String) async {
-        _ = await ui(udid, ["content_size", size])
+    func setTextSize(_ device: Device, _ id: String) async {
+        _ = await ui(device.id, ["content_size", id])
+    }
+
+    func screen(for device: Device) async throws -> any DeviceScreen {
+        guard let developerDir = await developerDir() else {
+            throw ClaudeCLIError.commandFailed("Xcode's developer directory was not found. Install Xcode and run xcode-select.")
+        }
+        let display = MSSimulatorDisplay(udid: device.id, developerDir: developerDir)
+        do {
+            try await display.start()
+        } catch {
+            display.stop()
+            throw error
+        }
+        return display
     }
 
     private func ui(_ udid: String, _ arguments: [String]) async -> String? {
@@ -99,6 +111,15 @@ struct SimctlService: Sendable {
     }
 
     // MARK: Decoding
+
+    private static func state(from name: String) -> Device.State {
+        switch name {
+        case "Booted": .booted
+        case "Booting": .booting
+        case "Shutting Down": .shuttingDown
+        default: .shutdown
+        }
+    }
 
     private struct Listing: Decodable {
         struct Entry: Decodable {

@@ -22,7 +22,7 @@ extension UserDefaults {
     }
 }
 
-/// Per-project storage under ~/Library/Application Support/Mobile Studio, keyed by a hash of the folder path.
+/// Per-project storage under ~/Library/Application Support/AppFast Studio, keyed by a hash of the folder path.
 enum ProjectStorage {
     static func directory(_ kind: String, for folder: String) -> URL {
         root.appendingPathComponent("\(kind)/\(key(folder))")
@@ -30,7 +30,7 @@ enum ProjectStorage {
 
     static var root: URL {
         FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("Mobile Studio")
+            .appendingPathComponent("AppFast Studio")
     }
 
     static func key(_ folder: String) -> String {
