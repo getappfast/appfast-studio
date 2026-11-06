@@ -6,7 +6,7 @@ this file in the same change.
 
 ## What this is
 
-AppFast Studio is a native macOS app (SwiftUI, Swift 6, macOS 14+) for building Flutter apps with a coding agent.
+AppFast Studio is a native macOS app (SwiftUI, Swift 6, macOS 15+) for building Flutter apps with a coding agent.
 One window shows:
 
 - **Toolbar** (like Xcode's): Run/Stop, the destination simulator menu, an activity line, **Point at…**
